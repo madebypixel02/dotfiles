@@ -58,6 +58,7 @@ lint:pre-commit:
     paths:
       - .cache/pre-commit
   script:
+    - apt-get update -qq && apt-get install -y -qq git
     - pip install --quiet pre-commit
     - pre-commit run --all-files --show-diff-on-failure
   allow_failure: false
@@ -81,7 +82,9 @@ lint:shellcheck:
 
 lint:actionlint:
   stage: lint
-  image: rhysd/actionlint:1.7.3
+  image:
+    name: rhysd/actionlint:1.7.3
+    entrypoint: [""]
   script:
     - actionlint .github/workflows/*.yml
 
