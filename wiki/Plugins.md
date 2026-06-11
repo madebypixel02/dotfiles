@@ -1,6 +1,6 @@
 # Plugins
 
-Seven TypeScript hooks that run as part of the OpenCode plugin system. They enforce standards deterministically at the tool-call level — not through prompts, which are probabilistic.
+Six TypeScript hooks that run as part of the OpenCode plugin system. They enforce standards deterministically at the tool-call level — not through prompts, which are probabilistic.
 
 All plugins import from `@opencode-ai/plugin` and follow the same pattern: async function receiving context, returning an object of event hooks. All error paths are caught and silenced to avoid blocking the agent.
 
@@ -55,22 +55,6 @@ After three or more file edits within a session, suggests running the test suite
 After five or more file edits on session idle, checks whether any test files were among the edits. If not, warns that tests may be missing.
 
 For each write or edit targeting a `src/` file, searches approximately 20 candidate test file paths. If none exist, logs a reminder to add a test.
-
----
-
-## notification-hub.ts
-
-Cross-platform notifications when sessions complete or error.
-
-Detects the platform at startup: macOS uses `osascript`, Linux uses `notify-send`, WSL uses a PowerShell popup.
-
-| Event                       | Action                                                                                                                                    |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `session.idle`              | Desktop notification with files changed and duration. Optional webhook POST to Slack, Teams, or Discord if `OPENCODE_WEBHOOK_URL` is set. |
-| `session.error`             | Urgent desktop notification.                                                                                                              |
-| Active session > 10 minutes | Periodic "still working" ping every ten minutes.                                                                                          |
-
-Webhook payloads are formatted per platform: Slack Block Kit, Teams MessageCard, Discord embed, or generic JSON.
 
 ---
 
