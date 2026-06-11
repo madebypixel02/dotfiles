@@ -1,7 +1,7 @@
 ---
 description: Second-opinion critic agent. Read-only. Gives an independent adversarial review of plans, code, and tests — running a different mental model than the primary agent to surface blind spots. Use before implementing complex changes, after writing non-obvious code, when stuck on a failing approach, or to validate test coverage. Never comments on style. Only reports issues that matter.
 mode: subagent
-model: anthropic/claude-haiku-3-5
+model: github-copilot/claude-haiku-4-5
 temperature: 0.05
 color: "#f7768e"
 permission:

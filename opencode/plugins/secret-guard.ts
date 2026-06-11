@@ -109,73 +109,104 @@ function isBlockedPath(filePath: string): { blocked: boolean; reason: string } {
 
 /**
  * Patterns that indicate a command is PRINTING/EXPORTING secret values.
- * A match causes the command to be blocked.
+ * A match causes the command to be blocked UNLESS isSafeByAllowlist passes first.
+ *
+ * Distinction enforced here:
+ *   BLOCKED — commands that read secret *values* from .env files or the environment
+ *   ALLOWED — commands that read only key *names* (safe for code generation context)
+ *
+ * Safe key-name-only commands (handled by SAFE_BASH_PATTERNS allowlist):
+ *   grep -o "^[^=]*" .env      → prints KEY names only, no values
+ *   cut -d= -f1 .env           → same
+ *   sed 's/=.*//' .env         → same
+ *   awk -F= '{print $1}' .env  → same
  */
 const DANGEROUS_BASH_PATTERNS: Array<{ re: RegExp; description: string }> = [
   {
     re: /\bcat\s+\.env\b/,
-    description: "cat .env — prints all environment variables in the file",
+    description: "cat .env — prints all environment variable values",
   },
   {
-    re: /\bprintenv\b(?!\s+-[0-9]|\s+--)/,
-    description: "printenv — dumps all environment variables",
+    re: /\bcat\s+\.env\.\w/,
+    description: "cat .env.* — prints all environment variable values from a dotenv variant",
+  },
+  {
+    re: /\bgrep\b.*\.env\b(?!.*-o.*\^\[)/,
+    description: "grep against .env file — may print secret values; use 'grep -o \"^[^=]*\" .env' to list key names only",
+    // Note: the allowlist exempts key-name-only grep patterns before this fires
+  },
+  {
+    re: /\bprintenv\b(?!\s+\w)/,
+    description: "printenv with no arguments — dumps all environment variable values",
   },
   {
     re: /\benv\s*\|\s*grep\b/,
-    description: "env | grep — filters and prints environment variables",
+    description: "env | grep — filters and prints environment variable values",
   },
   {
     re: /\benv\s*>\s*\S/,
-    description: "env > file — redirects all env vars to a file",
+    description: "env > file — redirects all env var values to a file",
   },
   {
     re: /\becho\s+\$(?:PASSWORD|SECRET|TOKEN|API_KEY|APIKEY|PRIVATE_KEY|AWS_SECRET|DATABASE_URL)\b/i,
-    description: "echo $SECRET_VAR — prints a secret variable value",
+    description: "echo $SECRET_VAR — prints a secret variable value directly",
   },
   {
     re: /\bset\s*\|\s*grep\b/,
-    description: "set | grep — dumps and filters shell variables",
+    description: "set | grep — dumps and filters shell variable values",
   },
   {
     re: /aws\s+configure\s+get\s+aws_secret/i,
-    description:
-      "aws configure get aws_secret_access_key — retrieves AWS secret",
+    description: "aws configure get aws_secret_access_key — retrieves AWS secret value",
   },
   {
     re: /\bkubectl\s+get\s+secret\b.*-o\s+(?:json|yaml)/i,
-    description: "kubectl get secret -o yaml/json — decodes Kubernetes secrets",
+    description: "kubectl get secret -o yaml/json — decodes Kubernetes secret values",
   },
   {
     re: /\bdocker\s+inspect\b.*secret/i,
-    description: "docker inspect — may expose secrets in container config",
+    description: "docker inspect — may expose secret values in container config",
   },
   {
     re: /\bhistory\b\s*\|\s*grep\b/,
-    description: "history | grep — may expose secrets from command history",
+    description: "history | grep — may expose secret values from command history",
   },
   {
     re: /\bcat\s+~\/\.netrc\b/,
-    description: "cat ~/.netrc — prints stored credentials",
+    description: "cat ~/.netrc — prints stored credential values",
   },
   {
     re: /\bcat\s+~\/\.pgpass\b/,
-    description: "cat ~/.pgpass — prints PostgreSQL passwords",
+    description: "cat ~/.pgpass — prints PostgreSQL password values",
   },
 ];
 
 /**
- * Patterns that LOOK dangerous but are actually safe — allowlisted.
- * If ALL matched dangerous patterns are covered by an allowlist entry, allow.
+ * Commands that match DANGEROUS_BASH_PATTERNS superficially but are safe because
+ * they only expose key *names*, never values. Checked before the dangerous list.
+ *
+ * All of these strip the value portion (everything after the = sign) before output:
+ *   grep -o "^[^=]*" .env      → KEY_NAME only
+ *   grep -oP "^[^=]+" .env     → KEY_NAME only (Perl regex variant)
+ *   cut -d= -f1 .env           → KEY_NAME only
+ *   sed 's/=.*//' .env         → KEY_NAME only
+ *   awk -F= '{print $1}' .env  → KEY_NAME only
  */
 const SAFE_BASH_PATTERNS: RegExp[] = [
-  // Checking existence only, not printing value
+  // Key-name-only reads from .env — safe for generating process.env.VAR_NAME references
+  /grep\s+-[a-zA-Z]*o[a-zA-Z]*\s+"?\^?\[?\^=\]?\*"?\s+\.env/,   // grep -o "^[^=]*" .env
+  /grep\s+-[a-zA-Z]*oP[a-zA-Z]*\s+"?\^?\[?\^=\]\+"?\s+\.env/,   // grep -oP "^[^=]+" .env
+  /cut\s+-d=?\s+-f1\s+\.env/,                                      // cut -d= -f1 .env
+  /sed\s+'s\/=.*\/\/'\s+\.env/,                                    // sed 's/=.*//' .env
+  /awk\s+['"-]F=.*print\s+\$1.*\.env/,                            // awk -F= '{print $1}' .env
+  // Existence checks — never print values
   /\[\s*-z\s+"\$\w+"\s*\]/,
   /\[\s*-n\s+"\$\w+"\s*\]/,
   /\[\[\s*-z\s+"\$\w+"\s*\]\]/,
   /\[\[\s*-n\s+"\$\w+"\s*\]\]/,
-  // printenv used solely to check if a var is set (exit code check)
+  // printenv VAR_NAME — checks a single named variable (exits non-zero if unset, prints nothing sensitive in scripts)
   /printenv\s+\w+\s*(?:&&|\|\||;|$)/,
-  // env used only to pass to another process
+  // env used only to pass variables to a subprocess, not to dump them
   /\benv\s+\w+=\S+\s+\w+/,
 ];
 

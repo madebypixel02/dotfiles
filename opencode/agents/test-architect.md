@@ -2,7 +2,7 @@
 name: test-architect
 description: Test architecture and implementation subagent. Designs testing strategy across unit, integration, and end-to-end layers. Writes actual test code. Targets 80% unit coverage and 60% integration coverage. No bash access — cannot run tests directly. Use when a feature lacks tests, coverage is low, or a testing strategy needs to be designed.
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: github-copilot/claude-sonnet-4-6
 temperature: 0.2
 color: "#bb9af7"
 permission:

@@ -3,8 +3,8 @@
 
   // ─── Models ───────────────────────────────────────────────────────────────
   // Override via OPENCODE_MODEL env var or --model flag at runtime
-  "model": "anthropic/claude-sonnet-4-5",
-  "small_model": "anthropic/claude-haiku-3-5",
+  "model": "github-copilot/claude-sonnet-4-6",
+  "small_model": "github-copilot/claude-haiku-4-5",
 
   // ─── Custom providers ─────────────────────────────────────────────────────
   // Azure OpenAI — set AZURE_OPENAI_API_KEY in your shell environment
@@ -101,17 +101,23 @@
       "printenv *":                 "allow",
 
       // Git read operations (allow)
+      // Use trailing-space + wildcard to match both bare and flag-bearing variants.
       "git status":                 "allow",
       "git status *":               "allow",
-      "git log *":                  "allow",
       "git log":                    "allow",
-      "git diff *":                 "allow",
+      "git log *":                  "allow",
       "git diff":                   "allow",
+      "git diff *":                 "allow",
+      "git show":                   "allow",
       "git show *":                 "allow",
-      "git branch *":               "allow",
       "git branch":                 "allow",
+      "git branch *":               "allow",
+      "git remote":                 "allow",
       "git remote *":               "allow",
       "git stash list":             "allow",
+      "git rev-parse *":            "allow",
+      "git describe *":             "allow",
+      "git shortlog *":             "allow",
 
       // Git write operations (ask — require human review)
       "git add *":                  "ask",
@@ -158,6 +164,21 @@
       "truncate *":                 "deny",
       "> /etc/*":                   "deny",
       "> /var/*":                   "deny",
+
+      // System directory inspection via bash (deny — external_directory rules
+      // only cover read/write/edit tools, not bash; these fill the gap)
+      "ls /etc":                    "deny",
+      "ls /etc/*":                  "deny",
+      "ls /etc *":                  "deny",
+      "ls /var":                    "deny",
+      "ls /var/*":                  "deny",
+      "ls /var *":                  "deny",
+      "ls /usr":                    "deny",
+      "ls /usr/*":                  "deny",
+      "ls /usr *":                  "deny",
+      "cat /etc/*":                 "deny",
+      "cat /var/*":                 "deny",
+      "cat /usr/*":                 "deny",
 
       // Privilege escalation (deny)
       "sudo *":                     "deny",
