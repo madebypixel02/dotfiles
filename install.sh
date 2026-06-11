@@ -39,10 +39,8 @@ COUNT_ERRORS=0
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
-  OS="macos"
   CONFIG_HOME="${HOME}/.config"
 else
-  OS="linux"
   CONFIG_HOME="${XDG_CONFIG_HOME:-${HOME}/.config}"
 fi
 
@@ -62,9 +60,8 @@ log_info() {
 }
 
 do_symlink() {
-  local target="$1"   # where the symlink will point TO (in dotfiles/)
-  local link="$2"     # where the symlink lives (in ~/.config/ etc.)
-  local label="${3:-$link}"
+  local target="$1"
+  local link="$2"
 
   if [[ "$DRY_RUN" == "true" ]]; then
     echo -e "  ${CYAN}[dry-run]${RESET} would symlink ${BOLD}${link}${RESET} → ${target}"
@@ -166,9 +163,11 @@ else
     git -C "${HUMANIZER_DIR}" pull --ff-only --quiet 2>/dev/null || log_info "humanizer: already up to date (or pull skipped)"
   else
     log_info "Cloning blader/humanizer..."
-    git clone --depth=1 --quiet https://github.com/blader/humanizer.git "${HUMANIZER_DIR}" 2>/dev/null \
-      && log_info "humanizer cloned" \
-      || log_info "humanizer clone failed -- skipping (network issue?)"
+    if git clone --depth=1 --quiet https://github.com/blader/humanizer.git "${HUMANIZER_DIR}" 2>/dev/null; then
+      log_info "humanizer cloned"
+    else
+      log_info "humanizer clone failed -- skipping (network issue?)"
+    fi
   fi
 fi
 
@@ -213,7 +212,7 @@ fi
 # ---------------------------------------------------------------------------
 log_header "Claude Code symlinks (${CLAUDE_DIR}/)"
 
-for f in CLAUDE.md settings.json mcp.json; do
+for f in CLAUDE.md settings.json mcp.jsonc; do
   src="${DOTFILES_DIR}/claude/${f}"
   if [[ -f "$src" ]]; then
     do_symlink "$src" "${CLAUDE_DIR}/${f}"
