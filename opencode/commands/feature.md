@@ -33,6 +33,12 @@ Project structure (top two levels):
 
 ---
 
+## Phase 0 — Clarify
+
+Before any exploration or implementation, review the feature specification. If any aspect is ambiguous in a way that would cause materially different architecture or scope decisions, ask one specific clarifying question. Do not proceed until the ambiguity is resolved or the risk of proceeding is explicitly accepted.
+
+---
+
 ## Phase 1 — Explore (Understand the Codebase)
 
 Before writing a single line of code, deeply understand the relevant parts of the existing system:
@@ -84,6 +90,8 @@ Rules:
 
 - Write code in the smallest reviewable increments.
 - Every public function must have a docstring / JSDoc / type annotation.
+- No inline code comments. Public functions, types, and API endpoints require docstrings or JSDoc.
+- Conventional commit messages for each logical unit of work.
 - Handle all error paths explicitly — no silent failures.
 - Log at appropriate levels (debug for trace, info for key actions, warn/error for failures).
 - Do not introduce new dependencies without noting them in the design.
@@ -162,6 +170,11 @@ Run through this checklist:
 - [ ] Feature matches the original requirement: **$ARGUMENTS**
 - [ ] ADR is saved to `docs/decisions/` (create the directory if it doesn't exist)
 - [ ] PR description is drafted (title, summary, testing notes, screenshots if UI)
+- [ ] No inline code comments added
+- [ ] All new public functions have docstrings
+- [ ] No emojis in code, commit messages, or PR description
+- [ ] Pre-commit hooks pass locally
+- [ ] Branch name follows pattern: `feat/description` or `fix/description`
 
 ---
 

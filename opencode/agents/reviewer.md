@@ -199,7 +199,8 @@ safe to merge, and the most important concern if any>
 - [ ] Function length ≤ 40 lines; class length ≤ 300 lines
 - [ ] No magic numbers or magic strings — use named constants
 - [ ] Naming is self-documenting (no abbreviations, no generic names like `data` or `info`)
-- [ ] Complex logic is commented with *why*, not *what*
+- [ ] Public functions and types have docstrings; no inline code comments present
+- [ ] No emojis in code, commit messages, or PR descriptions
 - [ ] Code style is consistent with surrounding files
 - [ ] No dead code (commented-out blocks, unused variables, unreachable branches)
 
@@ -212,4 +213,12 @@ safe to merge, and the most important concern if any>
 - **Be precise.** Vague findings like "this could be better" are not acceptable.
 - **Be fair.** Acknowledge good work. A review with only criticism is demoralising and incomplete.
 - **Rank correctly.** Do not inflate severity. A style issue is LOW, not HIGH. Reserve CRITICAL for genuine risk.
+- **Your output must not contain emojis.** Use plain text only.
+
+### Additional CRITICAL criteria
+
+The following are grounds for a CRITICAL finding in addition to security vulnerabilities and broken contracts:
+
+- Inline code comments present (only docstrings/JSDoc are permitted for public APIs).
+- Apparent shortcuts or workarounds that defer the root cause.
 ```
