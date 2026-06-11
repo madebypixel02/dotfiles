@@ -13,16 +13,20 @@
  * 3. PER-FILE TEST COVERAGE HINT:
  *    After each write/edit to a src/ file, checks whether a corresponding
  *    test file exists using common naming heuristics. If none is found,
- *    emits a console.log reminder (never blocks the operation).
+ *    emits a reminder (never blocks the operation).
  *
  * Design principles:
  *   • NEVER throws — all warnings are advisory.
  *   • Cooldown prevents warning fatigue.
  *   • Heuristics are project-structure-aware (supports multiple layouts).
  *   • No external dependencies; file existence is checked with Bun.file().
+ *   • Messages are written to .opencode/quality-gate.log in the project root
+ *     in addition to console, so Web UI renderers that suppress stdout can
+ *     still surface them by watching that file.
  */
 
 import type { Plugin } from "@opencode-ai/plugin";
+import { join } from "path";
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -32,6 +36,9 @@ const TEST_SUGGESTION_THRESHOLD = 3; // edits before suggesting test run
 const IDLE_TEST_WARNING_THRESHOLD = 5; // files modified before idle warning
 const COOLDOWN_MS = 2 * 60 * 1_000; // 2-minute cooldown between suggestions
 
+/** Log file path relative to project root. Created on first write. */
+const LOG_FILENAME = join(".opencode", "quality-gate.log");
+
 // ---------------------------------------------------------------------------
 // Session state
 // ---------------------------------------------------------------------------
@@ -40,6 +47,30 @@ let editCount = 0;
 let lastSuggestedTestRunAt = 0;
 let filesEditedThisSession: Set<string> = new Set();
 let testFilesTouchedThisSession = false;
+let projectRoot = process.cwd();
+
+// ---------------------------------------------------------------------------
+// Log helper — writes to console AND to .opencode/quality-gate.log
+// ---------------------------------------------------------------------------
+
+/**
+ * Appends a timestamped message to .opencode/quality-gate.log and logs to
+ * console. The file is created (including parent directory) if it does not
+ * exist. Failures are silently swallowed — logging must never block the agent.
+ */
+async function emit(message: string): Promise<void> {
+  const line = `[${new Date().toISOString()}] ${message.trim()}\n`;
+  console.log("\n" + message.trim() + "\n");
+  try {
+    const logPath = join(projectRoot, LOG_FILENAME);
+    const dir = join(projectRoot, ".opencode");
+    // Ensure directory exists
+    await Bun.$`mkdir -p ${dir}`.quiet();
+    await Bun.write(logPath, line, { flag: "a" });
+  } catch {
+    // swallow — never block the agent
+  }
+}
 
 // ---------------------------------------------------------------------------
 // File-system helpers
@@ -185,30 +216,27 @@ function isSourceFile(filePath: string): boolean {
 // Warning emitters (all non-blocking)
 // ---------------------------------------------------------------------------
 
-function emitTestRunSuggestion(): void {
+async function emitTestRunSuggestion(): Promise<void> {
   const now = Date.now();
-  if (now - lastSuggestedTestRunAt < COOLDOWN_MS) return; // cooldown
+  if (now - lastSuggestedTestRunAt < COOLDOWN_MS) return;
   lastSuggestedTestRunAt = now;
-
-  console.log(
-    `\n[quality-gate] You have made ${editCount} file edits this session. ` +
-      `Consider running your test suite to catch regressions:\n` +
-      `  npm test  |  bun test  |  pnpm test  |  yarn test\n`,
+  await emit(
+    `[quality-gate] ${editCount} file edits this session. Consider running your test suite:\n` +
+    `  npm test  |  bun test  |  pnpm test  |  yarn test`,
   );
 }
 
-function emitNoTestsWarning(): void {
-  console.log(
-    `\n[quality-gate] Warning: You modified ${filesEditedThisSession.size} files this session ` +
-      `but no test files were touched.\n` +
-      `Consider adding or updating tests to cover your changes.\n`,
+async function emitNoTestsWarning(): Promise<void> {
+  await emit(
+    `[quality-gate] Warning: ${filesEditedThisSession.size} files modified this session but no test files were touched.\n` +
+    `Consider adding or updating tests to cover your changes.`,
   );
 }
 
-function emitMissingTestHint(sourceFile: string): void {
-  console.log(
-    `\n[quality-gate] Hint: No test file found for: ${sourceFile}\n` +
-      `  Consider creating a corresponding test file to maintain coverage.\n`,
+async function emitMissingTestHint(sourceFile: string): Promise<void> {
+  await emit(
+    `[quality-gate] No test file found for: ${sourceFile}\n` +
+    `  Consider creating a corresponding test file to maintain coverage.`,
   );
 }
 
@@ -239,7 +267,9 @@ function extractFilePath(args: Record<string, unknown>): string | undefined {
 // Plugin
 // ---------------------------------------------------------------------------
 
-const qualityGatePlugin: Plugin = async ({}) => {
+const qualityGatePlugin: Plugin = async ({ directory, project }) => {
+  projectRoot = directory ?? project?.path ?? process.cwd();
+
   return {
     // ------------------------------------------------------------------
     // Reset state on new session
@@ -257,13 +287,12 @@ const qualityGatePlugin: Plugin = async ({}) => {
         return;
       }
 
-      // ── session.idle — check overall test coverage ──────────────────
       if (type === "session.idle") {
         if (
           filesEditedThisSession.size > IDLE_TEST_WARNING_THRESHOLD &&
           !testFilesTouchedThisSession
         ) {
-          emitNoTestsWarning();
+          await emitNoTestsWarning();
         }
         return;
       }
@@ -281,31 +310,26 @@ const qualityGatePlugin: Plugin = async ({}) => {
         const filePath = extractFilePath(args);
         if (!filePath) return;
 
-        // Track the file
         filesEditedThisSession.add(filePath);
         editCount++;
 
-        // Track if we've touched any test files
         if (isTestFile(filePath)) {
           testFilesTouchedThisSession = true;
         }
 
-        // ── Threshold check: suggest running tests ──────────────────
         if (editCount >= TEST_SUGGESTION_THRESHOLD) {
-          emitTestRunSuggestion();
+          await emitTestRunSuggestion();
         }
 
-        // ── Per-file: check for missing test (source files only) ────
         if (isSourceFile(filePath)) {
-          // Fire-and-forget: async check, result logged if missing
           void (async () => {
             try {
               const testFile = await findCorrespondingTestFile(filePath);
               if (!testFile) {
-                emitMissingTestHint(filePath);
+                await emitMissingTestHint(filePath);
               }
             } catch {
-              // swallow — never block the agent
+              // swallow
             }
           })();
         }
