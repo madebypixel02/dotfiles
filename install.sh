@@ -111,10 +111,13 @@ if command -v opencode &>/dev/null; then
   log_info "opencode already installed: $(command -v opencode)"
 else
   if [[ "$DRY_RUN" == "true" ]]; then
-    log_info "[dry-run] would install opencode via: curl -fsSL https://opencode.ai/install | bash"
+    log_info "[dry-run] would install opencode via the official install script"
   else
     echo -e "  ${YELLOW}opencode not found — installing...${RESET}"
-    curl -fsSL https://opencode.ai/install | bash
+    install_script="$(mktemp)"
+    curl -fsSL https://opencode.ai/install -o "${install_script}"
+    bash "${install_script}"
+    rm -f "${install_script}"
   fi
 fi
 

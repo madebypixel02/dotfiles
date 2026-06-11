@@ -111,7 +111,7 @@ security:sast:
   image: python:3.12-slim
   script:
     - pip install --quiet semgrep
-    - semgrep --config auto --error --json . | tee semgrep-report.json
+    - semgrep --config auto --error --json --exclude semgrep-report.json . | tee semgrep-report.json
   artifacts:
     when: always
     paths:
