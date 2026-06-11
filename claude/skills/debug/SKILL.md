@@ -11,4 +11,4 @@ Recent context:
 !`git log --oneline -5 2>/dev/null`
 !`git diff HEAD --stat 2>/dev/null | head -20`
 
-@../../shared/prompts/debug.md
+@../../../shared/prompts/debug.md

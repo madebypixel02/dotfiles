@@ -7,4 +7,4 @@ context: fork
 
 Research topic: $ARGUMENTS
 
-@../../shared/prompts/deep-research.md
+@../../../shared/prompts/deep-research.md

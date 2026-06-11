@@ -10,4 +10,4 @@ Input: $ARGUMENTS
 Recent changes for context:
 !`git diff HEAD 2>/dev/null | head -300`
 
-@../../shared/prompts/rubber-duck.md
+@../../../shared/prompts/rubber-duck.md

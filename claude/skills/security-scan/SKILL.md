@@ -7,4 +7,4 @@ context: fork
 
 Audit target: $ARGUMENTS
 
-@../../shared/prompts/security-scan.md
+@../../../shared/prompts/security-scan.md
