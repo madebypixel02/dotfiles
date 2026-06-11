@@ -12,6 +12,8 @@ variables:
   PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
   SAST_EXCLUDED_ANALYZERS: "eslint,gosec,nodejs-scan,semgrep"
   SECRET_DETECTION_EXCLUDED_PATHS: ".git"
+  SAST_STAGE: security
+  SECRET_DETECTION_STAGE: security
 
 default:
   image: python:3.12-slim
