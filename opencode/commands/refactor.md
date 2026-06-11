@@ -1,0 +1,251 @@
+---
+description: Safe, behaviour-preserving refactoring — assess → baseline tests → refactor → verify → document
+agent: orchestrator
+subtask: true
+---
+
+# Refactor: $ARGUMENTS
+
+You are an orchestrator managing a safe, disciplined refactoring. The target is:
+
+> **$ARGUMENTS**
+
+**Core constraint:** The external behaviour of the system MUST NOT change. Any consumer of the refactored code — whether a human, a test, or another service — must not be able to tell a refactor occurred. If behaviour must change, that is a feature, not a refactor, and this workflow is the wrong tool.
+
+---
+
+## Context Injection
+
+```
+Current branch: !`git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "(not a git repo)"`
+
+Recent commits:
+!`git log --oneline -10 2>/dev/null || echo "(no git history)"`
+
+Current working state (must be clean before refactoring):
+!`git status --short 2>/dev/null || echo "(unable to check status)"`
+
+Project structure:
+!`find . -maxdepth 3 -not -path './.git/*' -not -path './node_modules/*' -not -path './.venv/*' -not -path './dist/*' -not -path './build/*' | sort 2>/dev/null | head -80`
+```
+
+---
+
+## Phase 1 — Assess
+
+Before touching any code, fully understand what you are working with.
+
+### 1a. Scope Inventory
+
+Identify and list:
+
+- All files and functions that are in scope for this refactor.
+- All **callers** of those functions (who depends on this code).
+- All **callees** — what does this code depend on?
+- Any shared state, globals, or module-level side effects.
+- Configuration, environment variables, or feature flags involved.
+
+### 1b. Smell Catalogue
+
+Document the specific code smells or structural issues that motivate this refactor. Use recognised names where applicable:
+
+| Issue                                             | Location    | Impact         | Priority |
+| ------------------------------------------------- | ----------- | -------------- | -------- |
+| [Long Method / God Class / Duplicate Code / etc.] | [file:line] | [High/Med/Low] | [1-n]    |
+
+### 1c. Refactor Strategy
+
+Choose the refactoring techniques to apply. Be specific — use canonical refactoring names (Martin Fowler's catalogue):
+
+- Extract Method / Extract Class
+- Rename Variable / Rename Method
+- Move Method / Move Field
+- Replace Conditional with Polymorphism
+- Introduce Parameter Object
+- Decompose Conditional
+- Inline Temp
+- Replace Magic Number with Named Constant
+- etc.
+
+**Output:** Scoped inventory + smell catalogue + named strategy.
+
+---
+
+## Phase 2 — Baseline Tests
+
+**This phase is non-negotiable.** You must have passing tests that cover the current behaviour before any code changes.
+
+### 2a. Audit Existing Coverage
+
+Examine the current test suite for the scope identified in Phase 1:
+
+- Which code paths are covered?
+- Which are not?
+- Are the existing tests testing behaviour (via public API) or implementation details (via internals)?
+
+### 2b. Write Missing Characterisation Tests
+
+For any behaviour that is not covered by existing tests, write **characterisation tests** — tests that document the _current_ behaviour, even if that behaviour is surprising or imperfect:
+
+```
+// CHARACTERISATION TEST: Documents current behaviour before refactor
+// Do not modify these tests unless the public contract is being intentionally changed.
+```
+
+Rules for characterisation tests:
+
+- Test through the public interface only, never internal implementation.
+- Include edge cases and boundary conditions.
+- If current behaviour is a bug, mark it: `// KNOWN BUG: [description] — tracked in #<issue>`
+
+### 2c. Establish Baseline
+
+Confirm all tests pass before proceeding. Record the baseline:
+
+```
+Tests: [X passing, 0 failing, Y skipped]
+Coverage: [X% statements, Y% branches]
+```
+
+Do NOT proceed to Phase 3 until the baseline is confirmed passing.
+
+---
+
+## Phase 3 — Refactor
+
+Apply the refactoring strategy from Phase 1 using **small, atomic steps**. Each step must:
+
+1. Leave all existing tests green.
+2. Represent a single, named refactoring operation.
+3. Be committable independently (even if you don't commit after each step).
+
+### Atomic Step Protocol
+
+For each refactoring step:
+
+- Name the operation (e.g., "Extract Method: parseUserInput")
+- Describe what changes
+- Confirm tests still pass after the change
+- Note any intermediate states that look wrong but will be cleaned up in the next step
+
+### Behaviour-Preservation Rules (non-negotiable):
+
+- [ ] No changes to function signatures visible to external callers without deprecation handling.
+- [ ] No changes to return types or shapes.
+- [ ] No changes to error types thrown.
+- [ ] No changes to side effects (events emitted, DB writes, external calls).
+- [ ] No changes to module exports.
+- [ ] No changes to configuration keys or environment variable names.
+- [ ] Performance characteristics must remain within 10% (no accidentally O(n²) replacements).
+
+---
+
+## Phase 4 — Verify
+
+Run the full verification suite after all refactoring steps are complete.
+
+### 4a. Test Verification
+
+All tests must pass — not just the characterisation tests, but the full suite:
+
+```
+!`echo "Run your test command here, e.g.: npm test / pytest / go test ./... / cargo test"`
+```
+
+### 4b. Behavioural Equivalence Check
+
+For each item in the Scope Inventory from Phase 1, verify:
+
+- [ ] Public function signatures unchanged (or backwards-compatible wrappers added).
+- [ ] Return values are identical for identical inputs.
+- [ ] Error cases produce identical errors.
+- [ ] Side effects occur in the same order with the same payloads.
+
+### 4c. Static Analysis
+
+Check for any regressions introduced by the refactor:
+
+```
+!`echo "Run your linter here, e.g.: eslint . / ruff check . / golangci-lint run"`
+```
+
+### 4d. Diff Review
+
+Review the full diff to catch any unintended changes:
+
+```
+!`git diff HEAD 2>/dev/null | head -500 || echo "(unable to diff)"`
+```
+
+**Flag any of the following as potential behaviour changes requiring review:**
+
+- Changes to conditional logic
+- Changes to loop bounds
+- Additions or removals of function calls
+- Changes to error handling paths
+
+---
+
+## Phase 5 — Document
+
+### 5a. Update Inline Documentation
+
+- Update docstrings/JSDoc to reflect the new structure.
+- Remove any comments that described the old (now-gone) complexity.
+- Add comments explaining _why_ design decisions were made, not _what_ the code does.
+
+### 5b. Write Refactor Summary
+
+Produce a summary document (for the PR description):
+
+```markdown
+## Refactor: $ARGUMENTS
+
+### Motivation
+
+[Why this refactor was necessary — link to tech debt tracking if applicable]
+
+### What Changed
+
+[Structural changes: what was extracted, renamed, moved, or reorganised]
+
+### What Did NOT Change
+
+[Explicitly state: public interfaces, behaviour, performance characteristics]
+
+### Techniques Applied
+
+[List the named refactoring operations used]
+
+### Testing
+
+- Characterisation tests added: [list]
+- Existing tests: [X passing — no regressions]
+- Coverage change: [before] → [after]
+
+### Follow-up Work
+
+[Any tech debt discovered during refactor that was intentionally deferred]
+```
+
+### 5c. CHANGELOG Entry
+
+```markdown
+### [refactor] - !`date +"%Y-%m-%d"`
+
+**Refactored:** $ARGUMENTS — no behaviour changes, improved [maintainability/readability/testability].
+```
+
+---
+
+## Refactor Complete
+
+Final checklist:
+
+- [ ] All characterisation tests written and passing before any code changed
+- [ ] All refactoring steps applied atomically
+- [ ] No external behaviour changed (verified by passing tests)
+- [ ] No performance regressions introduced
+- [ ] Inline documentation updated
+- [ ] PR description explains what changed and what did not
+- [ ] CHANGELOG entry written

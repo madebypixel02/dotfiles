@@ -1,0 +1,84 @@
+{
+  "model": "claude-sonnet-4-5",
+  "autoMemoryEnabled": true,
+  "permissions": {
+    "allow": [
+      "Bash(git:read)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git remote -v)",
+      "Bash(git stash list)",
+      "Bash(npm run test*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run build*)",
+      "Bash(npm run typecheck*)",
+      "Bash(npm run type-check*)",
+      "Bash(npm test*)",
+      "Bash(npx tsc*)",
+      "Bash(npx eslint*)",
+      "Bash(cat*)",
+      "Bash(ls*)",
+      "Bash(find*)",
+      "Bash(rg*)",
+      "Bash(grep*)",
+      "Bash(wc*)",
+      "Bash(echo*)",
+      "Bash(pwd)",
+      "Bash(which*)",
+      "Bash(env)",
+      "Bash(printenv*)",
+      "Read(*)",
+      "Glob(*)",
+      "Grep(*)"
+    ],
+    "deny": [
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(rm -rf*)",
+      "Bash(rm -fr*)",
+      "Bash(sudo rm*)",
+      "Bash(chmod 777*)",
+      "Bash(curl * | bash*)",
+      "Bash(wget * | bash*)",
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.production)",
+      "Read(**/.env.staging)",
+      "Read(**/secrets/**)",
+      "Read(**/.ssh/**)",
+      "Read(**/.gnupg/**)",
+      "Write(**/.env)",
+      "Write(**/.env.local)",
+      "Write(**/.env.production)",
+      "Write(**/.env.staging)",
+      "Write(**/secrets/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cmd=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .command 2>/dev/null || echo \"\"); if echo \"$cmd\" | grep -qE \"(rm\\s+-rf|git\\s+push\\s+--force|git\\s+push\\s+-f|curl.*\\|.*bash|wget.*\\|.*bash|dd\\s+if.*of=.*/dev/|mkfs|fdisk|parted|shred)\"; then echo \"BLOCKED: Dangerous command pattern detected: $cmd\" >&2; exit 1; fi'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'file=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .filePath 2>/dev/null || echo \"\"); if [ -z \"$file\" ]; then file=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .path 2>/dev/null || echo \"\"); fi; if [ -n \"$file\" ]; then ext=\"${file##*.}\"; case \"$ext\" in ts|tsx|js|jsx) npx prettier --write \"$file\" 2>/dev/null || true ;; py) black \"$file\" 2>/dev/null || true ;; go) gofmt -w \"$file\" 2>/dev/null || true ;; rs) rustfmt \"$file\" 2>/dev/null || true ;; esac; fi'"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,255 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // ─── Models ───────────────────────────────────────────────────────────────
+  // Override via OPENCODE_MODEL env var or --model flag at runtime
+  "model": "anthropic/claude-sonnet-4-5",
+  "small_model": "anthropic/claude-haiku-3-5",
+
+  // ─── Custom providers ─────────────────────────────────────────────────────
+  // Azure OpenAI — set AZURE_OPENAI_API_KEY in your shell environment
+  // "provider": {
+  //   "azure-openai": {
+  //     "name": "Azure OpenAI",
+  //     "npm": "@ai-sdk/openai-compatible",
+  //     "options": {
+  //       "baseURL": "https://YOUR_RESOURCE.openai.azure.com/openai/v1",
+  //       "apiKey": "{env:AZURE_OPENAI_API_KEY}"
+  //     },
+  //     "models": {
+  //       "gpt-4.1": { "name": "GPT-4.1", "cost": { "input": 2, "output": 8 } },
+  //       "gpt-4.1-mini": { "name": "GPT-4.1-mini", "cost": { "input": 0.4, "output": 1.6 } }
+  //     }
+  //   }
+  // },
+
+  // ─── Agent defaults ───────────────────────────────────────────────────────
+  "default_agent": "orchestrator",
+
+  // ─── Sharing & updates ────────────────────────────────────────────────────
+  "share": "disabled",
+  "autoupdate": "notify",
+
+  // ─── Snapshots & compaction ───────────────────────────────────────────────
+  "snapshot": true,
+  "compaction": {
+    "auto": true,
+    "prune": false,
+    "reserved": 15000
+  },
+
+  // ─── File watcher ─────────────────────────────────────────────────────────
+  // Patterns to ignore when watching for file changes in the workspace
+  "experimental": {
+    "watcher": {
+      "ignore": [
+        "node_modules",
+        "dist",
+        ".next",
+        "coverage",
+        ".turbo",
+        ".git",
+        "*.log"
+      ]
+    }
+  },
+
+  // ─── Permissions ──────────────────────────────────────────────────────────
+  // Rules are evaluated in order; the LAST matching rule wins.
+  // Broad patterns first, narrow overrides last.
+  "permission": {
+    // Read-only tools: allow by default (agents are browsers, not writers)
+    "read": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "webfetch": "allow",
+
+    // File edits: ask for confirmation on every write
+    "edit": "ask",
+
+    // External directory access: project workspace is open; home/system dirs are locked
+    "external_directory": {
+      "~/.config/opencode/**": "allow",
+      "~/dotfiles/**":         "allow",
+      "~/projects/**":         "allow",
+      "~/.ssh/**":             "deny",
+      "~/.gnupg/**":           "deny",
+      "~/.aws/**":             "deny",
+      "~/.kube/**":            "deny",
+      "/etc/**":               "deny",
+      "/var/**":               "deny",
+      "/usr/**":               "deny",
+      "*":                     "ask"
+    },
+
+    // Bash: safe read/nav commands allowed; destructive or network ops need approval
+    "bash": {
+      // Navigation & inspection (allow)
+      "ls *":                       "allow",
+      "ls":                         "allow",
+      "pwd":                        "allow",
+      "echo *":                     "allow",
+      "cat *":                      "allow",
+      "head *":                     "allow",
+      "tail *":                     "allow",
+      "wc *":                       "allow",
+      "diff *":                     "allow",
+      "which *":                    "allow",
+      "type *":                     "allow",
+      "env":                        "allow",
+      "printenv *":                 "allow",
+
+      // Git read operations (allow)
+      "git status":                 "allow",
+      "git status *":               "allow",
+      "git log *":                  "allow",
+      "git log":                    "allow",
+      "git diff *":                 "allow",
+      "git diff":                   "allow",
+      "git show *":                 "allow",
+      "git branch *":               "allow",
+      "git branch":                 "allow",
+      "git remote *":               "allow",
+      "git stash list":             "allow",
+
+      // Git write operations (ask — require human review)
+      "git add *":                  "ask",
+      "git commit *":               "ask",
+      "git push *":                 "ask",
+      "git merge *":                "ask",
+      "git rebase *":               "ask",
+      "git reset *":                "ask",
+      "git checkout *":             "ask",
+      "git switch *":               "ask",
+      "git stash *":                "ask",
+      "git tag *":                  "ask",
+
+      // Package managers — install/run (ask)
+      "npm install *":              "ask",
+      "npm run *":                  "ask",
+      "pnpm install *":             "ask",
+      "pnpm run *":                 "ask",
+      "pnpm add *":                 "ask",
+      "yarn add *":                 "ask",
+      "yarn *":                     "ask",
+      "bun install *":              "ask",
+      "bun add *":                  "ask",
+      "bun run *":                  "ask",
+
+      // Build & test runners (ask)
+      "npx *":                      "ask",
+      "pnpm exec *":                "ask",
+      "pnpm dlx *":                 "ask",
+      "jest *":                     "ask",
+      "vitest *":                   "ask",
+      "playwright *":               "ask",
+
+      // Docker (ask — can pull images and spawn containers)
+      "docker *":                   "ask",
+      "docker-compose *":           "ask",
+
+      // Destructive filesystem ops (deny)
+      "rm -rf *":                   "deny",
+      "rm -fr *":                   "deny",
+      "rm -r /*":                   "deny",
+      "rmdir *":                    "deny",
+      "shred *":                    "deny",
+      "truncate *":                 "deny",
+      "> /etc/*":                   "deny",
+      "> /var/*":                   "deny",
+
+      // Privilege escalation (deny)
+      "sudo *":                     "deny",
+      "su *":                       "deny",
+      "chmod 777 *":                "deny",
+      "chown *":                    "deny",
+
+      // Network / secrets exfiltration (deny)
+      "curl * | bash":              "deny",
+      "wget * | bash":              "deny",
+      "curl * | sh":                "deny",
+      "wget * | sh":                "deny",
+      "ssh *":                      "deny",
+      "scp *":                      "deny",
+      "nc *":                       "deny",
+      "netcat *":                   "deny",
+
+      // Secret access (deny)
+      "cat ~/.ssh/*":               "deny",
+      "cat ~/.gnupg/*":             "deny",
+      "cat ~/.aws/*":               "deny",
+      "cat ~/.kube/*":              "deny",
+      "cat /etc/passwd":            "deny",
+      "cat /etc/shadow":            "deny",
+
+      // Catch-all: anything not matched above requires approval
+      "*": "ask"
+    }
+  },
+
+  // ─── Formatters ───────────────────────────────────────────────────────────
+  // Use prettier for all web/config file types
+  "formatter": {
+    "*.ts":     ["prettier", "--write"],
+    "*.tsx":    ["prettier", "--write"],
+    "*.js":     ["prettier", "--write"],
+    "*.jsx":    ["prettier", "--write"],
+    "*.mjs":    ["prettier", "--write"],
+    "*.cjs":    ["prettier", "--write"],
+    "*.json":   ["prettier", "--write"],
+    "*.jsonc":  ["prettier", "--write"],
+    "*.yaml":   ["prettier", "--write"],
+    "*.yml":    ["prettier", "--write"],
+    "*.css":    ["prettier", "--write"],
+    "*.scss":   ["prettier", "--write"],
+    "*.html":   ["prettier", "--write"],
+    "*.md":     ["prettier", "--write"],
+    "*.mdx":    ["prettier", "--write"]
+  },
+
+  // ─── MCP Servers ──────────────────────────────────────────────────────────
+  "mcp": {
+    // Context7 — up-to-date library docs via remote MCP
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": true
+    },
+
+    // Sentry — remote MCP with OAuth (token injected via env interpolation)
+    "sentry": {
+      "type": "remote",
+      "url": "https://mcp.sentry.io/mcp",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer {env:SENTRY_MCP_TOKEN}"
+      }
+    },
+
+    // Internal tools — placeholder, disabled until endpoint is provisioned
+    "internal-tools": {
+      "type": "remote",
+      "url": "https://internal-tools.example.com/mcp",
+      "enabled": false
+      // TODO: Set url and enabled: true once internal MCP server is deployed.
+      // Add auth header: "Authorization": "Bearer {env:INTERNAL_TOOLS_MCP_TOKEN}"
+    }
+  },
+
+  // ─── Plugins ──────────────────────────────────────────────────────────────
+  "plugin": [
+    "~/.config/opencode/plugins/audit-logger.ts",
+    "~/.config/opencode/plugins/secret-guard.ts",
+    "~/.config/opencode/plugins/context-injector.ts",
+    "~/.config/opencode/plugins/quality-gate.ts",
+    "~/.config/opencode/plugins/notification-hub.ts"
+  ],
+
+  // ─── Instruction files ────────────────────────────────────────────────────
+  // Loaded as system context for every session
+  "instructions": [
+    "~/.config/opencode/AGENTS.md",
+    "~/.config/opencode/docs/ai-guidelines.md"
+  ]
+}

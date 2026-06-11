@@ -1,0 +1,79 @@
+{
+  // ─── Theme ────────────────────────────────────────────────────────────────
+  "theme": "tokyonight",
+
+  // ─── Leader key ───────────────────────────────────────────────────────────
+  "leader": "ctrl+x",
+  "leader_timeout": 1500,
+
+  // ─── Scrolling & mouse ────────────────────────────────────────────────────
+  "scroll_speed": 4,
+  "mouse": true,
+
+  // ─── Attention & notifications ────────────────────────────────────────────
+  // Alerts when a long-running task completes while you are in another window
+  "attention": {
+    "enabled": true,
+    "notifications": true,
+    "sound": true,
+    "volume": 0.4
+  },
+
+  // ─── Keybinds ─────────────────────────────────────────────────────────────
+  // Format: "<action>": "<key combo>"
+  // Key combos: ctrl+<key>, alt+<key>, shift+<key>, or bare keys / function keys
+  "keybinds": {
+    // Global
+    "command_list":          "ctrl+p",
+    "help":                  "ctrl+?",
+    "quit":                  "ctrl+q",
+
+    // Session management
+    "session_new":           "ctrl+n",
+    "session_list":          "ctrl+s",
+    "session_close":         "ctrl+w",
+    "session_rename":        "leader r",
+    "session_share":         "leader s",
+    "session_export":        "leader e",
+
+    // Agent & model switching
+    "agent_list":            "ctrl+a",
+    "agent_switch":          "leader a",
+    "model_list":            "ctrl+m",
+    "model_switch":          "leader m",
+
+    // Navigation
+    "focus_chat":            "ctrl+l",
+    "focus_input":           "ctrl+i",
+    "focus_files":           "ctrl+f",
+    "scroll_up":             "ctrl+u",
+    "scroll_down":           "ctrl+d",
+    "scroll_top":            "ctrl+home",
+    "scroll_bottom":         "ctrl+end",
+
+    // Message actions
+    "message_submit":        "enter",
+    "message_newline":       "shift+enter",
+    "message_cancel":        "ctrl+c",
+    "message_clear":         "ctrl+backspace",
+    "message_history_prev":  "alt+up",
+    "message_history_next":  "alt+down",
+
+    // Copy & context
+    "copy_last_response":    "leader c",
+    "copy_code_block":       "leader k",
+    "context_add_file":      "ctrl+/",
+    "context_clear":         "leader x",
+
+    // Tool & permission flow
+    "approve_tool":          "y",
+    "deny_tool":             "n",
+    "approve_all":           "a",
+
+    // Compaction
+    "compact_now":           "leader z",
+
+    // Plan mode toggle
+    "plan_mode_toggle":      "leader p"
+  }
+}

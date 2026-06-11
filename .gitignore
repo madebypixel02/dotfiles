@@ -1,0 +1,13 @@
+node_modules/
+*.bak
+.DS_Store
+**/.DS_Store
+*.log
+.env
+.env.*
+*.secret
+auth.json
+.local/
+Thumbs.db
+dist/
+.turbo/
