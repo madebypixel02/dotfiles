@@ -119,7 +119,7 @@ jobs:
       - name: Install and run pre-commit
         run: |
           pip install --quiet pre-commit
-          pre-commit run --all-files --show-diff-on-failure
+          SKIP=no-commit-to-branch pre-commit run --all-files --show-diff-on-failure
 
   validate-install:
     name: Validate Install (${{ matrix.os }})
