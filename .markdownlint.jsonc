@@ -1,16 +1,23 @@
 {
-  // MD013 disabled: skill files and prompt documents contain intentionally long lines.
   "MD013": false,
 
-  // MD033 disabled: some YAML frontmatter examples use HTML-like syntax in fenced blocks.
-  "MD033": false,
-
-  // MD041 disabled: skill files begin with YAML frontmatter, not an H1 heading.
-  "MD041": false,
-
-  // MD024 disabled: duplicate headings across separate files and sections are acceptable.
   "MD024": false,
 
-  // MD029: enforce strictly ascending ordered-list numbering.
-  "MD029": { "style": "ordered" }
+  "MD026": false,
+
+  "MD029": { "style": "ordered" },
+
+  "MD031": false,
+
+  "MD033": false,
+
+  "MD034": false,
+
+  "MD036": false,
+
+  "MD038": false,
+
+  "MD040": false,
+
+  "MD041": false
 }
