@@ -95,7 +95,7 @@ lint:markdownlint:
   image: node:20-alpine
   script:
     - npm install --no-save markdownlint-cli2
-    - npx markdownlint-cli2 '**/*.md' '!node_modules' '!opencode/plugins/node_modules'
+    - npx markdownlint-cli2 '**/*.md' '!node_modules' '!opencode/plugins/node_modules' '!opencode/skills/humanizer-upstream'
 
 security:secrets:
   stage: security
