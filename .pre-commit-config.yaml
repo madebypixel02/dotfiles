@@ -1,0 +1,85 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+default_stages:
+  - pre-commit
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: [--branch, main, --branch, master]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.21.0
+    hooks:
+      - id: typos
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.2.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        types: [shell]
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.17.0
+    hooks:
+      - id: markdownlint-cli2
+        args: [--config, .markdownlint.jsonc]
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  - repo: local
+    hooks:
+      - id: no-emoji-in-source
+        name: No emoji in source files
+        language: pygrep
+        entry: >-
+          [\U0001F300-\U0001F9FF\U0001FA00-\U0001FA9F\U0001FAA0-\U0001FAFF
+          \U00002600-\U000027BF\U00002B00-\U00002BFF\U0000FE00-\U0000FE0F
+          \U0001F000-\U0001F02F\U0001F0A0-\U0001F0FF\U0001F100-\U0001F1FF
+          \U0001F200-\U0001F2FF]
+        types_or: [ts, javascript, sh]
+
+      - id: no-commented-code
+        name: No commented-out code blocks
+        language: pygrep
+        entry: >-
+          ^\s*//\s*(console\.(log|warn|error|info|debug)|import\s+|const\s+|let\s+|var\s+|function\s+|class\s+|return\s+|export\s+|require\s*\()
+        types_or: [ts, javascript]
+        exclude: \.d\.ts$
+
+      - id: no-ai-coauthorship
+        name: No AI co-authorship trailers
+        language: pygrep
+        entry: "(?i)^Co-authored-by:.*(?:claude|gpt|copilot|gemini|openai|anthropic|chatgpt|cursor|opencode|\\bai\\b|bot)"
+        stages: [commit-msg]
