@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+
+  "_comment": "Claude Code MCP server config (.mcp.json). Commit to project repos.",
+
+  "mcpServers": {
+    // ── ALWAYS ON ─────────────────────────────────────────────────────────────
+
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "env": {}
+    },
+
+    "semgrep": {
+      "command": "npx",
+      "args": ["mcp-remote", "https://mcp.semgrep.ai/mcp"],
+      "env": {
+        "SEMGREP_APP_TOKEN": "${SEMGREP_APP_TOKEN}"
+      }
+    },
+
+    // ── ENABLED: credentials from environment ─────────────────────────────────
+
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+
+    "sentry": {
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp"
+    },
+
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--headless"]
+    },
+
+    // ── DISABLED: enable per-project by copying/overriding this file ──────────
+
+    "postgres": {
+      "_disabled": true,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "${DB_DSN}"]
+    },
+
+    "grafana": {
+      "_disabled": true,
+      "command": "uvx",
+      "args": ["mcp-grafana"],
+      "env": {
+        "GRAFANA_URL": "${GRAFANA_URL}",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_TOKEN}"
+      }
+    },
+
+    "linear": {
+      "_disabled": true,
+      "type": "http",
+      "url": "https://mcp.linear.app/mcp"
+    },
+
+    "exa": {
+      "_disabled": true,
+      "command": "npx",
+      "args": ["-y", "exa-mcp-server"],
+      "env": { "EXA_API_KEY": "${EXA_API_KEY}" }
+    },
+
+    "kubernetes": {
+      "_disabled": true,
+      "command": "npx",
+      "args": ["mcp-server-kubernetes"],
+      "env": { "ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS": "true" }
+    },
+
+    "cloudflare-observability": {
+      "_disabled": true,
+      "command": "npx",
+      "args": ["mcp-remote", "https://observability.mcp.cloudflare.com/mcp"],
+      "env": { "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}" }
+    },
+
+    "figma": {
+      "_disabled": true,
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp"],
+      "env": { "FIGMA_API_KEY": "${FIGMA_API_KEY}" }
+    },
+
+    "slack": {
+      "_disabled": true,
+      "command": "npx",
+      "args": ["-y", "@zencoderai/slack-mcp-server"],
+      "env": {
+        "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
+        "SLACK_TEAM_ID": "${SLACK_TEAM_ID}"
+      }
+    }
+  }
+}

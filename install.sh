@@ -213,7 +213,7 @@ fi
 # ---------------------------------------------------------------------------
 log_header "Claude Code symlinks (${CLAUDE_DIR}/)"
 
-for f in CLAUDE.md settings.json; do
+for f in CLAUDE.md settings.json mcp.json; do
   src="${DOTFILES_DIR}/claude/${f}"
   if [[ -f "$src" ]]; then
     do_symlink "$src" "${CLAUDE_DIR}/${f}"

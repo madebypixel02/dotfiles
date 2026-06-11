@@ -209,31 +209,201 @@
   },
 
   // ─── MCP Servers ──────────────────────────────────────────────────────────
+  //
+  // TIERS:
+  //   enabled: true  → always-on; loaded for every session
+  //   enabled: false → opt-in; enable per-project in local opencode.jsonc
+  //
+  // SECURITY RULES (enforced here):
+  //   1. All tokens come from env vars — never hardcoded
+  //   2. Remote servers preferred over local npx (no supply-chain risk)
+  //   3. High-trust servers (GitHub write, DB) disabled by default
+  //   4. Destructive tool patterns denied in the permission block above
+  //   5. Context7 and Sentry are zero-trust (read-only, no access to your infra)
+  //
   "mcp": {
-    // Context7 — up-to-date library docs via remote MCP
+
+    // ── ALWAYS ON: zero-trust, read-only, no credentials needed ──────────────
+
+    // Context7 — live, version-specific library docs. Eliminates hallucinated
+    // APIs. Use by adding "use context7" to any prompt, or add to AGENTS.md:
+    // "Always use Context7 when writing code that uses third-party libraries."
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
       "enabled": true
     },
 
-    // Sentry — remote MCP with OAuth (token injected via env interpolation)
-    "sentry": {
+    // Semgrep — SAST security scanning. Free remote endpoint, no auth needed
+    // for basic scans. Tools: security_check, semgrep_scan, get_abstract_syntax_tree
+    // Set SEMGREP_APP_TOKEN for AppSec Platform findings integration.
+    "semgrep": {
       "type": "remote",
-      "url": "https://mcp.sentry.io/mcp",
+      "url": "https://mcp.semgrep.ai/mcp",
+      "enabled": true
+    },
+
+    // ── ENABLED: low-trust, credentials via env vars ──────────────────────────
+
+    // GitHub — PRs, issues, Actions CI logs, code scanning, Dependabot.
+    // The single most valuable MCP for code-centric teams.
+    // Toolsets (add GITHUB_TOOLSETS env var to restrict): repos, issues,
+    // pull_requests, actions, code_security, discussions, notifications
+    // Scope PAT to: repo, read:org, read:user (minimum)
+    // Full write PAT needed for: creating PRs, commenting, merging
+    "github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
       "enabled": true,
       "headers": {
-        "Authorization": "Bearer {env:SENTRY_MCP_TOKEN}"
+        "Authorization": "Bearer {env:GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
     },
 
-    // Internal tools — placeholder, disabled until endpoint is provisioned
+    // Sentry — error tracking: issues, traces, stack traces.
+    // Switch to local npx for self-hosted: see commented block below.
+    "sentry": {
+      "type": "remote",
+      "url": "https://mcp.sentry.dev/mcp",
+      "enabled": true
+    },
+
+    // Playwright — browser automation via accessibility tree (no vision model).
+    // Enable for UI debugging, E2E test writing, scraping internal dashboards.
+    // SECURITY: browser can reach any URL your network allows. Disable when not needed.
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "@playwright/mcp@latest", "--headless"],
+      "enabled": true,
+      "timeout": 30000
+    },
+
+    // ── DISABLED: enable per-project in your project's opencode.jsonc ─────────
+
+    // GitHub (Docker alternative — more isolated than remote token approach)
+    // Uncomment and disable the remote version above if you prefer container isolation
+    // "github-docker": {
+    //   "type": "local",
+    //   "command": ["docker", "run", "-i", "--rm",
+    //               "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+    //               "-e", "GITHUB_TOOLSETS=repos,issues,pull_requests,actions",
+    //               "ghcr.io/github/github-mcp-server"],
+    //   "environment": { "GITHUB_PERSONAL_ACCESS_TOKEN": "{env:GITHUB_PERSONAL_ACCESS_TOKEN}" },
+    //   "enabled": false
+    // },
+
+    // PostgreSQL — schema inspection + queries. USE READ-ONLY CREDENTIALS.
+    // Set DB_DSN=postgresql://readonly_user:pass@host/db in your environment.
+    "postgres": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-postgres",
+                  "{env:DB_DSN}"],
+      "enabled": false
+    },
+
+    // Grafana — dashboards, Prometheus/Loki queries, alerts, incidents, OnCall.
+    // Set GRAFANA_URL and GRAFANA_SERVICE_ACCOUNT_TOKEN in your environment.
+    "grafana": {
+      "type": "local",
+      "command": ["uvx", "mcp-grafana"],
+      "environment": {
+        "GRAFANA_URL": "{env:GRAFANA_URL}",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "{env:GRAFANA_TOKEN}"
+      },
+      "enabled": false
+    },
+
+    // Linear — issues, projects, comments. Official remote server with OAuth.
+    // Run `opencode mcp auth linear` to authenticate.
+    "linear": {
+      "type": "remote",
+      "url": "https://mcp.linear.app/mcp",
+      "enabled": false
+    },
+
+    // Exa — neural/semantic web search. Better than keyword search for
+    // researching library behavior, changelogs, and technical docs.
+    // Requires EXA_API_KEY from exa.ai (paid, ~$0.001/search).
+    "exa": {
+      "type": "remote",
+      "url": "https://mcp.exa.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:EXA_API_KEY}"
+      },
+      "enabled": false
+    },
+
+    // Kubernetes — full kubectl + Helm via MCP. Set ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS
+    // for production cluster access.
+    "kubernetes": {
+      "type": "local",
+      "command": ["npx", "mcp-server-kubernetes"],
+      "environment": {
+        "ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS": "true"
+      },
+      "enabled": false
+    },
+
+    // Cloudflare — Workers, KV, R2, D1, observability, audit logs.
+    // Multiple Cloudflare-specific endpoints; add whichever your stack uses.
+    // Requires CLOUDFLARE_API_TOKEN scoped per service.
+    "cloudflare-observability": {
+      "type": "remote",
+      "url": "https://observability.mcp.cloudflare.com/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:CLOUDFLARE_API_TOKEN}"
+      },
+      "enabled": false
+    },
+    "cloudflare-builds": {
+      "type": "remote",
+      "url": "https://builds.mcp.cloudflare.com/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:CLOUDFLARE_API_TOKEN}"
+      },
+      "enabled": false
+    },
+
+    // Figma — expose design layouts to the agent for component code generation.
+    // Requires FIGMA_API_KEY (free Personal Access Token from figma.com).
+    "figma": {
+      "type": "local",
+      "command": ["npx", "-y", "figma-developer-mcp"],
+      "environment": {
+        "FIGMA_API_KEY": "{env:FIGMA_API_KEY}"
+      },
+      "enabled": false
+    },
+
+    // Slack — post to channels, read messages, search history.
+    // SECURITY: HIGH trust — scopes channel read history. Restrict bot scopes.
+    "slack": {
+      "type": "local",
+      "command": ["npx", "-y", "@zencoderai/slack-mcp-server"],
+      "environment": {
+        "SLACK_BOT_TOKEN": "{env:SLACK_BOT_TOKEN}",
+        "SLACK_TEAM_ID": "{env:SLACK_TEAM_ID}"
+      },
+      "enabled": false
+    },
+
+    // Sentry self-hosted — use instead of remote sentry block above
+    // "sentry-self-hosted": {
+    //   "type": "local",
+    //   "command": ["npx", "@sentry/mcp-server@latest",
+    //               "--host={env:SENTRY_HOST}",
+    //               "--access-token={env:SENTRY_ACCESS_TOKEN}"],
+    //   "enabled": false
+    // },
+
+    // Internal tools — replace URL with your organisation's internal MCP server
     "internal-tools": {
       "type": "remote",
-      "url": "https://internal-tools.example.com/mcp",
+      "url": "https://mcp.internal.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:INTERNAL_MCP_TOKEN}"
+      },
       "enabled": false
-      // TODO: Set url and enabled: true once internal MCP server is deployed.
-      // Add auth header: "Authorization": "Bearer {env:INTERNAL_TOOLS_MCP_TOKEN}"
     }
   },
 
