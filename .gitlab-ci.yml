@@ -60,7 +60,9 @@ lint:pre-commit:
   script:
     - apt-get update -qq && apt-get install -y -qq git python3 python3-pip pipx
     - pipx install pre-commit
-    - pipx run pre-commit run --all-files --show-diff-on-failure
+    - pipx ensurepath
+    - export PATH="${PATH}:/root/.local/bin"
+    - pre-commit run --all-files --show-diff-on-failure
   allow_failure: false
 
 lint:shellcheck:

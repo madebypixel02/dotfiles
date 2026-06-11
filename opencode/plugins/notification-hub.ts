@@ -182,10 +182,10 @@ async function sendDesktopNotification(
 function buildSlackPayload(webhookBody: WebhookBody): Record<string, unknown> {
   const statusEmoji =
     webhookBody.status === "error"
-      ? "🔴"
+      ? "[ERROR]"
       : webhookBody.status === "progress"
-        ? "🟡"
-        : "🟢";
+        ? "[WORKING]"
+        : "[DONE]";
   return {
     text: `${statusEmoji} OpenCode Session Update`,
     blocks: [
@@ -369,7 +369,7 @@ async function dispatchIdleNotification(): Promise<void> {
 
 async function dispatchErrorNotification(errorType: string): Promise<void> {
   const duration = elapsedMinutes();
-  const title = "OpenCode — Session Error ⚠️";
+  const title = "OpenCode -- Session Error";
   const body = `Error: ${errorType} • After ${duration} min • ${filesModifiedCount} files modified`;
 
   await Promise.all([

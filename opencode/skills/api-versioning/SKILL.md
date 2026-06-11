@@ -39,7 +39,7 @@ https://api.example.com/v1/users
 https://api.example.com/v2/users
 ```
 
-**Pros**: Visible, cacheable, easy to test in browser, simple routing.  
+**Pros**: Visible, cacheable, easy to test in browser, simple routing.
 **Cons**: Pollutes URL structure; different versions = different resources (semantically debatable).
 
 **Use for**: Public APIs, third-party integrations, mobile app APIs.
@@ -53,7 +53,7 @@ Accept: application/vnd.example.v2+json
 API-Version: 2024-06-11
 ```
 
-**Pros**: Clean URLs, version is a metadata concern not a resource concern.  
+**Pros**: Clean URLs, version is a metadata concern not a resource concern.
 **Cons**: Harder to test without tools; not cacheable by default CDN configs.
 
 **Use for**: Internal microservice APIs, when you control all clients.
@@ -64,15 +64,15 @@ API-Version: 2024-06-11
 Stripe-Version: 2024-01-01
 ```
 
-**Pros**: Extremely granular; clients pin to a specific API behaviour snapshot.  
+**Pros**: Extremely granular; clients pin to a specific API behaviour snapshot.
 **Cons**: Complex to maintain; many concurrent versions live simultaneously.
 
 **Use for**: APIs with very long-lived clients (financial, legal integrations).
 
 ### Enterprise Decision Rule
 
-> Use **URL versioning** for any API consumed by third parties or mobile apps.  
-> Use **header versioning** for internal service-to-service APIs.  
+> Use **URL versioning** for any API consumed by third parties or mobile apps.
+> Use **header versioning** for internal service-to-service APIs.
 > Document the strategy in your API reference and never mix strategies within a single API.
 
 ---
@@ -236,7 +236,7 @@ Every breaking change must ship with a migration guide. Structure:
 v2 of the Example API introduces <summary of major changes>.
 This guide covers all breaking changes and how to update your integration.
 
-**Deprecation date**: 2025-01-01  
+**Deprecation date**: 2025-01-01
 **Sunset date**: 2025-07-01
 
 ---
