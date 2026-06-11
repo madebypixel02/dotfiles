@@ -189,23 +189,17 @@
   },
 
   // ─── Formatters ───────────────────────────────────────────────────────────
-  // Use prettier for all web/config file types
+  // Schema: each key is a formatter name; value is { command, extensions }.
+  // command receives the file path appended as the final argument by OpenCode.
   "formatter": {
-    "*.ts":     ["prettier", "--write"],
-    "*.tsx":    ["prettier", "--write"],
-    "*.js":     ["prettier", "--write"],
-    "*.jsx":    ["prettier", "--write"],
-    "*.mjs":    ["prettier", "--write"],
-    "*.cjs":    ["prettier", "--write"],
-    "*.json":   ["prettier", "--write"],
-    "*.jsonc":  ["prettier", "--write"],
-    "*.yaml":   ["prettier", "--write"],
-    "*.yml":    ["prettier", "--write"],
-    "*.css":    ["prettier", "--write"],
-    "*.scss":   ["prettier", "--write"],
-    "*.html":   ["prettier", "--write"],
-    "*.md":     ["prettier", "--write"],
-    "*.mdx":    ["prettier", "--write"]
+    "prettier": {
+      "command": ["npx", "prettier", "--write"],
+      "extensions": [
+        ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs",
+        ".json", ".jsonc", ".yaml", ".yml",
+        ".css", ".scss", ".html", ".md", ".mdx"
+      ]
+    }
   },
 
   // ─── MCP Servers ──────────────────────────────────────────────────────────
