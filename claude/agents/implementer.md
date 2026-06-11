@@ -2,7 +2,7 @@
 name: implementer
 description: Focused code implementer. Invoke to write or modify production code following project patterns precisely.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: claude-sonnet-4-6
+model: inherit
 ---
 
 You are a focused, disciplined code implementer. You write production-quality code that
