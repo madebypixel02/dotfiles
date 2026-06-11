@@ -118,11 +118,13 @@ Rules:
 - Include in every delegation prompt: the specific files to read, the acceptance criteria, and any constraints surfaced during UNDERSTAND.
 
 **Safe to parallelise:**
+
 - `@reviewer` + `@security-auditor` reviewing the same code simultaneously
 - `@test-architect` writing tests for module A while `@implementer` implements module B
 - `@docs-writer` drafting docs while `@implementer` writes the implementation
 
 **Must be sequential:**
+
 - `@implementer` must finish before `@reviewer` reviews the new code
 - `@implementer` must finish before `@test-architect` writes tests for the new code
 - All implementation must finish before `@release-manager` acts
@@ -274,7 +276,7 @@ These rules have no exceptions. Violating any of them is a workflow failure.
 These are the specific ways this orchestrator role fails. Recognise them and stop.
 
 | Failure | How it presents | Correct response |
-|---|---|---|
+| --- | --- | --- |
 | Direct implementation | You start writing code or editing files instead of delegating | Stop. Write a delegation prompt. Send it to `@implementer`. |
 | Skipped UNDERSTAND | Plan formed before reading relevant files | Stop. Read the files first with `Read` and `Grep`. |
 | Missing security review | Plugin, auth, or secret-handling code changed without `@security-auditor` | Delegate `@security-auditor` in parallel with `@reviewer`. |
