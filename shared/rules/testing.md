@@ -8,11 +8,13 @@ Apply these rules when writing new tests, extending an existing test suite, or r
 
 **Tests are production code.** Apply the same quality bar to tests as to application code: clear naming, no duplication, no magic values, no dead code.
 
-**Tests should fail for the right reason.** A test that passes when the code is broken, or fails when the code is correct, is worse than no test — it erodes trust in the suite.
+**Tests should fail for the right reason.** A test that passes when the code is broken, or fails when the code is correct, is worse than no test; it erodes trust in the suite.
 
 **Fast feedback.** Tests should run quickly. Slow tests are skipped; skipped tests provide no value. Isolate slow I/O behind interfaces so unit tests can run without it.
 
-**Deterministic.** Tests must produce the same result on every run, in any order, on any machine. Flaky tests must be fixed or deleted — they erode trust in the entire suite.
+**Deterministic.** Tests must produce the same result on every run, in any order, on any machine. Flaky tests must be fixed or deleted; they erode trust in the entire suite.
+
+**Docstrings are required.** Every test function must have a docstring or JSDoc block describing the scenario being tested and the expected outcome.
 
 ---
 
@@ -38,7 +40,7 @@ Structure the test suite as a pyramid:
 
 - Test a complete user journey through the deployed system
 - Run in a staging environment that mirrors production
-- Cover the highest-value user flows only — not every feature
+- Cover the highest-value user flows only; not every feature
 - Must not be the primary safety net; that role belongs to unit and integration tests
 
 ---
@@ -77,13 +79,22 @@ Structure the test suite as a pyramid:
 - For table-driven tests, name each case explicitly
 - Group related tests in a describe/suite block when the testing framework supports it
 
+### Docstrings
+
+Every test function must begin with a docstring or JSDoc block. The docstring must describe:
+
+1. The scenario being tested (the input condition or system state)
+2. The expected outcome (what the test asserts will be true)
+
+This is the only permitted form of documentation inside a test function. Inline comments are forbidden.
+
 ### Arrange-Act-Assert
 
 Structure every test in three clearly separated sections:
 
-1. **Arrange** — set up the system under test, its dependencies, and the input data
-2. **Act** — call the function or trigger the behaviour being tested
-3. **Assert** — verify the output, state change, or side effects
+1. **Arrange** - set up the system under test, its dependencies, and the input data
+2. **Act** - call the function or trigger the behaviour being tested
+3. **Assert** - verify the output, state change, or side effects
 
 Do not intermix these phases. Do not assert in the arrange phase.
 
@@ -95,16 +106,16 @@ Multiple assertions are acceptable when they all verify properties of the same l
 
 ### Test Data
 
-- Use realistic but minimal test data — only the fields relevant to the test
+- Use realistic but minimal test data; only the fields relevant to the test
 - Use factory functions or builder patterns to construct test objects; avoid copy-pasting large literal structs
-- Do not share mutable test data across tests — each test should own its data
+- Do not share mutable test data across tests; each test should own its data
 - Do not use production data in tests
 
 ### Mocks and Stubs
 
 - Mock at the dependency boundary, not inside the code under test
 - Prefer fakes (in-memory implementations) over mocks (behaviour-verification objects) for complex dependencies
-- Do not mock types you do not own — write a thin adapter and mock that
+- Do not mock types you do not own; write a thin adapter and mock that
 - Verify that mocks are called with the expected arguments; do not let unexpected calls pass silently
 - Reset mocks between tests; do not rely on execution order
 
@@ -113,9 +124,10 @@ Multiple assertions are acceptable when they all verify properties of the same l
 ## Coverage
 
 - Aim for high branch coverage (90%+ for critical business logic), not just line coverage
-- Coverage is a floor, not a goal — 100% line coverage with no assertions is worthless
+- Coverage is a floor, not a goal; 100% line coverage with no assertions is worthless
 - Use coverage reports to find untested paths, then write tests that verify those paths behave correctly
 - Do not add assertions solely to inflate coverage metrics
+- Coverage must not decrease on any pull request
 
 ---
 
@@ -135,7 +147,7 @@ Test-first development is especially valuable for bug fixes: write a test that r
 
 - Every bug fix must be accompanied by a test that would have caught the bug
 - Add the test to the most appropriate level of the pyramid (usually unit or integration)
-- Include a comment referencing the issue or ticket number
+- Reference the issue or ticket number in the test's docstring
 
 ---
 
@@ -143,8 +155,8 @@ Test-first development is especially valuable for bug fixes: write a test that r
 
 - Tests must not depend on each other's execution order
 - Tests must not share mutable global state; use `beforeEach`/`setUp` to reset state
-- Tests must not depend on the current time — inject a clock and control it in tests
-- Tests must not depend on random values — seed the random source or inject it
+- Tests must not depend on the current time; inject a clock and control it in tests
+- Tests must not depend on random values; seed the random source or inject it
 - Tests that touch the filesystem must use a temporary directory and clean up after themselves
 - Tests must not make real network calls; use HTTP test servers or recorded fixtures
 
@@ -160,9 +172,10 @@ Test-first development is especially valuable for bug fixes: write a test that r
 
 ## Continuous Integration
 
-- The full test suite must pass on every pull request before merge
-- Flaky tests must be quarantined and fixed within one sprint — do not tolerate persistent flakiness
-- Test failures must block the merge; they are not optional
+- All tests must pass on every pull request. The quality-gate CI job must be green before merge.
+- Coverage must not decrease on any pull request
+- Flaky tests must be quarantined and fixed within one sprint; do not tolerate persistent flakiness
+- Test failures block merge; they are not optional
 - Run tests in parallel where the framework supports it to keep CI fast
 
 ---
@@ -172,6 +185,7 @@ Test-first development is especially valuable for bug fixes: write a test that r
 Before marking a change as complete, verify:
 
 - [ ] New behaviour has tests at the appropriate pyramid level
+- [ ] All test functions have docstrings describing the scenario and expected outcome
 - [ ] All branches (including error paths) are covered
 - [ ] Boundary conditions are tested
 - [ ] Tests are named descriptively
@@ -180,4 +194,5 @@ Before marking a change as complete, verify:
 - [ ] No real network calls or filesystem access in unit tests
 - [ ] No sleep or timing-dependent assertions
 - [ ] Bug fixes accompanied by a regression test
+- [ ] Coverage has not decreased
 - [ ] Full test suite passes locally before committing

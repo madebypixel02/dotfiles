@@ -1,0 +1,66 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+version-resolver:
+  major:
+    labels:
+      - breaking
+  minor:
+    labels:
+      - feat
+      - feature
+  patch:
+    labels:
+      - fix
+      - bugfix
+      - bug
+      - docs
+      - documentation
+      - refactor
+      - chore
+      - maintenance
+      - ci
+      - perf
+      - performance
+  default: patch
+
+categories:
+  - title: Features
+    labels:
+      - feat
+      - feature
+  - title: Bug Fixes
+    labels:
+      - fix
+      - bugfix
+      - bug
+  - title: Performance
+    labels:
+      - perf
+      - performance
+  - title: Documentation
+    labels:
+      - docs
+      - documentation
+  - title: Maintenance
+    labels:
+      - refactor
+      - chore
+      - maintenance
+      - ci
+
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+change-title-escapes: '\<*_&'
+
+exclude-labels:
+  - skip-changelog
+  - release
+
+template: |
+  ## Changes
+
+  $CHANGES
+
+  ## Contributors
+
+  $CONTRIBUTORS

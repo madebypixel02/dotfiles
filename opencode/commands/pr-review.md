@@ -107,9 +107,11 @@ Review for correctness, quality, and maintainability:
 
 **Maintainability**
 
-- Is complex logic documented with comments explaining _why_, not _what_?
+- Is complex logic documented with a docstring explaining _why_ the approach was chosen?
 - Are magic numbers/strings replaced with named constants?
 - Is the change backwards-compatible? If not, is the breaking change documented?
+- No inline code comments present (only docstrings/JSDoc for public APIs).
+- No emojis in code or identifiers.
 
 **Output:** Categorised feedback with file/line references where possible.
 
@@ -160,11 +162,11 @@ After all three workstreams complete, produce the final PR review comment in thi
 
 ### Summary
 
-[2-3 sentence overall assessment. State whether the PR is: ✅ Approved / ⚠️ Approved with suggestions / 🔄 Changes requested / ❌ Blocked]
+[2-3 sentence overall assessment. State whether the PR is: Approved / Approved with suggestions / Changes requested / Blocked]
 
 ---
 
-### 🔒 Security Findings
+### Security Findings
 
 | Severity                        | Finding       | File / Location | Recommendation |
 | ------------------------------- | ------------- | --------------- | -------------- |
@@ -174,11 +176,12 @@ _[If none: "No security issues identified."]_
 
 ---
 
-### 💻 Code Review
+### Code Review
 
 **Must Fix (blocking)**
 
 - [ ] [issue] — `[file:line]` — [explanation]
+- [ ] No workarounds — root cause must be addressed, not deferred
 
 **Should Fix (non-blocking)**
 
@@ -190,7 +193,7 @@ _[If none: "No security issues identified."]_
 
 ---
 
-### 🧪 Test Coverage
+### Test Coverage
 
 **Coverage assessment:** [Good / Adequate / Insufficient]
 
@@ -201,7 +204,7 @@ _[If none: "No security issues identified."]_
 
 ---
 
-### ✅ What's Done Well
+### What Was Done Well
 
 - [positive observation]
 - [positive observation]

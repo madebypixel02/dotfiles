@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the current draft release
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  draft:
+    name: Update Draft Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Update release draft
+        uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find and publish draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          draft_id="$(gh api repos/{owner}/{repo}/releases \
+            --jq '[.[] | select(.draft == true)] | sort_by(.created_at) | last | .id')"
+
+          if [[ -z "${draft_id}" || "${draft_id}" == "null" ]]; then
+            printf 'No draft release found to publish.\n' >&2
+            exit 1
+          fi
+
+          printf 'Publishing draft release id: %s\n' "${draft_id}"
+
+          gh api \
+            --method PATCH \
+            "repos/{owner}/{repo}/releases/${draft_id}" \
+            --field draft=false \
+            --field make_latest=true
+
+          printf 'Release published successfully.\n'

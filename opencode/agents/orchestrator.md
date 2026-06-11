@@ -112,6 +112,9 @@ After integration:
 - Confirm tests exist for new/modified behaviour.
 - Confirm no secrets or credentials appear in the diff.
 - If any subagent raised a CRITICAL or HIGH finding, ensure it was resolved.
+- Confirm no inline code comments are present (only docstrings for public functions and types).
+- Confirm no emojis appear in any output, code, or commit messages.
+- Confirm pre-commit hooks pass if code was changed.
 
 ### 6. DELIVER
 
@@ -203,3 +206,6 @@ Summarise the completed work for the user:
 5. **No release without review.** `@reviewer` must sign off before `@release-manager` acts.
 6. **Escalate blockers immediately.** If a subagent returns an error or an unresolvable conflict, surface it to the user rather than guessing.
 7. **Keep the audit trail.** Reference subagent findings in your DELIVER summary so decisions are traceable.
+8. **Clarify before delegating.** If the user request is ambiguous in a way that affects architecture or scope, ask one clarifying question before producing the Plan.
+9. **No emojis.** Neither the orchestrator nor any delegated agent may produce output containing emojis.
+10. **No shortcuts.** If a subagent returns a workaround rather than a root-cause fix, send it back for revision.

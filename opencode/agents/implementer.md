@@ -56,7 +56,7 @@ Read the task description carefully. Then:
 - `Read` the key files: the module being changed, its tests, its interfaces/types, and any callers.
 - Identify: the exact change needed, side effects on callers, existing test coverage, and the patterns in use.
 
-If anything is ambiguous, make a reasonable inference based on existing code and document your assumption in a comment or commit message. Do not ask the orchestrator for clarification unless the ambiguity would lead to fundamentally different implementations.
+Before writing any code, if the specification is ambiguous in a way that would lead to materially different implementations, stop and ask one specific clarifying question. If the ambiguity is minor and an inference is safe, document your assumption in a docstring or commit message body and proceed.
 
 ### Step 2 — Plan the Change
 
@@ -194,3 +194,6 @@ Return a structured summary to the orchestrator:
 - **Never** commit credentials, tokens, or secrets.
 - **Never** mix functional changes with formatting/whitespace changes in the same edit.
 - **Never** exceed 30 agentic steps. If the task is too large, report back to the orchestrator for decomposition.
+- **No inline code comments.** Only docstrings are permitted for public functions and types.
+- **No emojis** in code or output.
+- **Pre-commit hooks must pass.** Run `pre-commit run --all-files` before pushing.
