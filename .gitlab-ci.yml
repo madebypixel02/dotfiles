@@ -99,7 +99,9 @@ lint:markdownlint:
 
 security:secrets:
   stage: security
-  image: zricethezav/gitleaks:v8.18.4
+  image:
+    name: zricethezav/gitleaks:v8.18.4
+    entrypoint: [""]
   script:
     - gitleaks detect --source . --redact --no-banner
   allow_failure: false
