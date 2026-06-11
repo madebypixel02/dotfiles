@@ -1,5 +1,7 @@
 # Security Rules
 
+These rules apply to all files in this path scope. Read before modifying any auth, middleware, route, or security-sensitive file.
+
 Apply these rules to every change that touches authentication, authorisation, data validation, cryptography, secrets handling, logging, external APIs, or any code that processes user-supplied input.
 
 ---
@@ -19,24 +21,24 @@ Apply these rules to every change that touches authentication, authorisation, da
 ## Input Validation
 
 - Validate all inputs at the entry point to the system (HTTP handler, message consumer, CLI argument parser)
-- Reject inputs that do not conform to the expected schema, type, length, and value range — do not sanitise and continue
+- Reject inputs that do not conform to the expected schema, type, length, and value range; do not sanitise and continue
 - Use an allowlist approach: accept only known-good values rather than trying to block known-bad ones
 - Validate file uploads: check MIME type by inspecting content (not just the `Content-Type` header or filename), enforce size limits, and store files outside the web root
 - Do not use user-supplied input to construct file paths without canonicalisation and a strict allowlist of permitted directories
-- Re-validate inputs at every service boundary — do not trust upstream services to have validated correctly
+- Re-validate inputs at every service boundary; do not trust upstream services to have validated correctly
 
 ## Injection Prevention
 
-- Use parameterised queries or prepared statements for all database access — never concatenate user input into SQL
+- Use parameterised queries or prepared statements for all database access; never concatenate user input into SQL
 - Use an ORM only if you have verified it does not allow raw query injection through dynamic filters or ordering
 - Pass arguments to shell commands as arrays (never as a single interpolated string); prefer language-native alternatives to shell invocation entirely
-- Escape all user-supplied content that is rendered in HTML — use the template engine's auto-escaping, never disable it
+- Escape all user-supplied content that is rendered in HTML; use the template engine's auto-escaping and never disable it
 - When constructing URLs, use a URL-builder library; do not concatenate strings
 - Validate and sanitise any data that will be passed to an LDAP, XML, or XPath query
 
 ## Authentication
 
-- Use a proven authentication library or identity provider — do not implement your own authentication scheme
+- Use a proven authentication library or identity provider; do not implement your own authentication scheme
 - Store passwords using a slow, salted hashing algorithm: bcrypt, scrypt, or Argon2. Never MD5, SHA-1, or unsalted SHA-256
 - Enforce minimum password complexity and check against known-breached password lists where practical
 - Implement account lockout or exponential backoff after repeated failed login attempts
@@ -47,17 +49,17 @@ Apply these rules to every change that touches authentication, authorisation, da
 
 ## Authorisation
 
-- Check authorisation on every request — do not rely on the UI hiding controls as a security measure
+- Check authorisation on every request; do not rely on the UI hiding controls as a security measure
 - Authorisation checks must happen in the server-side code path, not in the client
-- Use role-based or attribute-based access control implemented centrally — do not scatter `if user.isAdmin` checks across handlers
-- When returning collections, filter to objects the authenticated user is permitted to see — do not return all records and rely on the client to hide them
+- Use role-based or attribute-based access control implemented centrally; do not scatter `if user.isAdmin` checks across handlers
+- When returning collections, filter to objects the authenticated user is permitted to see; do not return all records and rely on the client to hide them
 - Log authorisation failures with enough context to investigate (user ID, resource ID, action attempted, timestamp)
 
 ## Secrets Management
 
 - Never hardcode secrets, API keys, passwords, or tokens in source code or configuration files committed to version control
 - Read secrets from environment variables, a secrets manager (Vault, AWS Secrets Manager, GCP Secret Manager), or a mounted secret volume
-- Add a `.gitignore` rule and a pre-commit hook to prevent accidental secret commits
+- Secrets detected by pre-commit hooks (gitleaks) block commits at the local level and CI level
 - Rotate secrets on a schedule and immediately upon suspected compromise
 - Use different secrets for each environment (development, staging, production)
 - Revoke and rotate any secret that has been exposed, even briefly
@@ -65,10 +67,10 @@ Apply these rules to every change that touches authentication, authorisation, da
 ## Cryptography
 
 - Use TLS 1.2 or higher for all network communication; prefer TLS 1.3
-- Do not disable certificate verification, even in test environments — use a test CA instead
+- Do not disable certificate verification, even in test environments; use a test CA instead
 - Use AES-256-GCM or ChaCha20-Poly1305 for symmetric encryption
 - Use RSA-4096 or ECDSA with P-256/P-384 for asymmetric operations
-- Generate cryptographically secure random values using the platform's CSPRNG — do not use `Math.random()` or `random.random()` for security-sensitive values
+- Generate cryptographically secure random values using the platform's CSPRNG; do not use `Math.random()` or `random.random()` for security-sensitive values
 - Do not roll your own cryptographic primitives
 
 ## Logging and Observability
@@ -84,7 +86,7 @@ Apply these rules to every change that touches authentication, authorisation, da
 
 - Check all new dependencies for known CVEs before introducing them (`npm audit`, `pip-audit`, `govulncheck`, `trivy`, etc.)
 - Keep dependencies updated; address high and critical CVEs within 24 hours, medium within 7 days
-- Review the permissions and network access a dependency requires — reject dependencies that request more than they need
+- Review the permissions and network access a dependency requires; reject dependencies that request more than they need
 - Prefer dependencies with active maintenance and a clear security disclosure process
 
 ## Headers and Transport
@@ -94,7 +96,7 @@ Apply these rules to every change that touches authentication, authorisation, da
 - Set `X-Frame-Options: DENY` (or use CSP `frame-ancestors`)
 - Set `Strict-Transport-Security` with a long `max-age` and `includeSubDomains`
 - Remove or suppress server version banners (`Server`, `X-Powered-By`)
-- Implement CORS with an explicit allowlist of permitted origins — do not reflect the request `Origin` header
+- Implement CORS with an explicit allowlist of permitted origins; do not reflect the request `Origin` header
 
 ## Rate Limiting and Abuse Prevention
 
@@ -102,6 +104,16 @@ Apply these rules to every change that touches authentication, authorisation, da
 - Apply rate limits per user/IP to authenticated endpoints where abuse is a risk
 - Use exponential backoff and CAPTCHA for repeated failed authentication attempts
 - Validate `Content-Length` and reject oversized payloads early in the request pipeline
+
+---
+
+## CI/CD Security Gates
+
+All of the following checks must pass on every pull request. A failing check blocks merge.
+
+- `npm audit` or `pip audit` must report no high or critical vulnerabilities
+- Semgrep security scan must pass with no new findings at high severity or above
+- Gitleaks secret scan must pass with zero detected secrets
 
 ---
 
@@ -121,3 +133,4 @@ Before marking any security-sensitive change as complete, verify each item:
 - [ ] Security headers configured correctly
 - [ ] Rate limiting applied to sensitive endpoints
 - [ ] TLS enforced; certificate verification enabled
+- [ ] CI/CD security gates (npm/pip audit, semgrep, gitleaks) all pass

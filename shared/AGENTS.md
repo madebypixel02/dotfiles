@@ -10,6 +10,34 @@ This is a professional software project. Treat all code changes with production-
 
 ---
 
+## Engineering Standards
+
+These standards are non-negotiable. They apply to every task, every file, and every output.
+
+**Ask clarifying questions first.** Before starting any non-trivial task, identify and resolve ambiguities. Do not guess at requirements or make assumptions that a one-sentence question could resolve.
+
+**No emojis.** Emojis are forbidden in code, commit messages, PR descriptions, comments, documentation, and all agent output.
+
+**No inline code comments.** Inline comments (`// ...`, `# ...`) are forbidden. Use docstrings or JSDoc to document public APIs. Code should be self-explanatory through naming and structure.
+
+**No shortcuts or workarounds.** Address the root cause of every problem. Do not paper over issues with hacks, `TODO` comments, or temporary patches intended to survive past the current session.
+
+**Conventional commits.** All commit messages must follow the format `type(scope): description`. Valid types: `feat`, `fix`, `docs`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`. See `shared/rules/workflow.md`.
+
+**Feature branches.** All work must be done on a branch matching the pattern `^(feat|fix|chore|docs|refactor|test|ci|release|hotfix|perf|revert)/.+`. Never commit directly to `main`.
+
+**PRs require human review.** Every pull request requires at least one human approval. Authors cannot approve their own PRs. Do not self-merge.
+
+**Pre-commit hooks must pass.** Run `pre-commit install` once per repository. All hooks must pass locally before pushing. CI will enforce the same checks.
+
+**Docstrings on all public APIs.** Every public function, class, type, and API endpoint requires a docstring or JSDoc block describing its purpose, parameters, and return value.
+
+**CI must be green before merge.** No pull request may be merged with failing CI checks. The quality-gate job is mandatory.
+
+**No AI co-authorship.** Never add `Co-authored-by:` trailers naming an AI system (Claude, GPT, Copilot, Gemini, Cursor, OpenCode, or similar) to commit messages. Every commit must appear as written entirely by the human committer. AI tools are writing aids; authorship belongs to the human who reviewed and committed the change. This is enforced by pre-commit hook and CI.
+
+---
+
 ## Build and Development Commands
 
 Before working on any task, familiarise yourself with the project's build system. Common conventions:
@@ -69,30 +97,32 @@ Follow the established directory layout of the project. Do not create new top-le
 
 ## Git Workflow
 
+See `shared/rules/workflow.md` for the complete branching, commit, and PR requirements.
+
 ### Before Starting Work
 
 Run `git status` and `git log --oneline -10` to understand the current state of the repository before making any changes.
 
 ### Commits
 
-- Write commit messages in the imperative mood: "Add feature" not "Added feature"
+- Use conventional commit format: `type(scope): description`
 - Keep the subject line under 72 characters
-- Include a body when the change needs explanation
+- Include a body explaining why the change was made, not what it does
 - Reference issue numbers when applicable: `Fixes #123`
 - Never commit secrets, credentials, API keys, or personally identifiable information
-- Stage only the files that are part of the logical change — do not include unrelated modifications
+- Stage only the files that are part of the logical change
 
 ### Branches
 
-- Create feature branches from `main` (or the project's primary branch)
-- Use descriptive branch names: `feat/user-auth`, `fix/null-pointer-crash`, `refactor/payment-service`
+- Create branches from `main` using the required naming pattern
 - Keep branches short-lived; merge or rebase frequently
 
 ### Pull Requests
 
 - Inspect `git diff main...HEAD` before creating a pull request
-- Ensure the CI pipeline passes before requesting review
+- Ensure CI passes before requesting review
 - Write a clear PR description: what changed, why it changed, how to test it
+- At least one human approval is required; do not self-merge
 
 ---
 
@@ -100,11 +130,11 @@ Run `git status` and `git log --oneline -10` to understand the current state of 
 
 ### Security-Sensitive Changes
 
-For any change involving authentication, authorisation, cryptography, input validation, secrets handling, or external-facing APIs: apply full security review discipline. Check for injection vulnerabilities, verify that all inputs are validated, ensure secrets are never logged, and confirm that access controls are correctly enforced. See `shared/rules/security.md` for the complete checklist.
+For any change involving authentication, authorisation, cryptography, input validation, secrets handling, or external-facing APIs: apply full security review discipline. See `shared/rules/security.md` for the complete checklist.
 
 ### Test Writing
 
-When writing or modifying tests, focus test-first where practical. Prefer narrow unit tests for business logic and integration tests for boundaries. Aim for meaningful coverage of edge cases and failure modes, not just the happy path. See `shared/rules/testing.md` for the complete checklist.
+When writing or modifying tests, focus test-first where practical. Prefer narrow unit tests for business logic and integration tests for boundaries. See `shared/rules/testing.md` for the complete checklist.
 
 ### Refactoring
 
@@ -116,30 +146,24 @@ Write migrations that are reversible. Never drop columns or tables without a dep
 
 ---
 
-## What to Do
+## What to Do and Not to Do
 
-- Read existing code before writing new code — understand the pattern before adding to it
-- Ask clarifying questions when requirements are ambiguous rather than guessing
+- Read existing code before writing new code
 - Write tests for new behaviour
-- Document public APIs and non-obvious logic
+- Document all public APIs with docstrings or JSDoc
 - Keep functions small and single-purpose
 - Handle errors explicitly; do not silently swallow exceptions
 - Use structured logging; include relevant context (request ID, user ID, operation name)
 - Validate all external inputs at the boundary
 - Prefer reversible changes; make it easy to roll back
-
-## What Not to Do
-
 - Do not delete or overwrite files without understanding their purpose
 - Do not change unrelated code in the same commit
 - Do not add dependencies without justification
-- Do not suppress linter warnings with inline ignores unless you add a comment explaining why
+- Do not suppress linter warnings with inline ignores unless there is no alternative and a docstring explains why
 - Do not leave debug logging, `console.log`, `print()`, or `TODO` comments in committed code
 - Do not hardcode environment-specific values (URLs, credentials, feature flags)
 - Do not make breaking changes to public APIs without a versioning plan
 - Do not commit on behalf of other people without their knowledge
-
----
 
 ## Observability
 
@@ -148,8 +172,6 @@ Write migrations that are reversible. Never drop columns or tables without a dep
 - Include trace IDs in log lines when operating in a distributed system
 - Write alerts for conditions that require human intervention
 
----
-
 ## Dependency Management
 
 - Pin dependency versions in lockfiles; commit lockfiles to the repository
@@ -157,13 +179,11 @@ Write migrations that are reversible. Never drop columns or tables without a dep
 - Prefer well-maintained, widely-used libraries over niche alternatives
 - Check for known vulnerabilities before introducing a new dependency
 
----
-
 ## Documentation
 
 - Keep `README.md` accurate and up to date
 - Document environment variables in a `.env.example` file
-- Write inline comments for complex algorithms, not for obvious code
+- All public functions, classes, types, and endpoints require docstrings or JSDoc
 - Update architecture decision records (see `shared/prompts/adr.md`) when making significant design choices
 
 ---
@@ -172,10 +192,10 @@ Write migrations that are reversible. Never drop columns or tables without a dep
 
 These tools are available across all supported AI coding agents. Use them by name when relevant.
 
-**`/humanizer`** -- Edit any prose (docs, PR descriptions, commit messages, README, code comments) to remove AI-writing patterns. Use after drafting documentation or when output sounds generic. Detects 33 specific patterns including em dash overuse, rule-of-three, sycophantic openers, and vague attributions.
+**`/humanizer`** - Edit any prose (docs, PR descriptions, commit messages, README, code comments) to remove AI-writing patterns. Use after drafting documentation or when output sounds generic. Detects 33 specific patterns including em dash overuse, rule-of-three, sycophantic openers, and vague attributions.
 
-**`/caveman`** -- Switch to ultra-compressed communication mode. Cuts explanatory verbosity by ~65% while preserving full technical accuracy. Code output is never affected. Useful for long sessions where context economy matters. Levels: `lite`, `full` (default), `ultra`. Deactivate with "stop caveman".
+**`/caveman`** - Switch to ultra-compressed communication mode. Cuts explanatory verbosity by ~65% while preserving full technical accuracy. Code output is never affected. Useful for long sessions where context economy matters. Levels: `lite`, `full` (default), `ultra`. Deactivate with "stop caveman".
 
-**`/caveman-commit`** -- Generate precise conventional commit messages from staged changes. Outputs message only; never runs `git commit`.
+**`/caveman-commit`** - Generate precise conventional commit messages from staged changes. Outputs message only; never runs `git commit`.
 
-**`/rubber-duck`** -- Independent second-opinion critic. Read-only. Reviews plans before implementation (Mode A), code after writing (Mode B), or runs the Five-Quack self-explanation protocol to surface bugs through narration (Mode C). Uses a low-temperature, different-perspective model. Never comments on style or naming. Explicitly states when no issues are found.
+**`/rubber-duck`** - Independent second-opinion critic. Read-only. Reviews plans before implementation (Mode A), code after writing (Mode B), or runs the Five-Quack self-explanation protocol to surface bugs through narration (Mode C). Uses a low-temperature, different-perspective model. Never comments on style or naming. Explicitly states when no issues are found.
