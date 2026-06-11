@@ -11,4 +11,4 @@ Current tags and log:
 !`git tag --sort=-creatordate | head -5 2>/dev/null`
 !`git log --oneline -10 2>/dev/null`
 
-@../../shared/prompts/release.md
+@../../../shared/prompts/release.md

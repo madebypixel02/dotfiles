@@ -7,4 +7,4 @@ context: fork
 
 Refactor target: $ARGUMENTS
 
-@../../shared/prompts/refactor.md
+@../../../shared/prompts/refactor.md

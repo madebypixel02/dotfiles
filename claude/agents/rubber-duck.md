@@ -2,7 +2,6 @@
 name: rubber-duck
 description: Silent second-opinion critic. Read-only adversarial review of plans and code. Only reports real bugs, logic errors, security flaws, and performance issues that affect correctness. Never comments on style. Use before implementing complex plans or after writing non-obvious code.
 tools: Read, Grep, Glob
-model: claude-haiku-4-5
 permissionMode: plan
 maxTurns: 10
 ---

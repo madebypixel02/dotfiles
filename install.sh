@@ -215,7 +215,7 @@ fi
 # ---------------------------------------------------------------------------
 log_header "Claude Code symlinks (${CLAUDE_DIR}/)"
 
-for f in CLAUDE.md settings.json mcp.jsonc; do
+for f in CLAUDE.md settings.json; do
   src="${DOTFILES_DIR}/claude/${f}"
   if [[ -f "$src" ]]; then
     do_symlink "$src" "${CLAUDE_DIR}/${f}"
@@ -223,6 +223,9 @@ for f in CLAUDE.md settings.json mcp.jsonc; do
     log_info "Skipping ${f} (${src} not found)"
   fi
 done
+
+log_info "MCP servers: Claude Code reads .mcp.json from project roots only."
+log_info "Template available at ${DOTFILES_DIR}/claude/mcp.json — copy to your projects."
 
 for d in agents rules skills; do
   src="${DOTFILES_DIR}/claude/${d}"

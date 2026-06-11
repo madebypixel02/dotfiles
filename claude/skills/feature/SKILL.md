@@ -11,4 +11,4 @@ Current branch context:
 !`git log --oneline -5 2>/dev/null`
 !`git status --short 2>/dev/null`
 
-@../../shared/prompts/feature.md
+@../../../shared/prompts/feature.md

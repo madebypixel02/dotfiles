@@ -4,4 +4,4 @@ allowed-tools: Read
 context: fork
 ---
 
-@../../shared/prompts/caveman.md
+@../../../shared/prompts/caveman.md
