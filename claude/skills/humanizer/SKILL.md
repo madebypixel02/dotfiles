@@ -10,4 +10,4 @@ Text to humanize: $ARGUMENTS
 Recent prose changes for context:
 !`git diff HEAD -- "*.md" "*.txt" "*.mdx" 2>/dev/null | head -100`
 
-@../../shared/prompts/humanizer.md
+@../../../shared/prompts/humanizer.md
