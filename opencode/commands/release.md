@@ -55,7 +55,7 @@ The working tree MUST be clean. If `git status` shows uncommitted changes, STOP 
 
 Confirm the release is being cut from the correct branch:
 
-- Releases should originate from `main`, `master`, or a dedicated `release/*` branch.
+- Releases should originate from `main` or a dedicated `release/*` branch.
 - If on a feature or hotfix branch, warn and ask for confirmation.
 
 ### 1c. CI Status
@@ -242,7 +242,7 @@ git push origin "v[NEW_VERSION]"
 Present the operator with a final pre-release checklist:
 
 - [ ] Working tree is clean
-- [ ] On the correct release branch (main/master/release/\*)
+- [ ] On the correct release branch (main/release/\*)
 - [ ] CI is passing on this commit (verified manually)
 - [ ] Version bumped correctly in all manifest files
 - [ ] CHANGELOG.md updated and prepended

@@ -231,7 +231,7 @@ git push origin feat/your-feature-name
 
 ### Branch Strategy
 
-- `main` / `master` — [always deployable / release branch / description]
+- `main` — [always deployable / release branch / description]
 - `feat/[name]` — feature branches
 - `fix/[name]` — bug fix branches
 - `hotfix/[name]` — production hotfixes

@@ -6,7 +6,6 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "master"
 
 variables:
   PYTHON_VERSION: "3.12"
@@ -130,7 +129,6 @@ release:draft-notes:
   image: node:20-slim
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
-    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
   script:
     - npm install --no-save conventional-changelog-cli
     - npx conventional-changelog -p angular -u -r 1 > RELEASE_NOTES.md

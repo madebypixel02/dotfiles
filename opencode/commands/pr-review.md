@@ -19,7 +19,7 @@ Spawn three parallel review workstreams, then synthesise their findings into a s
 ```
 Current branch: !`git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "(not a git repo)"`
 
-PR diff (staged + unstaged vs main/master):
+PR diff (staged + unstaged vs main):
 !`git diff $(git merge-base HEAD $(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null || echo origin/main) 2>/dev/null || echo HEAD~10) 2>/dev/null | head -1500 || echo "(unable to compute diff — ensure you are on the PR branch)"`
 
 Files changed:

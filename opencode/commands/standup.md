@@ -28,7 +28,7 @@ All commits this week:
 !`git log --all --since="1 week ago" --oneline --format="%ad %s (%an) [%h]" --date=short 2>/dev/null | head -40 || echo "(no commits this week)"`
 
 Current branch status vs main:
-!`git log main..HEAD --oneline 2>/dev/null || git log master..HEAD --oneline 2>/dev/null || echo "(unable to compare with main/master)"`
+!`git log main..HEAD --oneline 2>/dev/null || echo "(unable to compare with main)"`
 
 Uncommitted work in progress:
 !`git status --short 2>/dev/null || echo "(clean working tree)"`
