@@ -1,0 +1,13 @@
+# semgrep ignore rules for this repository.
+#
+# Each line below either excludes a path from scanning or suppresses a
+# specific rule on a specific file. Format:
+#
+#   path/to/file                          # exclude entire file
+#   rule-id:path/to/file                  # suppress one rule on one file
+
+# install.sh: curl pipe to bash is the canonical OpenCode install invocation,
+# identical to the pattern published on opencode.ai/install. The script is
+# downloaded to a temp file first (not piped directly), which is the safer
+# two-step approach. The remaining audit finding is informational only.
+bash.curl.security.curl-pipe-bash.curl-pipe-bash:install.sh

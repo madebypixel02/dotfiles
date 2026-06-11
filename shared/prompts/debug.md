@@ -87,11 +87,11 @@ If you know which commit introduced the bug, use `git bisect start`, mark the ba
 
 Do not stop at the first explanation. Ask "why?" recursively until you reach a root cause that, if addressed, would prevent the bug (and bugs like it) from recurring:
 
-- Why did the null pointer dereference occur?  
+- Why did the null pointer dereference occur?
   → Because the cache miss path returned nil without checking
-- Why did the cache miss path return nil?  
+- Why did the cache miss path return nil?
   → Because the fallback fetch function was never implemented
-- Why was it never implemented?  
+- Why was it never implemented?
   → Because the unit test only covered the cache hit path
 
 The root cause is "insufficient test coverage of the cache miss path", not "nil pointer dereference". The fix addresses the root cause (add the test and the implementation), not just the symptom (add a nil check before the dereference).

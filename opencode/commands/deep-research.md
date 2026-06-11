@@ -100,8 +100,8 @@ _Purpose: Evaluate the specific options or approaches relevant to the research q
 | Maintenance burden     |          |          |          |
 | Security posture       |          |          |          |
 
-3. Identify the decision factors that most strongly differentiate the options.
-4. Provide a decision guide: "Choose A when X; choose B when Y; choose C when Z."
+1. Identify the decision factors that most strongly differentiate the options.
+2. Provide a decision guide: "Choose A when X; choose B when Y; choose C when Z."
 
 **Output:** Comparative analysis matrix with decision guide.
 

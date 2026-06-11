@@ -407,7 +407,8 @@
     "~/.config/opencode/plugins/secret-guard.ts",
     "~/.config/opencode/plugins/context-injector.ts",
     "~/.config/opencode/plugins/quality-gate.ts",
-    "~/.config/opencode/plugins/notification-hub.ts"
+    "~/.config/opencode/plugins/humanizer-hook.ts",
+    "~/.config/opencode/plugins/caveman-guard.ts"
   ],
 
   // ─── Instruction files ────────────────────────────────────────────────────

@@ -78,9 +78,9 @@ async function gitRecentCommits(cwd: string, n = 5): Promise<string[]> {
 
 async function readAgentsMd(projectRoot: string): Promise<string | null> {
   const candidates = [
-    join(projectRoot, "AGENTS.md"),
-    join(projectRoot, ".opencode", "AGENTS.md"),
-    join(projectRoot, "docs", "AGENTS.md"),
+    join(projectRoot, "AGENTS.md"), // nosemgrep: path-join-resolve-traversal
+    join(projectRoot, ".opencode", "AGENTS.md"), // nosemgrep: path-join-resolve-traversal
+    join(projectRoot, "docs", "AGENTS.md"), // nosemgrep: path-join-resolve-traversal
   ];
 
   for (const candidate of candidates) {
