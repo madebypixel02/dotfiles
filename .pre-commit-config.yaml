@@ -64,8 +64,8 @@ repos:
     hooks:
       - id: no-emoji-in-source
         name: No emoji in source files
-        language: pygrep
-        entry: "[\U0001F300-\U0001FAFF]"
+        language: python
+        entry: python scripts/check-no-emoji.py
         types_or: [ts, javascript, sh]
 
       - id: no-commented-code
