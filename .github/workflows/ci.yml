@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  commitlint:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate commit messages
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: commitlint.config.mjs
+          failOnErrors: true
+
+  branch-name:
+    name: Branch Name
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Validate branch name pattern
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          pattern='^(feat|fix|chore|docs|refactor|test|ci|release|hotfix|perf|revert)/.+'
+          if ! printf '%s' "${BRANCH}" | grep -qE "${pattern}"; then
+            printf 'Branch "%s" does not match required pattern: %s\n' "${BRANCH}" "${pattern}" >&2
+            printf 'Rename your branch to follow the convention, e.g.: feat/my-feature\n' >&2
+            exit 1
+          fi
+          printf 'Branch name "%s" is valid.\n' "${BRANCH}"
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on all shell scripts
+        run: |
+          mapfile -t scripts < <(find . -name '*.sh' -not -path './.git/*' -not -path './opencode/plugins/node_modules/*')
+          if [[ ${#scripts[@]} -eq 0 ]]; then
+            printf 'No shell scripts found.\n'
+            exit 0
+          fi
+          printf 'Checking %d script(s):\n' "${#scripts[@]}"
+          printf '  %s\n' "${scripts[@]}"
+          shellcheck --severity=warning "${scripts[@]}"
+
+  actionlint:
+    name: Workflow Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install actionlint
+        run: |
+          ACTIONLINT_VERSION="1.7.3"
+          curl -fsSL \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz actionlint
+          sudo mv actionlint /usr/local/bin/actionlint
+
+      - name: Run actionlint
+        run: actionlint
+
+  pre-commit:
+    name: Pre-commit Hooks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-${{ runner.os }}-
+
+      - name: Install and run pre-commit
+        run: |
+          pip install --quiet pre-commit
+          pre-commit run --all-files --show-diff-on-failure
+
+  validate-install:
+    name: Validate Install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run install script dry-run
+        run: bash install.sh --dry-run
+
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - commitlint
+      - branch-name
+      - shellcheck
+      - actionlint
+      - pre-commit
+      - validate-install
+    steps:
+      - name: Evaluate upstream job results
+        run: |
+          results='${{ toJSON(needs) }}'
+          printf 'Job results:\n%s\n' "${results}"
+          if printf '%s' "${results}" | grep -q '"result": "failure"'; then
+            printf 'One or more required jobs failed. See individual job logs above.\n' >&2
+            exit 1
+          fi
+          if printf '%s' "${results}" | grep -q '"result": "cancelled"'; then
+            printf 'One or more required jobs were cancelled.\n' >&2
+            exit 1
+          fi
+          printf 'All required jobs passed.\n'
