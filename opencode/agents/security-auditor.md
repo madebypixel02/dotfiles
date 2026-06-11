@@ -2,7 +2,7 @@
 name: security-auditor
 description: Security audit subagent. Performs deep OWASP Top 10 security analysis, checks authentication and authorisation flows, validates input handling, hunts for secrets and credential leaks, and reviews dependency risk. Read-only. Use for any change touching auth, external input, secrets, or new dependencies.
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: github-copilot/claude-sonnet-4-6
 temperature: 0.05
 color: "#f7768e"
 permission:
