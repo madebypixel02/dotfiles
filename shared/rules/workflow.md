@@ -122,6 +122,8 @@ The following rules apply to the `main` branch and must be enforced at the repos
 - All status checks must pass before merge
 - Branch must be up to date with `main` before merge
 
+**For AI agents specifically:** after completing any set of changes, push the working branch to the remote and open a pull request or merge request. Do not attempt to merge, squash, or push commits to `main` directly. The PR is the required handoff to human review — not an optional step.
+
 ---
 
 ## Pre-Commit Hooks
