@@ -153,9 +153,9 @@ After all three workstreams complete, produce the final PR review comment in thi
 ```markdown
 ## PR Review
 
-**Branch:** [branch name]  
-**Reviewed by:** OpenCode Enterprise Review Bot  
-**Date:** !`date +"%Y-%m-%d"`  
+**Branch:** [branch name]
+**Reviewed by:** OpenCode Enterprise Review Bot
+**Date:** !`date +"%Y-%m-%d"`
 **Files changed:** [count] | **Lines added:** [count] | **Lines removed:** [count]
 
 ---

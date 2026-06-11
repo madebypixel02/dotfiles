@@ -295,7 +295,7 @@ function scanContentForSecrets(content: string): {
 function pathRemediationHint(filePath: string): string {
   return (
     `\n\nRemediation:\n` +
-    `  • Use environment variables or a secrets manager (e.g., HashiCorp Vault, AWS Secrets Manager).\n` +
+    `  • Use environment variables or a secrets manager (e.g., Vault, AWS Secrets Manager).\n` +
     `  • If you need to inspect "${basename(filePath)}" for debugging, do so in a terminal outside opencode.\n` +
     `  • Never commit secret files to version control; add them to .gitignore.`
   );

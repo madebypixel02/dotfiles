@@ -1,7 +1,3 @@
-include:
-  - template: Security/SAST.gitlab-ci.yml
-  - template: Security/Secret-Detection.gitlab-ci.yml
-
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -10,7 +6,6 @@ workflow:
 variables:
   PYTHON_VERSION: "3.12"
   PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
-  SAST_EXCLUDED_ANALYZERS: "eslint,gosec,nodejs-scan,semgrep"
   SECRET_DETECTION_EXCLUDED_PATHS: ".git"
 
 default:
@@ -52,7 +47,7 @@ validate:branch-name:
 
 lint:pre-commit:
   stage: lint
-  image: python:3.12-slim
+  image: node:20-slim
   variables:
     PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
   cache:
@@ -63,7 +58,10 @@ lint:pre-commit:
     paths:
       - .cache/pre-commit
   script:
-    - pip install --quiet pre-commit
+    - apt-get update -qq && apt-get install -y -qq git python3 python3-pip pipx
+    - pipx install pre-commit
+    - pipx ensurepath
+    - export PATH="${PATH}:/root/.local/bin"
     - pre-commit run --all-files --show-diff-on-failure
   allow_failure: false
 
@@ -86,7 +84,9 @@ lint:shellcheck:
 
 lint:actionlint:
   stage: lint
-  image: rhysd/actionlint:1.7.3
+  image:
+    name: rhysd/actionlint:1.7.3
+    entrypoint: [""]
   script:
     - actionlint .github/workflows/*.yml
 
@@ -99,7 +99,9 @@ lint:markdownlint:
 
 security:secrets:
   stage: security
-  image: zricethezav/gitleaks:v8.18.4
+  image:
+    name: zricethezav/gitleaks:v8.18.4
+    entrypoint: [""]
   script:
     - gitleaks detect --source . --redact --no-banner
   allow_failure: false
@@ -109,7 +111,7 @@ security:sast:
   image: python:3.12-slim
   script:
     - pip install --quiet semgrep
-    - semgrep --config auto --error --json . | tee semgrep-report.json
+    - semgrep --config auto --error --json --exclude semgrep-report.json . | tee semgrep-report.json
   artifacts:
     when: always
     paths:

@@ -158,7 +158,7 @@ tags: [comma-separated tags: architecture, database, api, security, etc.]
 
 **Proposed** — _Awaiting review and acceptance by [team/lead/architect]_
 
-> To accept this ADR, change `Proposed` → `Accepted` and record the date.  
+> To accept this ADR, change `Proposed` → `Accepted` and record the date.
 > To supersede this ADR, create a new ADR and update the `superseded-by` field.
 
 ---
@@ -190,21 +190,21 @@ tags: [comma-separated tags: architecture, database, api, security, etc.]
 
 [Description]
 
-**Pros:** [inline list]  
+**Pros:** [inline list]
 **Cons:** [inline list]
 
 ### Option 2: [Name]
 
 [Description]
 
-**Pros:** [inline list]  
+**Pros:** [inline list]
 **Cons:** [inline list]
 
 ### Option 3: [Name] _(if applicable)_
 
 [Description]
 
-**Pros:** [inline list]  
+**Pros:** [inline list]
 **Cons:** [inline list]
 
 ---

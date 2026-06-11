@@ -191,7 +191,7 @@ function emitTestRunSuggestion(): void {
   lastSuggestedTestRunAt = now;
 
   console.log(
-    `\n[quality-gate] 🧪 You've made ${editCount} file edits this session. ` +
+    `\n[quality-gate] You have made ${editCount} file edits this session. ` +
       `Consider running your test suite to catch regressions:\n` +
       `  npm test  |  bun test  |  pnpm test  |  yarn test\n`,
   );
@@ -199,7 +199,7 @@ function emitTestRunSuggestion(): void {
 
 function emitNoTestsWarning(): void {
   console.log(
-    `\n[quality-gate] ⚠️  You modified ${filesEditedThisSession.size} files this session ` +
+    `\n[quality-gate] Warning: You modified ${filesEditedThisSession.size} files this session ` +
       `but no test files were touched.\n` +
       `Consider adding or updating tests to cover your changes.\n`,
   );
@@ -207,7 +207,7 @@ function emitNoTestsWarning(): void {
 
 function emitMissingTestHint(sourceFile: string): void {
   console.log(
-    `\n[quality-gate] 💡 No test file found for: ${sourceFile}\n` +
+    `\n[quality-gate] Hint: No test file found for: ${sourceFile}\n` +
       `  Consider creating a corresponding test file to maintain coverage.\n`,
   );
 }
