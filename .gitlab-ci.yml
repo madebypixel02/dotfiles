@@ -47,7 +47,7 @@ validate:branch-name:
 
 lint:pre-commit:
   stage: lint
-  image: python:3.12-slim
+  image: node:20-slim
   variables:
     PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
   cache:
@@ -58,9 +58,9 @@ lint:pre-commit:
     paths:
       - .cache/pre-commit
   script:
-    - apt-get update -qq && apt-get install -y -qq git
-    - pip install --quiet pre-commit
-    - pre-commit run --all-files --show-diff-on-failure
+    - apt-get update -qq && apt-get install -y -qq git python3 python3-pip pipx
+    - pipx install pre-commit
+    - pipx run pre-commit run --all-files --show-diff-on-failure
   allow_failure: false
 
 lint:shellcheck:
