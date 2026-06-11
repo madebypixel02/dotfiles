@@ -165,3 +165,17 @@ Write migrations that are reversible. Never drop columns or tables without a dep
 - Document environment variables in a `.env.example` file
 - Write inline comments for complex algorithms, not for obvious code
 - Update architecture decision records (see `shared/prompts/adr.md`) when making significant design choices
+
+---
+
+## Available Specialist Tools
+
+These tools are available across all supported AI coding agents. Use them by name when relevant.
+
+**`/humanizer`** -- Edit any prose (docs, PR descriptions, commit messages, README, code comments) to remove AI-writing patterns. Use after drafting documentation or when output sounds generic. Detects 33 specific patterns including em dash overuse, rule-of-three, sycophantic openers, and vague attributions.
+
+**`/caveman`** -- Switch to ultra-compressed communication mode. Cuts explanatory verbosity by ~65% while preserving full technical accuracy. Code output is never affected. Useful for long sessions where context economy matters. Levels: `lite`, `full` (default), `ultra`. Deactivate with "stop caveman".
+
+**`/caveman-commit`** -- Generate precise conventional commit messages from staged changes. Outputs message only; never runs `git commit`.
+
+**`/rubber-duck`** -- Independent second-opinion critic. Read-only. Reviews plans before implementation (Mode A), code after writing (Mode B), or runs the Five-Quack self-explanation protocol to surface bugs through narration (Mode C). Uses a low-temperature, different-perspective model. Never comments on style or naming. Explicitly states when no issues are found.

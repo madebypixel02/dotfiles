@@ -1,0 +1,313 @@
+---
+name: humanizer
+version: 2.8.0
+description: Remove signs of AI-generated writing from text. Detects and fixes 33 patterns including inflated symbolism, em dash overuse, rule of three, AI vocabulary, sycophantic tone, passive voice, and filler phrases. Use when editing docs, commit messages, PR descriptions, comments, README files, or any prose that sounds AI-generated.
+license: MIT
+compatibility: opencode claude-code
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+---
+
+# Humanizer
+
+Remove AI-generated writing patterns from any prose. This skill detects and fixes 33 specific
+patterns that signal machine-generated text, then delivers a clean, human-sounding rewrite.
+
+## Input
+
+Text or file to humanize: $ARGUMENTS
+
+## Process
+
+1. **Read** the input text in full.
+2. **Identify** every instance of the 33 patterns below. Note each by pattern number and location.
+3. **Draft** a rewrite that resolves all flagged instances.
+4. **Self-audit**: Ask "what still sounds AI-generated?" and list any remaining signals.
+5. **Final rewrite**: Apply the self-audit corrections.
+6. **Deliver**: Show (a) the audit bullets listing what was found and fixed, then (b) the final text.
+
+## Hard Constraints
+
+- Zero em dashes (--) and en dashes (-) in output. Replace with a period, comma, colon, or parentheses.
+- Zero curly/smart quotes (" " ' '). Use straight quotes (" ').
+- Zero emojis unless the original human text contained them.
+- Never add content not present in the original. Only remove, rephrase, or restructure.
+- Never add a summary, explanation, or preamble to the output. Deliver the rewritten text directly.
+
+---
+
+## The 33 Patterns
+
+### Content Patterns (1-6)
+
+**1. Significance Inflation**
+Assigning outsized historical or evolutionary importance to ordinary things.
+
+- Before: "This release marks a pivotal moment in the evolution of distributed systems."
+- After: "This release changes how distributed systems handle state."
+
+**2. Notability Name-Dropping**
+Citing publications or authorities without a real reference to add credibility.
+
+- Before: "As covered by the New York Times, BBC, and the Financial Times, the project gained traction."
+- After: Remove the citation entirely, or provide a specific article title and date.
+
+**3. Superficial -ing Analyses**
+Stacking present-participle phrases that claim to interpret something without saying anything concrete.
+
+- Before: "The design symbolizes strength, reflecting resilience, and showcasing innovation."
+- After: "The design is sturdy and straightforward." (Pick the most accurate reading; drop the rest.)
+
+**4. Promotional Language**
+Travel-brochure adjectives applied to products, places, or features.
+
+- Before: "Nestled within the breathtaking Swiss Alps, the data center offers world-class uptime."
+- After: "The Swiss Alps data center has 99.99% uptime."
+
+**5. Vague Attributions**
+Crediting unnamed experts, studies, or consensus to lend authority.
+
+- Before: "Experts believe this approach plays a crucial role in modern architecture."
+- After: "Some researchers suggest this approach reduces latency" (and name them if possible), or omit.
+
+**6. Formulaic Challenges Sections**
+Boilerplate adversity-and-triumph narrative with no specifics.
+
+- Before: "Despite significant challenges, the team continues to thrive and push boundaries."
+- After: Specify what the challenges were, what changed, and what the outcome was. If unknown, omit.
+
+---
+
+### Language Patterns (7-13)
+
+**7. AI Vocabulary**
+Words statistically overrepresented in LLM output. Replace with simpler alternatives.
+
+| Avoid      | Use instead                   |
+| ---------- | ----------------------------- |
+| delve      | look into, examine, explore   |
+| tapestry   | mix, range, combination       |
+| testament  | proof, sign, evidence         |
+| vibrant    | lively, busy, active          |
+| pivotal    | key, central, critical        |
+| underscore | show, highlight, stress       |
+| landscape  | field, space, area, market    |
+| fostering  | building, growing, supporting |
+| garner     | get, earn, attract            |
+| intricate  | complex, detailed             |
+| elevate    | raise, improve                |
+| holistic   | complete, full, end-to-end    |
+
+**8. Copula Avoidance**
+Using elaborate verbs where "is" or "has" would be direct.
+
+- Before: "The library serves as a unified interface for all data sources."
+- Before: "The dashboard boasts real-time metrics and features a dark mode."
+- After: "The library is a unified interface for all data sources."
+- After: "The dashboard has real-time metrics and a dark mode."
+
+**9. Negative Parallelisms and Tailing Negations**
+"It's not just X, it's Y" frames or sentences that end with a negation for rhetorical effect.
+
+- Before: "It's not just a tool; it's a philosophy. No guessing required."
+- After: "It is a workflow philosophy. The rules are explicit."
+
+**10. Rule of Three**
+Triplet lists chosen for rhythm rather than completeness.
+
+- Before: "We value innovation, inspiration, and insight."
+- After: "We value clear thinking." (Pick one concrete claim, or use two if both are genuinely distinct.)
+
+**11. Synonym Cycling**
+Using multiple words for the same referent within a passage.
+
+- Before: "The protagonist makes a decision. The main character regrets it. The central figure moves on."
+- After: Pick one term and use it throughout: "The protagonist makes a decision, regrets it, and moves on."
+
+**12. False Ranges**
+"From X to Y" constructions where X and Y are so far apart the range communicates nothing.
+
+- Before: "The framework handles everything from simple CRUD to distributed consensus."
+- After: State the actual supported operations. If it genuinely does both, list them separately.
+
+**13. Passive Voice / Subjectless Fragments**
+Removing the actor to sound authoritative or neutral.
+
+- Before: "No configuration file needed. Deployment is handled automatically."
+- After: "You do not need a configuration file. The installer deploys the service."
+
+---
+
+### Style Patterns (14-22)
+
+**14. Em Dashes and En Dashes**
+Both -- and - must be eliminated. Choose the correct replacement based on meaning:
+
+- Parenthetical aside: use parentheses or commas.
+- Abrupt stop: use a period.
+- Colon relationship: use a colon.
+
+- Before: "The system is fast -- even under load -- and reliable."
+- After: "The system is fast (even under load) and reliable."
+
+**15. Boldface Overuse**
+Bold used on every key noun rather than reserved for the one genuinely critical term per section.
+
+- Before: "**Performance** improved by **40%** after the **caching layer** was added."
+- After: "Performance improved by 40% after the caching layer was added."
+  (Bold only if one item is a critical warning or must-not-miss term.)
+
+**16. Inline-Header Lists**
+A bold label followed immediately by the label restated as prose.
+
+- Before: "**Performance:** Performance improved significantly across all benchmarks."
+- After: "Performance improved across all benchmarks."
+
+**17. Title Case Headings**
+Capitalizing every word in a heading.
+
+- Before: "## Strategic Negotiations And Partnership Frameworks"
+- After: "## Strategic negotiations and partnership frameworks"
+  (Capitalize only the first word and proper nouns.)
+
+**18. Emojis**
+Remove all emojis unless they were present in the original human-authored text.
+
+- Before: "Deploy with confidence! Use our CLI tool for easy setup."
+- After: "Deploy with confidence. Use the CLI for setup."
+
+**19. Curly Quotes**
+Replace all curly/smart quotes with straight ASCII equivalents.
+
+- Before: "He said 'it works' and she agreed."
+- After: "He said 'it works' and she agreed."
+
+**20. Chatbot Artifacts**
+Pleasantry closings, offers of further help, sign-offs.
+
+- Before: "I hope this helps! Let me know if you have further questions."
+- After: Omit entirely. End with the last substantive sentence.
+
+**21. Knowledge-Cutoff Disclaimers**
+Boilerplate hedges about training data dates.
+
+- Before: "As of my knowledge cutoff in early 2024, this library..."
+- After: State the actual limitation plainly ("This was accurate in early 2024") or omit if not relevant.
+
+**22. Sycophantic Tone**
+Complimenting the question or validating the asker before responding.
+
+- Before: "Great question! You're absolutely right that this is complex."
+- After: Skip to the answer.
+
+---
+
+### Filler and Hedging (23-25)
+
+**23. Filler Phrases**
+Wordy constructions that can be shortened without loss.
+
+| Wordy                        | Concise         |
+| ---------------------------- | --------------- |
+| In order to                  | To              |
+| Due to the fact that         | Because         |
+| At this point in time        | Now             |
+| In the event that            | If              |
+| With regard to               | About           |
+| It is important to note that | Note: (or omit) |
+| For the purpose of           | To / For        |
+| In terms of                  | In / Of / For   |
+| On a daily basis             | Daily           |
+
+**24. Excessive Hedging**
+Stacking multiple hedges that cancel each other out.
+
+- Before: "This could potentially possibly improve performance in some cases."
+- After: "This may improve performance."
+- Before: "It is worth noting that the cache is cleared on restart."
+- After: "The cache clears on restart." (Or omit "it is worth noting" and lead with the fact.)
+
+**25. Generic Positive Conclusions**
+Vague optimistic endings that carry no information.
+
+- Before: "The future looks bright for open-source AI tooling."
+- After: State a specific expected outcome, or end the piece at the last substantive point.
+
+---
+
+### More Patterns (26-33)
+
+**26. Hyphenated Predicate Overuse**
+Stacking compound adjectives as if they are accomplishments.
+
+- Before: "Our approach is data-driven, cross-functional, and impact-focused."
+- After: "We base decisions on data, share work across teams, and measure outcomes."
+
+**27. Persuasive Authority Tropes**
+Meta-commentary claiming to reveal what "really" matters.
+
+- Before: "At its core, what really matters is delivering value to users."
+- After: "Deliver value to users." (Or state the specific value being delivered.)
+
+**28. Signposting Announcements**
+Telling the reader you are about to begin instead of beginning.
+
+- Before: "Let's dive in. Here's what you need to know about the new API."
+- After: Start with the first substantive sentence about the API.
+
+**29. Fragmented Headers**
+A heading followed by one sentence that restates the heading before the real content begins.
+
+- Before:
+  ```
+  ## Caching Strategy
+  This section covers our caching strategy in detail.
+  ```
+- After:
+  ```
+  ## Caching Strategy
+  [First substantive sentence about the strategy directly.]
+  ```
+
+**30. Diff-Anchored Writing**
+Describing current behavior by comparing it to a previous version the reader may not know.
+
+- Before: "This function was added to replace the old synchronous version that blocked the event loop."
+- After: "This function handles I/O asynchronously."
+
+**31. Manufactured Punchlines**
+Staccato fragments arranged for dramatic effect rather than clarity.
+
+- Before: "It had no preference. No prior. No nostalgia. It simply computed."
+- After: "It computed without preference or prior state."
+
+**32. Aphorism Formulas**
+Abstract symmetry statements offered as insight.
+
+- Before: "Symmetry is the language of trust."
+- After: State the concrete claim. If there is no concrete claim, delete the sentence.
+
+**33. Conversational Rhetorical Openers**
+Performative hedges that delay the actual answer.
+
+- Before: "Honestly? It depends on your use case. Great question to ask."
+- After: "It depends on your use case:" (then list the conditions directly.)
+
+---
+
+## Delivery Format
+
+```
+### Audit
+
+- [Pattern #N] Description of instance found and what was changed.
+- [Pattern #N] ...
+
+### Result
+
+[Final rewritten text here, with no preamble.]
+```

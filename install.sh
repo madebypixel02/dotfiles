@@ -153,6 +153,26 @@ for d in "${dirs[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
+# Step 2b: Clone/update third-party skills
+# ---------------------------------------------------------------------------
+log_header "Third-party skills (humanizer)"
+
+HUMANIZER_DIR="${DOTFILES_DIR}/opencode/skills/humanizer-upstream"
+if [[ "$DRY_RUN" == "true" ]]; then
+  log_info "[dry-run] would clone/update blader/humanizer into ${HUMANIZER_DIR}"
+else
+  if [[ -d "${HUMANIZER_DIR}/.git" ]]; then
+    log_info "Updating humanizer..."
+    git -C "${HUMANIZER_DIR}" pull --ff-only --quiet 2>/dev/null || log_info "humanizer: already up to date (or pull skipped)"
+  else
+    log_info "Cloning blader/humanizer..."
+    git clone --depth=1 --quiet https://github.com/blader/humanizer.git "${HUMANIZER_DIR}" 2>/dev/null \
+      && log_info "humanizer cloned" \
+      || log_info "humanizer clone failed -- skipping (network issue?)"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Step 3: OpenCode symlinks
 # ---------------------------------------------------------------------------
 log_header "OpenCode symlinks (${OPENCODE_CONFIG}/)"
