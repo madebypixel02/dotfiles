@@ -2,7 +2,7 @@
 name: debugger
 description: Systematic debugging subagent. Diagnoses failures using a structured 7-step methodology, analyses logs and stack traces, identifies root causes, and produces fix recommendations. Has limited bash access for read-only diagnostic commands. Cannot delete files, push code, or run destructive operations. Use when a test is failing with unclear cause, a production incident needs diagnosis, or a bug is not reproducible through code reading alone.
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: github-copilot/claude-sonnet-4-6
 temperature: 0.2
 color: "#ff9e64"
 permission:

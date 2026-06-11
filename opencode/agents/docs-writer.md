@@ -2,7 +2,7 @@
 name: docs-writer
 description: Documentation writer subagent. Creates and maintains README files, API reference docs, Architecture Decision Records (ADRs), runbooks, inline code documentation, and developer guides. Follows docs-as-code philosophy. Can write and edit files but has no bash access. Use when public APIs change, new services are added, architectural decisions are made, or operational runbooks are needed.
 mode: subagent
-model: anthropic/claude-sonnet-4-5
+model: github-copilot/claude-sonnet-4-6
 temperature: 0.3
 color: "#2ac3de"
 permission:
