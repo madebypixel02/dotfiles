@@ -26,6 +26,8 @@ These standards are non-negotiable. They apply to every task, every file, and ev
 
 **Feature branches.** All work must be done on a branch matching the pattern `^(feat|fix|chore|docs|refactor|test|ci|release|hotfix|perf|revert)/.+`. Never commit directly to `main`.
 
+**Always open a PR. Never merge to main directly.** After pushing a branch, open a pull request or merge request. Do not push commits to `main`, do not run `git merge` into `main`, and do not squash and merge locally. The only path to `main` is through a PR that has passed CI and received at least one human approval. This applies to every change without exception, including documentation-only commits, one-line fixes, and configuration changes.
+
 **PRs require human review.** Every pull request requires at least one human approval. Authors cannot approve their own PRs. Do not self-merge.
 
 **Pre-commit hooks must pass.** Run `pre-commit install` once per repository. All hooks must pass locally before pushing. CI will enforce the same checks.
@@ -119,6 +121,7 @@ Run `git status` and `git log --oneline -10` to understand the current state of 
 
 ### Pull Requests
 
+- After pushing a branch, open a pull request. Do not wait to be asked.
 - Inspect `git diff main...HEAD` before creating a pull request
 - Ensure CI passes before requesting review
 - Write a clear PR description: what changed, why it changed, how to test it
