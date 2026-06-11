@@ -1,0 +1,141 @@
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "master"
+
+variables:
+  PYTHON_VERSION: "3.12"
+  PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
+  SAST_EXCLUDED_ANALYZERS: "eslint,gosec,nodejs-scan,semgrep"
+  SECRET_DETECTION_EXCLUDED_PATHS: ".git"
+
+default:
+  image: python:3.12-slim
+  interruptible: true
+
+stages:
+  - validate
+  - lint
+  - security
+  - verify
+  - release
+
+validate:commit-messages:
+  stage: validate
+  image: node:20-slim
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - npm install --no-save @commitlint/cli @commitlint/config-conventional
+    - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
+
+validate:branch-name:
+  stage: validate
+  image: alpine:3.20
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  script:
+    - |
+      pattern='^(feat|fix|chore|docs|refactor|test|ci|release|hotfix|perf|revert)/.+'
+      branch="${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}"
+      if ! printf '%s' "${branch}" | grep -qE "${pattern}"; then
+        printf 'Branch "%s" does not match the required naming pattern.\n' "${branch}" >&2
+        printf 'Pattern: %s\n' "${pattern}" >&2
+        printf 'Rename your branch to follow the convention, for example: feat/my-feature\n' >&2
+        exit 1
+      fi
+      printf 'Branch name "%s" is valid.\n' "${branch}"
+
+lint:pre-commit:
+  stage: lint
+  image: python:3.12-slim
+  variables:
+    PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit
+  cache:
+    key:
+      prefix: pre-commit
+      files:
+        - .pre-commit-config.yaml
+    paths:
+      - .cache/pre-commit
+  script:
+    - pip install --quiet pre-commit
+    - pre-commit run --all-files --show-diff-on-failure
+  allow_failure: false
+
+lint:shellcheck:
+  stage: lint
+  image: koalaman/shellcheck-alpine:v0.10.0
+  script:
+    - |
+      scripts="$(find . -name '*.sh' -not -path './.git/*' -not -path './opencode/plugins/node_modules/*')"
+      if [ -z "${scripts}" ]; then
+        printf 'No shell scripts found.\n'
+        exit 0
+      fi
+      count="$(printf '%s\n' "${scripts}" | wc -l)"
+      printf 'Checking %s script(s):\n' "${count}"
+      printf '%s\n' "${scripts}" | while IFS= read -r f; do
+        printf '  %s\n' "${f}"
+      done
+      printf '%s\n' "${scripts}" | xargs shellcheck --severity=warning
+
+lint:actionlint:
+  stage: lint
+  image: rhysd/actionlint:1.7.3
+  script:
+    - actionlint .github/workflows/*.yml
+
+lint:markdownlint:
+  stage: lint
+  image: node:20-alpine
+  script:
+    - npm install --no-save markdownlint-cli2
+    - npx markdownlint-cli2 '**/*.md' '!node_modules' '!opencode/plugins/node_modules'
+
+security:secrets:
+  stage: security
+  image: zricethezav/gitleaks:v8.18.4
+  script:
+    - gitleaks detect --source . --redact --no-banner
+  allow_failure: false
+
+security:sast:
+  stage: security
+  image: python:3.12-slim
+  script:
+    - pip install --quiet semgrep
+    - semgrep --config auto --error --json . | tee semgrep-report.json
+  artifacts:
+    when: always
+    paths:
+      - semgrep-report.json
+    expire_in: 7 days
+  allow_failure: false
+
+verify:install-dry-run:
+  stage: verify
+  image: ubuntu:24.04
+  script:
+    - apt-get update -qq && apt-get install -y -qq git curl
+    - bash install.sh --dry-run
+
+release:draft-notes:
+  stage: release
+  image: node:20-slim
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
+  script:
+    - npm install --no-save conventional-changelog-cli
+    - npx conventional-changelog -p angular -u -r 1 > RELEASE_NOTES.md
+    - cat RELEASE_NOTES.md
+  artifacts:
+    paths:
+      - RELEASE_NOTES.md
+    expire_in: 7 days
