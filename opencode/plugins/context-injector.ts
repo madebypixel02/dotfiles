@@ -215,6 +215,48 @@ const contextInjectorPlugin: Plugin = async ({
         todoItems = [];
         agentsMdInjected = false;
 
+        // Fire-and-forget: inject AGENTS.md summary + git context immediately
+        void (async () => {
+          try {
+            // Git context — branch and recent commits, injected unconditionally
+            // so the agent always knows where it is without needing to ask.
+            const [branch, recentCommits] = await Promise.all([
+              gitCurrentBranch(cwd),
+              gitRecentCommits(cwd, 5),
+            ]);
+
+            const gitLines = [
+              "## Git Context (injected at session start)",
+              "",
+              `**Branch:** \`${branch}\``,
+              "",
+            ];
+
+            if (recentCommits.length > 0) {
+              gitLines.push("**Recent commits:**");
+              recentCommits.forEach((c) => gitLines.push(`- \`${c}\``));
+              gitLines.push("");
+            }
+
+            gitLines.push(
+              "_This context is injected automatically. Run `git status` or `git log` for live updates._",
+            );
+
+            const gitMessage = gitLines.join("\n");
+
+            if (
+              client &&
+              typeof (client as Record<string, unknown>)["inject"] === "function"
+            ) {
+              await (client as { inject: (msg: string) => Promise<void> }).inject(gitMessage);
+            } else {
+              console.log("\n[context-injector] " + gitMessage + "\n");
+            }
+          } catch {
+            // non-blocking
+          }
+        })();
+
         // Fire-and-forget: inject AGENTS.md if it exists
         void (async () => {
           try {
