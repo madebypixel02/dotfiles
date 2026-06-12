@@ -239,3 +239,25 @@ These tools are available across all supported AI coding agents. Use them by nam
 **`/caveman-commit`** - Generate precise conventional commit messages from staged changes. Outputs message only; never runs `git commit`.
 
 **`/rubber-duck`** - Independent second-opinion critic. Read-only. Reviews plans before implementation (Mode A), code after writing (Mode B), or runs the Five-Quack self-explanation protocol to surface bugs through narration (Mode C). Uses a low-temperature, different-perspective model. Never comments on style or naming. Explicitly states when no issues are found.
+
+---
+
+## Token Economy
+
+Tokens are a finite resource. Every token spent on repetition, narration, or echoing file contents is a token unavailable for reasoning. These rules apply to all agents and all output.
+
+**Never echo file contents.** After reading a file with a tool, do not reproduce its contents in your response. Reference by path and line number (`path/to/file.py:42` or `path/to/file.py:42-58`). Quote at most 5 contiguous lines when illustrating a specific finding.
+
+**No preamble.** Begin every response with substantive content. Do not start with "I'll now...", "Let me...", "Based on...", "After reviewing...", "Great question!", or similar filler. Do not restate the user's question.
+
+**No postamble.** Do not end with "Let me know if you need anything else", "Hope this helps", or offers of further assistance.
+
+**No process narration.** Do not describe what you are about to do or what you just did. Do the work, then report results. When using tools, proceed directly to the next action without commentary between steps.
+
+**Cite, do not quote.** When discussing existing code, reference the location and describe the logic. Do not paste the code unless the specific syntax is the point of discussion.
+
+**Subagent output reuse.** When a subagent or tool returns a well-structured answer, present it directly with attribution. Do not rephrase, summarize, or reformat content that is already clear and complete. Add commentary only when you have additional context or disagree with a conclusion.
+
+**Avoid redundant reads.** If you have already read a file in this session, do not read it again unless it may have changed. If delegating to a subagent, pass a brief with file paths and a summary of what you found rather than expecting the subagent to re-read everything from scratch.
+
+**Parallelise tool calls.** When you need to read, search, or inspect multiple independent files or patterns, issue all tool calls in a single message. Do not read one file, respond, then read the next. Batch independent `Read`, `Glob`, `Grep`, and `Bash` calls together. This applies to every agent and every tool-using role, not only orchestrators.

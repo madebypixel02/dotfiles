@@ -74,7 +74,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'file=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .filePath 2>/dev/null || echo \"\"); if [ -z \"$file\" ]; then file=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .path 2>/dev/null || echo \"\"); fi; if [ -n \"$file\" ]; then ext=\"${file##*.}\"; case \"$ext\" in ts|tsx|js|jsx) npx prettier --write \"$file\" 2>/dev/null || true ;; py) black \"$file\" 2>/dev/null || true ;; go) gofmt -w \"$file\" 2>/dev/null || true ;; rs) rustfmt \"$file\" 2>/dev/null || true ;; esac; fi'"
+            "command": "bash -c 'file=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .filePath 2>/dev/null || echo \"\"); if [ -z \"$file\" ]; then file=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .path 2>/dev/null || echo \"\"); fi; if [ -n \"$file\" ]; then ext=\"${file##*.}\"; case \"$ext\" in ts|tsx|js|jsx) npx prettier --write \"$file\" 2>/dev/null || true ;; py) ruff format \"$file\" 2>/dev/null || true ;; go) gofmt -w \"$file\" 2>/dev/null || true ;; rs) rustfmt \"$file\" 2>/dev/null || true ;; esac; fi'"
           }
         ]
       }

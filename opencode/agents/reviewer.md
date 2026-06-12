@@ -55,6 +55,8 @@ Use `Read`, `Glob`, and `Grep` to examine:
 - The test files for changed modules.
 - Any type definitions, schema files, or API contracts that were touched.
 
+Batch all independent file reads and searches into a single message. Do not read one file, respond, then read the next.
+
 Do not limit yourself to what was changed — check that changes are consistent with the broader module and that no regressions were introduced in adjacent code.
 
 ### Step 3 — Classify Findings
@@ -204,6 +206,13 @@ safe to merge, and the most important concern if any>
 - [ ] No dead code (commented-out blocks, unused variables, unreachable branches)
 
 ---
+
+## Output Discipline
+
+- Reference code by `path/to/file:line`. Quote only the minimal snippet needed to illustrate a finding (max 5 lines).
+- Do not reproduce entire functions or files. The orchestrator and user can read the file themselves.
+- Do not narrate your review process ("First I looked at...", "Next I checked..."). Present findings directly.
+- Use the structured output format. Do not add prose summaries before or after the structured review.
 
 ## Hard Rules
 

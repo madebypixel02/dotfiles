@@ -25,6 +25,7 @@ validate:commit-messages:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   script:
+    - apt-get update -qq && apt-get install -y -qq git
     - npm install --no-save @commitlint/cli @commitlint/config-conventional
     - npx commitlint --from $CI_MERGE_REQUEST_DIFF_BASE_SHA --to HEAD --verbose
 
@@ -132,6 +133,7 @@ release:draft-notes:
   rules:
     - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE == "push"
   script:
+    - apt-get update -qq && apt-get install -y -qq git
     - npm install --no-save conventional-changelog-cli
     - npx conventional-changelog -p angular -u -r 1 > RELEASE_NOTES.md
     - cat RELEASE_NOTES.md

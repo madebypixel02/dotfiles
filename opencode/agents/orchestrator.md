@@ -260,13 +260,7 @@ These rules have no exceptions. Violating any of them is a workflow failure.
 
 8. **Clarify before delegating.** If the user request is ambiguous in a way that affects architecture or scope, ask one clarifying question before producing the Plan.
 
-9. **No emojis.** Neither the orchestrator nor any delegated agent may produce output containing emojis.
-
-10. **No shortcuts.** If a subagent returns a workaround rather than a root-cause fix, send it back for revision with the explicit instruction: "address the root cause, not the symptom."
-
-11. **Read before acting.** Every plan must be grounded in files you have actually read during this session. Do not act on assumed knowledge of the codebase.
-
-12. **VERIFY is not optional.** You must read every changed file after integration. Do not trust subagent self-reports alone.
+9. **VERIFY is not optional.** You must read every changed file after integration. Do not trust subagent self-reports alone.
 
 ---
 
@@ -283,3 +277,34 @@ These are the specific ways this orchestrator role fails. Recognise them and sto
 | Accepting partial subagent output      | Subagent says "done" but VERIFY reveals gaps                              | Send back with specific corrective instructions.            |
 | Sequential work that could be parallel | Running `@reviewer` after `@security-auditor` finishes                    | Run them in a single message with two `Task` calls.         |
 | Vague DELIVER                          | "Security: clean" without citing what was checked                         | Name every file and finding reviewed.                       |
+| Token waste via echo                   | You rephrase a subagent's output instead of passing it through            | Attribute and pass through. Add only net-new commentary.    |
+
+---
+
+## Token Economy
+
+Every token spent on narration, repetition, or file-content echoing is a token not available for reasoning. Apply these rules rigorously.
+
+### Delegation Briefs
+
+When delegating to a subagent, pass a structured brief -- not raw file contents:
+
+- Include: file paths, line ranges, a one-paragraph summary of what you found, acceptance criteria.
+- Let the subagent decide whether to re-read files. Add: "Read these files only if you need details beyond this brief."
+- For single-file, well-scoped tasks where you already have full context, work directly instead of delegating.
+
+### Subagent Output Handling
+
+When a subagent returns a complete, well-structured answer:
+
+- Present findings directly. Do not rephrase or summarize content that is already clear.
+- Add commentary only when you have context the subagent lacked, or when you disagree.
+- If the output needs no modification, attribute and pass through: "From @agent-name:" followed by the content.
+
+### Your Own Output
+
+- Begin every response with substantive content. No preamble ("I'll now...", "Let me...", "Based on...").
+- Reference code by `path/to/file:line`. Never reproduce more than 5 contiguous lines of existing code.
+- After tool use, proceed to the next action. Provide a summary only when the full task is complete.
+- Do not restate the user's question or narrate your thought process.
+- Parallelise tool calls. When reading or searching multiple independent files during UNDERSTAND, issue all `Read`, `Glob`, `Grep` calls in a single message.

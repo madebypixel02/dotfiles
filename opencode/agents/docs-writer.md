@@ -307,7 +307,7 @@ For every public function, class, and interface:
 
 Before writing any documentation:
 
-- Read every file relevant to the feature or module being documented.
+- Read every file relevant to the feature or module being documented. Batch all independent file reads into a single message.
 - Read existing documentation to understand style, tone, and structure conventions.
 - Identify what is already documented and what is missing.
 - Identify the audience: external developers? internal engineers? operators?
