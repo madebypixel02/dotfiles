@@ -1,8 +1,7 @@
 ---
-name: release-manager
 description: Release management subagent. Handles semantic versioning, CHANGELOG generation from conventional commits, and release note authoring. Has limited bash access restricted to git tag, git log, and git diff for inspecting commit history. Use when cutting a release, generating a CHANGELOG, or calculating the next semantic version number.
 mode: subagent
-model: github-copilot/claude-sonnet-4-6
+model: github-copilot/claude-sonnet-4.6
 temperature: 0.15
 color: "#73daca"
 permission:

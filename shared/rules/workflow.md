@@ -28,6 +28,21 @@ Branches that do not match this pattern must not be pushed to the remote or open
 
 ---
 
+## GitHub Flow Methodology
+
+GitHub Flow is the standard branching model for all projects. GitFlow (with `develop`, `release`, and `hotfix` branches as first-class long-lived branches) is not used.
+
+### Process
+
+1. Create a feature branch from `main` for each feature, fix, or change. Follow the branch naming convention defined above.
+2. Open a Draft PR immediately after the first commit is pushed. The Draft PR launches CI and creates a visible record of the work in progress; it does not notify reviewers.
+3. Commit complete increments to the branch throughout development. Each commit must be a valid conventional commit and must pass pre-commit hooks.
+4. When the work is complete and all CI checks are green, click "Ready for review" on the Draft PR. Assign the required reviewers.
+5. If a reviewer marks the PR as "Changes requested" (KO), the developer addresses the feedback, pushes the fixes, and notifies the reviewer that the PR is ready for re-review. Do not re-request review until the changes are pushed.
+6. When a reviewer approves (OK), merge to `main` triggers the CD pipeline automatically. The developer is responsible for monitoring the deployment.
+
+---
+
 ## Conventional Commits
 
 All commit messages must follow the conventional commits specification. Non-conforming commits must not reach `main`.
@@ -110,6 +125,14 @@ All CI checks must be green before merge. The quality-gate job is mandatory. No 
 
 All review comments must be resolved before merge. Unresolved conversations block merge.
 
+### Draft PR Workflow
+
+- When a branch is first pushed, open a Draft PR immediately. A Draft PR blocks merge, launches CI, and does not send review notifications to assignees.
+- Continue committing to the branch as work progresses. Each push triggers CI on the Draft PR.
+- When the implementation is complete and all CI checks are green, click "Ready for review" and assign the required reviewers. This converts the Draft PR to a review-ready PR and notifies assignees.
+- The PR title must follow the conventional commits format: `type(scope): description`. This title becomes the squash commit message on merge.
+- If a reviewer requests changes, push the fixes, resolve the conversation, and notify the reviewer directly. Do not re-request review before pushing the changes.
+
 ---
 
 ## Branch Protection (main)
@@ -123,6 +146,30 @@ The following rules apply to the `main` branch and must be enforced at the repos
 - Branch must be up to date with `main` before merge
 
 **For AI agents specifically:** after completing any set of changes, push the working branch to the remote and open a pull request or merge request. Do not attempt to merge, squash, or push commits to `main` directly. The PR is the required handoff to human review — not an optional step.
+
+---
+
+## Sprint Integration
+
+Developers and agents must keep the project board accurate throughout the sprint.
+
+1. Self-assign a Story from the TODO column and move it to DOING before starting work.
+2. Work through the Story's subtasks one at a time. Move each subtask from DOING to DONE as it is completed.
+3. Move the parent Story to DONE only when all of its subtasks are in the DONE state and the corresponding PR has been merged to `main`.
+
+Do not move a Story to DONE while any of its subtasks remain open or unmerged.
+
+---
+
+## Post-Merge Verification
+
+After a PR is merged to `main`, the developer who merged it is responsible for verifying the change in production.
+
+1. Pull the latest `main` locally.
+2. Run the full application locally to confirm it starts without error.
+3. Run the full test suite to confirm no regressions were introduced.
+4. Validate the change in the test (INT or CERT) environment after the CD pipeline completes.
+5. Monitor production metrics and error rates for a minimum of 15 minutes after a PROD deployment. If anomalies are detected, initiate a rollback immediately rather than attempting a forward fix.
 
 ---
 

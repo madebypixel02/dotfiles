@@ -1,4 +1,5 @@
 [default.extend-words]
+NIN = "NIN"
 RTO = "RTO"
 
 [default.extend-identifiers]

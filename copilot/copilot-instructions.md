@@ -2,92 +2,113 @@
 
 ## Project Overview
 
-<!-- UPDATE: Describe the project, primary users, and tech stack. Example: "REST API for user auth, serving mobile/web clients. Stack: Node.js, TypeScript, PostgreSQL." -->
-
-This project is [DESCRIBE PROJECT]. Users: [TARGET USERS]. Stack: [STACK].
+Enterprise Python service for AI-powered workflows. Primary users are internal engineering teams building and operating production AI systems. Stack: Python 3.11, FastAPI, uv, Ruff, pytest, LangGraph with Azure AI Foundry.
 
 ---
 
 ## Commands
 
-> Replace all `[PLACEHOLDERS]` with real commands from `package.json`/`Makefile`.
+| Task       | Command                                      |
+| ---------- | -------------------------------------------- |
+| Install    | `uv sync --frozen`                           |
+| Build      | `make build`                                 |
+| Dev        | `make dev`                                   |
+| Test all   | `make test`                                  |
+| Test one   | `uv run pytest tests/unit/test_module.py -v` |
+| Lint       | `make lint`                                  |
+| Type-check | `uv run pyright`                             |
+| Format     | `uv run ruff format .`                       |
 
-| Task       | Command           |
-| ---------- | ----------------- |
-| Install    | `[INSTALL_CMD]`   |
-| Build      | `[BUILD_CMD]`     |
-| Dev        | `[DEV_CMD]`       |
-| Test all   | `[TEST_CMD]`      |
-| Test one   | `[TEST_SINGLE]`   |
-| Lint       | `[LINT_CMD]`      |
-| Type-check | `[TYPECHECK_CMD]` |
-| Format     | `[FORMAT_CMD]`    |
-
-Run lint + typecheck before declaring done.
+Run `make lint` and `uv run pyright` before declaring any task complete.
 
 ---
 
 ## Architecture
 
-**Layers (never skip):** `Request → Validation → Handler → Service → Repository → DB`
+**Layers (never skip):** `Request -> Validation -> Router -> Service -> Repository/Provider -> External`
 
-- Handlers call services; services call repositories. No reverse calls.
-- Cross-cutting concerns (auth, logging, rate-limit) live in middleware only.
+- Routers call services. Services call repositories or providers. No reverse calls.
+- Use the Provider pattern for all external service integrations (Azure AI Foundry, Azure AI Search, Cosmos DB, Redis).
+- Cross-cutting concerns (auth, logging, rate limiting, correlation ID injection) live in middleware only.
+- No circular imports. Shared utilities in `shared/` or `utils/`.
 
-**Naming:** files `kebab-case.ts` · classes `PascalCase` · functions `camelCase` · constants `SCREAMING_SNAKE` · DB columns `snake_case` · suffixes `*Service` `*Repository` `*Controller` `*Middleware`
-
-No circular imports. Shared utils in `lib/` or `utils/`.
+**Naming:** files `snake_case.py` · classes `PascalCase` · functions `snake_case` · constants `SCREAMING_SNAKE` · suffixes `*Service` `*Repository` `*Provider` `*Router` `*Middleware`
 
 ---
 
 ## Code Conventions
 
-**TypeScript:** `"strict": true`. No `any` — use `unknown` + narrow. Prefer `type` for plain shapes, `interface` for extension targets.
+**Python:** 3.11 mandatory. Full type hints on all function signatures. Google-style docstrings on all public functions, classes, and methods. `uv` exclusively for package management — never `pip` directly.
 
-**Validation:** Zod for all external input (bodies, query params, env vars). Parse at the boundary; never trust raw data inside services/repos.
+**Validation:** Pydantic models for all external input (request bodies, query params, environment variables). Parse at the HTTP boundary; never trust raw data inside services or repositories.
 
-**Errors:** Typed error classes extending `AppError`. Catch at middleware level. Never swallow silently. Log with `requestId`. Responses: `{ error: { code, message, details? } }`.
+**Errors:** Typed exception classes. No bare `except`. Always `raise ... from err` to preserve chain. Never swallow exceptions silently. Log with `correlation_id`. HTTP error responses use a structured envelope.
 
-**Async:** `async/await` only. No floating promises.
+**Async:** `async/await` for all I/O. No fire-and-forget without explicit justification. Handle all rejection paths.
+
+**Logging:** Structured JSON logging only. Never `print()`. Include `component_name` and `correlation_id` in every log entry. Never log passwords, tokens, keys, or PII.
 
 ---
 
 ## Git
 
-**Conventional commits:** `<type>(<scope>): <description>` — types: `feat | fix | docs | style | refactor | perf | test | chore | ci`
+**Conventional commits:** `<type>(<scope>): <description>` — types: `feat | fix | docs | refactor | perf | test | chore | ci | revert`
 
-**Branches:** `feat/<ticket>-desc` · `fix/<ticket>-desc` · `chore/desc`
+**Branches:** `feat/<ticket>-desc` · `fix/<ticket>-desc` · `hotfix/<ticket>-desc` · `chore/desc`
 
-One logical change per commit. Squash-merge to main. Never force-push protected branches.
+**GitHub Flow** is the required branching model. Open a Draft PR on first push. One logical change per commit. Never force-push protected branches. No AI co-authorship trailers.
 
 ---
 
 ## Security
 
-- No hardcoded secrets — env vars only, accessed via a typed config module.
-- Validate all inputs at the HTTP boundary with Zod.
-- Parameterized queries only — no SQL string interpolation.
-- Sanitize user content before rendering in HTML.
-- Least privilege: request only the scopes/roles a function needs.
-- Verify tokens on every authenticated route.
+- No hardcoded secrets — environment variables only, accessed through a typed settings module.
+- Validate all inputs at the HTTP boundary with Pydantic. Never trust raw request data inside the service layer.
+- Parameterized queries only — no string interpolation in database queries.
+- Run Bandit and Ruff S-rules in CI. Fix all findings before merging.
+- Never log secrets, tokens, keys, or PII in any log level.
 - Rotate any accidentally committed secret immediately.
 
 ---
 
 ## Testing
 
-- **80% unit coverage** (lines + branches) — floor, not a vanity goal.
-- **Test-first for bugs:** write a failing test before fixing; commit together.
-- **Unit:** pure functions + services with mocked repos. Fast, no I/O.
-- **Integration:** route handlers against real (test) DB. Cover happy path + key errors.
-- **Don't test:** third-party internals, private methods, trivial getters.
-- Naming: `describe('ClassName') > it('should <verb> <condition>')`.
-- Use factory functions (`buildUser(overrides)`) not raw object literals.
+- **80% coverage minimum** (lines and branches) — floor, not a vanity goal.
+- **Test-first for bugs:** write a failing test before fixing; commit test and fix together.
+- **Unit tests:** `tests/unit/` — pure functions and services with mocked repositories. Fast, no I/O.
+- **Integration tests:** `tests/integration/` — file suffix `_integration`. Real infrastructure dependencies in a controlled environment.
+- **Acceptance tests:** `tests/acceptance/` — file suffix `_process`. End-to-end process validation.
+- **Naming:** `test_<method_name>_<scenario>` — for example `test_create_user_duplicate_email`.
+- Use factory functions (`build_user(overrides)`) not raw dict literals in test fixtures.
+
+---
+
+## Observability
+
+- Never use `print()` anywhere in application code.
+- Expose `GET /health` (liveness) and `GET /ready` (readiness) on every service.
+- Use OpenTelemetry for distributed tracing: instrument HTTP requests, external service calls, database queries, and LLM calls.
+- Emit metrics for request count per endpoint, latency, error count, and error rate.
+- Include `correlation_id` in all log entries and propagate it in downstream service calls.
+- Alert thresholds: auto-issue on >5% 5xx error rate; alert on >500ms p99 latency.
+
+---
+
+## AI Development
+
+- **LangGraph** is the default framework for all agent and workflow implementations.
+- Use **MCP (Model Context Protocol)** for tool integration with agents.
+- Use **A2A (Agent-to-Agent)** protocol for inter-agent communication.
+- **Prompt engineering:** follow RTCF structure (Role, Task, Context, Format). Name prompts descriptively and version them.
+- **Evaluation:** every agent or chain requires an evaluation pipeline. Golden datasets must have at least 20 representative cases. Choose metrics appropriate to the task type (accuracy, faithfulness, relevance, latency).
+- **Memory:** short-term memory via Redis; long-term memory via Azure AI Search or Cosmos DB.
+- **Security:** apply Azure AI Content Safety and guardrails on all user-facing inputs and outputs. Never log full prompt content.
+- All agent code inherits the full engineering standards in this file — there are no exceptions for AI-specific code.
 
 ---
 
 ## Do's and Don'ts
 
-**Do:** Read existing code before writing — match patterns. Keep functions < 40 lines. Use dependency injection. Handle all error branches. Add changeset on public interface changes.
+**Do:** Read existing code before writing — match established patterns. Keep functions under 40 lines. Use dependency injection. Handle all error branches. Add type hints to every function signature. Write docstrings on all public APIs.
 
-**Don't:** Use `console.log` in production (use the structured logger). Bypass validation inside services. Introduce `any`. Write order-dependent tests. Commit `.env`, credentials, or keys. Leave TODO without a ticket. Ignore lint or type errors.
+**Don't:** Use `print()` in application code (use structured logging). Bypass Pydantic validation inside services. Use `Any` type without a suppression comment explaining why. Write order-dependent tests. Commit `.env`, credentials, or keys. Leave `TODO` without a linked ticket. Use `pip` directly. Add AI co-authorship trailers to commits.

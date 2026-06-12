@@ -1,8 +1,7 @@
 ---
-name: reviewer
 description: Code review subagent. Performs structured reviews covering security, performance, maintainability, test coverage, and API contracts. Read-only — cannot modify files. Use after implementation is complete, before merging or releasing.
 mode: subagent
-model: github-copilot/claude-sonnet-4-6
+model: github-copilot/claude-sonnet-4.6
 temperature: 0.1
 color: "#e0af68"
 permission:

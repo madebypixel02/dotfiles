@@ -3,8 +3,8 @@
 
   // ─── Models ───────────────────────────────────────────────────────────────
   // Override via OPENCODE_MODEL env var or --model flag at runtime
-  "model": "github-copilot/claude-sonnet-4-6",
-  "small_model": "github-copilot/claude-haiku-4-5",
+  "model": "github-copilot/claude-sonnet-4.6",
+  "small_model": "github-copilot/claude-haiku-4.5",
 
   // ─── Custom providers ─────────────────────────────────────────────────────
   // Azure OpenAI — set AZURE_OPENAI_API_KEY in your shell environment

@@ -52,6 +52,15 @@ Before working on any task, familiarise yourself with the project's build system
 - Always run the full test suite before considering a task complete
 - Fix all build errors and lint warnings before committing
 
+For Python projects, use `uv` as the package manager and runner:
+
+- `uv sync --frozen` to install dependencies (use this form in CI and after cloning)
+- `uv run pytest` to run the test suite
+- `uv run ruff check .` to lint
+- `uv run ruff format .` to format
+- `uv run pylint <package>` to run supplementary static analysis
+- `uv run bandit -r src --exclude tests,scripts -s B101` to run security linting
+
 If you are unsure which commands to use, read the `README.md` or `CONTRIBUTING.md` at the project root.
 
 ---
@@ -71,7 +80,7 @@ Follow the established directory layout of the project. Do not create new top-le
 ### Code Style
 
 - Match the indentation, spacing, and formatting style of the surrounding code
-- Run the project's formatter (Prettier, Black, gofmt, etc.) before committing
+- Run the project's formatter (Prettier, Ruff, gofmt, etc.) before committing
 - Do not reformat files unrelated to your change
 
 ### Language-Specific Standards
@@ -85,9 +94,14 @@ Follow the established directory layout of the project. Do not create new top-le
 
 **Python**
 
-- Follow PEP 8
-- Use type hints for all function signatures
-- Prefer dataclasses or Pydantic models over plain dicts for structured data
+- Python 3.11 is the required runtime. Deviations require approval. See `shared/rules/python.md`.
+- Use `uv` as the package manager. Do not use `pip`, `poetry`, or other package managers.
+- Use `Ruff` for linting and formatting. Do not use `flake8`, `black`, or `isort`.
+- Use Pylance as the VS Code language server for type checking.
+- Use type hints for all function signatures.
+- Prefer dataclasses or Pydantic models over plain dicts for structured data.
+- Write Google-style docstrings for all public functions, classes, and methods.
+- All identifiers (variable names, function names, class names) must be in English. String values displayed to users may be in any language.
 
 **Go**
 
@@ -170,10 +184,15 @@ Write migrations that are reversible. Never drop columns or tables without a dep
 
 ## Observability
 
+- Never use `print()` in production code. Use the project's structured logger at all times.
+- Emit structured JSON logs compatible with the Elastic Common Schema (ECS). Plain-text logs are not acceptable in production.
+- Use OpenTelemetry for distributed tracing. The primary backend is Azure Monitor (Application Insights).
+- Every HTTP API must expose `/health` (application state) and `/ready` (traffic readiness) endpoints. Both are mandatory from the first deployment.
 - Add structured log entries at meaningful points (request received, decision made, error encountered)
 - Emit metrics for latency, error rates, and throughput at service boundaries
 - Include trace IDs in log lines when operating in a distributed system
 - Write alerts for conditions that require human intervention
+- See `shared/rules/observability.md` for the complete observability specification, required log fields, alerting thresholds, and ELK stack configuration.
 
 ## Dependency Management
 
@@ -188,6 +207,24 @@ Write migrations that are reversible. Never drop columns or tables without a dep
 - Document environment variables in a `.env.example` file
 - All public functions, classes, types, and endpoints require docstrings or JSDoc
 - Update architecture decision records (see `shared/prompts/adr.md`) when making significant design choices
+- Use MkDocs with the Material theme for project documentation sites. Configuration lives in `mkdocs.yml` at the repository root.
+- All Markdown files must pass `markdownlint-cli2` with the project's `.markdownlint.jsonc` configuration. See `shared/rules/markdown.md` for the complete formatting specification.
+- Reference the relevant rule files when documenting standards: `shared/rules/python.md`, `shared/rules/observability.md`, `shared/rules/ai-development.md`, `shared/rules/cicd.md`, `shared/rules/security.md`, `shared/rules/testing.md`, `shared/rules/workflow.md`, `shared/rules/markdown.md`
+
+---
+
+## AI/ML Development
+
+See `shared/rules/ai-development.md` for the complete specification. Key requirements:
+
+- **LangGraph** is the default framework for all procode agentic workflows. Deviations require an ADR.
+- **MCP (Model Context Protocol)** is required for exposing tools to agents. Do not pass raw Python callables as tools in production agents.
+- **A2A (Agent-to-Agent) protocol** is required for inter-agent communication between separately deployed agents. Direct HTTP calls between agents are not permitted in production.
+- **RTCF structure** is mandatory for all prompts: Role, Task, Context, Format. Prompts are versioned and stored in Azure Blob Storage and Git.
+- **Evaluation pipelines are mandatory** before any agent is promoted to production. Every agent must have a golden dataset of at least 20 cases covering direct questions, multi-hop questions, and edge cases.
+- **Azure AI Foundry** and **Vertex AI** are the approved model catalogs. Hugging Face models require security review and written approval.
+- All model traffic must route through the AI Gateway (APIM or Apigee). Direct calls to model provider APIs are forbidden in production.
+- 80% test coverage is required for all procode agent code.
 
 ---
 

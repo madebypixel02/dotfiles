@@ -18,6 +18,34 @@ Apply these rules when writing new tests, extending an existing test suite, or r
 
 ---
 
+## Test Directory Structure
+
+All Python projects must use the following directory layout for tests. This structure separates concerns by test type and ensures that CI can run each tier independently.
+
+```
+tests/
+    __init__.py
+    unit/
+        __init__.py
+        test_<module>.py
+    integration/
+        __init__.py
+        test_<module>_integration.py
+    acceptance/
+        __init__.py
+        test_<process>_process.py
+```
+
+Rules:
+
+- Every directory under `tests/` must contain an `__init__.py` file. This ensures pytest discovers all tests correctly and prevents import conflicts.
+- Unit test files follow the pattern `test_<module>.py`, where `<module>` is the name of the source module under test.
+- Integration test files follow the pattern `test_<module>_integration.py`. The `_integration` suffix allows CI to run or skip integration tests separately using pytest markers.
+- Acceptance test files follow the pattern `test_<process>_process.py`. The `_process` suffix marks full end-to-end workflow tests.
+- Do not mix unit and integration tests in the same file. The distinction matters for execution speed, environment requirements, and CI job structure.
+
+---
+
 ## Test Pyramid
 
 Structure the test suite as a pyramid:
@@ -79,6 +107,24 @@ Structure the test suite as a pyramid:
 - For table-driven tests, name each case explicitly
 - Group related tests in a describe/suite block when the testing framework supports it
 
+### Enterprise Naming Conventions
+
+Use these naming patterns for Python test functions. Each pattern maps to a specific testing scenario:
+
+| Pattern                                        | When to use                                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `test_<method>_missing_param_<param>`          | The method is called without a required parameter                                               |
+| `test_<method>_invalid_type_<param>`           | A parameter is provided with an incorrect type                                                  |
+| `test_<method>_invalid_value_<param>`          | A parameter is provided with a value outside the allowed range or set                           |
+| `test_<method>_valid_values`                   | The method succeeds with a representative set of valid inputs                                   |
+| `test_<method>_valid_value_<param>`            | A specific parameter is tested with a valid value                                               |
+| `test_<method>_valid_without_<optional_param>` | The method succeeds when an optional parameter is omitted                                       |
+| `test_<method>_edge_case_empty_value_<param>`  | A parameter is provided as an empty string, list, or dict                                       |
+| `test_<method>_edge_case_large_value_<param>`  | A parameter is provided at the maximum or an unexpectedly large value                           |
+| `test_<method>_unimplemented_<service>`        | A dependency of the method has not been implemented or is mocked to raise `NotImplementedError` |
+
+Apply these patterns consistently across all test files. Do not invent alternative naming schemes within the same module.
+
 ### Docstrings
 
 Every test function must begin with a docstring or JSDoc block. The docstring must describe:
@@ -123,11 +169,12 @@ Multiple assertions are acceptable when they all verify properties of the same l
 
 ## Coverage
 
-- Aim for high branch coverage (90%+ for critical business logic), not just line coverage
+- Aim for minimum 80% branch coverage as the mandatory floor for all new code. This is enforced in CI; a coverage drop below 80% blocks merge.
 - Coverage is a floor, not a goal; 100% line coverage with no assertions is worthless
 - Use coverage reports to find untested paths, then write tests that verify those paths behave correctly
 - Do not add assertions solely to inflate coverage metrics
 - Coverage must not decrease on any pull request
+- For legacy code, the 80% floor applies only to new features and bug fixes in that code; do not require retroactive 100% coverage of legacy paths that are not being changed in the current PR.
 
 ---
 
