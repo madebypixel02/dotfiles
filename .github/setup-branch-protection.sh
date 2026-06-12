@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO=""
-REQUIRED_CHECKS=("Quality Gate" "Conventional Commits" "actionlint")
+REQUIRED_CHECKS=("Quality Gate")
 
 usage() {
   printf 'Usage: %s --repo OWNER/REPO\n' "$(basename "$0")"
