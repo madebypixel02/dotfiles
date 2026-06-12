@@ -1,5 +1,20 @@
 # Copilot Instructions
 
+## Plan-First Workflow
+
+When operating in Agent mode, use the built-in Plan mode before making changes.
+For any task that touches multiple files, has ambiguous scope, or has a security
+surface, switch to Plan mode first. Research the codebase, produce a structured plan,
+and wait for explicit user approval (e.g., "proceed", "approved", "implement this")
+before writing any code. Skip planning only when
+the task is a single file, single concern, has no security implications, and contains
+no ambiguity. Unlike opencode and Claude Code, Copilot does not enforce plan mode at
+the permission level -- this guidance is advisory and depends on model compliance. For
+tasks with a security surface, always open a draft PR and request a human review before
+merge -- do not rely on Copilot plan mode alone.
+
+---
+
 ## Project Overview
 
 Enterprise Python service for AI-powered workflows. Primary users are internal engineering teams building and operating production AI systems. Stack: Python 3.11, FastAPI, uv, Ruff, pytest, LangGraph with Azure AI Foundry.
@@ -16,7 +31,7 @@ Enterprise Python service for AI-powered workflows. Primary users are internal e
 | Test all   | `make test`                                  |
 | Test one   | `uv run pytest tests/unit/test_module.py -v` |
 | Lint       | `make lint`                                  |
-| Type-check | `uv run pyright`                             |
+| Type-check | `uv run pyright` (CLI equivalent of Pylance) |
 | Format     | `uv run ruff format .`                       |
 
 Run `make lint` and `uv run pyright` before declaring any task complete.

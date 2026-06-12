@@ -241,7 +241,7 @@ If you see: `<error>` → proceed to step N
    exact command to run
    ```
 
-   ⚠️ Warning: this action is irreversible / will cause brief downtime / etc.
+   WARNING: this action is irreversible / will cause brief downtime / etc.
 
 ## Verification
 

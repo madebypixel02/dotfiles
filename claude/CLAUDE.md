@@ -4,22 +4,46 @@
 
 ## Claude Code — Additional Instructions
 
-Use plan mode (`shift+tab`) when scoping large changes before coding.
-Use `/compact` when context feels unwieldy — don't fight a full context window.
-Run `/init` in any new project to generate a project-specific AGENTS.md.
+### Plan-First Workflow
+
+Sessions start in plan mode (`defaultMode: plan` in settings.json). File edits are
+structurally blocked until you present a plan and the user approves it. This is
+intentional -- do not ask the user to switch modes. Research the codebase, produce a
+plan, and let the user choose when to transition to implementation.
+
+The user controls when to exit plan mode via `shift+tab` (cycles: plan, default,
+acceptEdits, auto) or the mode selector in the IDE. One press moves to default mode,
+which allows file edits. Do not exit plan mode autonomously.
+
+Use `/compact` when context feels unwieldy -- do not fight a full context window.
+Run `/init` (Claude Code built-in) in any new project to generate a project-specific AGENTS.md.
 
 ### Memory
 
-Auto-memory is enabled. Important discoveries are saved to ~/.claude/MEMORY.md automatically.
-Check `/memory` to review and edit.
+Auto-memory is enabled (`autoMemoryEnabled` in settings.json). Important discoveries
+are saved to ~/.claude/MEMORY.md automatically. Check `/memory` to review and edit.
 
 ### Subagents
 
-Invoke specialist roles by describing the task:
+Invoke specialist roles by describing the task. The Claude Code agent roster
+(implementer, reviewer, security-auditor, rubber-duck) is smaller than the opencode
+roster. Tasks that opencode routes to `@test-architect` or `@docs-writer` go to
+`implementer` here. The Claude Code implementer has no test coverage targets or
+structured test plan format -- for rigorous test strategy work, prefer opencode where
+`@test-architect` enforces an 80%/60% coverage contract.
 
 - "Review this for security issues" → security-auditor role
-- "Write tests for this" → reviewer role
+- "Review this code for quality" → reviewer role
+- "Write tests for this" → implementer role
 - "Refactor this without changing behavior" → implementer role
+- "Second opinion on this plan" → rubber-duck role
+
+### Permission Enforcement
+
+The `permissions.deny` list and the `PreToolUse` bash hook in settings.json both block
+the same destructive command patterns (`rm -rf`, `git push --force`, pipe-to-shell).
+This duplication is intentional -- the hook provides a best-effort heuristic check as
+a second line of defence. The `permissions.deny` list remains the authoritative control.
 
 ### Token Economy
 

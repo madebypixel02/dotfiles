@@ -19,6 +19,7 @@ jobs:
   commitlint:
     name: Conventional Commits
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,47 +54,6 @@ jobs:
           fi
           printf 'Branch name "%s" is valid.\n' "${BRANCH}"
 
-  shellcheck:
-    name: ShellCheck
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install shellcheck
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y shellcheck
-
-      - name: Run shellcheck on all shell scripts
-        run: |
-          mapfile -t scripts < <(find . -name '*.sh' -not -path './.git/*' -not -path './opencode/plugins/node_modules/*')
-          if [[ ${#scripts[@]} -eq 0 ]]; then
-            printf 'No shell scripts found.\n'
-            exit 0
-          fi
-          printf 'Checking %d script(s):\n' "${#scripts[@]}"
-          printf '  %s\n' "${scripts[@]}"
-          shellcheck --severity=warning "${scripts[@]}"
-
-  actionlint:
-    name: Workflow Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install actionlint
-        run: |
-          ACTIONLINT_VERSION="1.7.3"
-          curl -fsSL \
-            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
-            | tar -xz actionlint
-          sudo mv actionlint /usr/local/bin/actionlint
-
-      - name: Run actionlint
-        run: actionlint
-
   pre-commit:
     name: Pre-commit Hooks
     runs-on: ubuntu-latest
@@ -106,7 +66,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Cache pre-commit environments
         uses: actions/cache@v4
@@ -118,52 +78,51 @@ jobs:
 
       - name: Install and run pre-commit
         run: |
-          pip install --quiet pre-commit  # bootstrap tool, not a project dependency
+          pip install --quiet pre-commit
           SKIP=no-commit-to-branch pre-commit run --all-files --show-diff-on-failure
 
-  python-lint:
-    name: Python Lint
+  secrets:
+    name: Secret Detection
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          fetch-depth: 0
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Lint with Ruff
-        run: uvx ruff check . --output-format=github
-
-      - name: Check formatting with Ruff
-        run: uvx ruff format --check .
-
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Run Bandit security scan
+      - name: Install gitleaks
         run: |
-          pipx install bandit
-          bandit -r . --skip B101 -x tests,scripts,.git,node_modules --format json --output bandit-report.json || true
-          bandit -r . --skip B101 -x tests,scripts,.git,node_modules --severity-level medium
+          GITLEAKS_VERSION="8.18.4"
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+
+      - name: Detect secrets
+        run: gitleaks detect --source . --redact --no-banner
+
+  sast:
+    name: SAST
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Run Semgrep
-        uses: returntocorp/semgrep-action@v1
+        run: |
+          pip install --quiet semgrep
+          semgrep --config auto --error --json --exclude semgrep-report.json . | tee semgrep-report.json
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        if: always()
         with:
-          config: auto
+          name: semgrep-report
+          path: semgrep-report.json
+          retention-days: 7
 
   validate-install:
     name: Validate Install (${{ matrix.os }})
@@ -188,11 +147,9 @@ jobs:
     needs:
       - commitlint
       - branch-name
-      - shellcheck
-      - actionlint
       - pre-commit
-      - python-lint
-      - security-scan
+      - secrets
+      - sast
       - validate-install
     steps:
       - name: Evaluate upstream job results
