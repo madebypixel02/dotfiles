@@ -226,8 +226,7 @@
   // ─── MCP Servers ──────────────────────────────────────────────────────────
   //
   // TIERS:
-  //   enabled: true  → always-on; loaded for every session
-  //   enabled: false → opt-in; enable per-project in local opencode.jsonc
+  //   All servers disabled by default — enable per-project in local opencode.jsonc
   //
   // SECURITY RULES (enforced here):
   //   1. All tokens come from env vars — never hardcoded
@@ -238,7 +237,7 @@
   //
   "mcp": {
 
-    // ── ALWAYS ON: zero-trust, read-only, no credentials needed ──────────────
+    // ── AVAILABLE: zero-trust, read-only, no credentials needed ────────────────
 
     // Context7 — live, version-specific library docs. Eliminates hallucinated
     // APIs. Use by adding "use context7" to any prompt, or add to AGENTS.md:
@@ -246,7 +245,7 @@
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/mcp",
-      "enabled": true
+      "enabled": false
     },
 
     // Semgrep — SAST security scanning. Free remote endpoint, no auth needed
@@ -255,10 +254,10 @@
     "semgrep": {
       "type": "remote",
       "url": "https://mcp.semgrep.ai/mcp",
-      "enabled": true
+      "enabled": false
     },
 
-    // ── ENABLED: low-trust, credentials via env vars ──────────────────────────
+    // ── AVAILABLE: low-trust, credentials via env vars ─────────────────────────
 
     // GitHub — PRs, issues, Actions CI logs, code scanning, Dependabot.
     // The single most valuable MCP for code-centric teams.
@@ -269,7 +268,7 @@
     "github": {
       "type": "remote",
       "url": "https://api.githubcopilot.com/mcp/",
-      "enabled": true,
+      "enabled": false,
       "headers": {
         "Authorization": "Bearer {env:GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
@@ -280,7 +279,7 @@
     "sentry": {
       "type": "remote",
       "url": "https://mcp.sentry.dev/mcp",
-      "enabled": true
+      "enabled": false
     },
 
     // Playwright — browser automation via accessibility tree (no vision model).
@@ -289,7 +288,7 @@
     "playwright": {
       "type": "local",
       "command": ["npx", "@playwright/mcp@latest", "--headless"],
-      "enabled": true,
+      "enabled": false,
       "timeout": 30000
     },
 
