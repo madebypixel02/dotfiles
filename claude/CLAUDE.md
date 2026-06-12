@@ -18,8 +18,17 @@ Check `/memory` to review and edit.
 Invoke specialist roles by describing the task:
 
 - "Review this for security issues" → security-auditor role
-- "Write tests for this" → test-architect role
-- "Refactor this without changing behavior" → refactorer role
+- "Write tests for this" → reviewer role
+- "Refactor this without changing behavior" → implementer role
+
+### Token Economy
+
+- Reference code by `path/to/file:line`. Never reproduce more than 5 lines of existing code.
+- Do not echo file contents after reading them. Summarize findings; cite locations.
+- No preamble ("I'll now...", "Let me...") or postamble ("Let me know if...").
+- When a subagent returns a complete answer, present it directly. Do not rephrase.
+- Do not re-read files already in context. Pass briefs to subagents instead of expecting re-reads.
+- Parallelise tool calls. When reading or searching multiple independent files, issue all calls in a single message.
 
 ---
 
@@ -40,18 +49,3 @@ codebase. Read the relevant file before starting any work in that domain.
 - `shared/rules/cicd.md` — GitHub Flow branching model, conventional commits enforced by
   commitlint, semantic release, Docker multi-stage builds, GHCR publishing, and
   environment promotion gates (INT → CERT → PROD).
-
-### Non-Negotiable Constraints
-
-**Python projects:**
-
-- Use `uv` for all package operations. Never invoke `pip` directly.
-- Use Ruff for linting and formatting. Never use Black, isort, or flake8.
-- Never use `print()` in production code. Use structured logging.
-- Minimum test coverage floor is 80%. CI enforces this via `--cov-fail-under=80`.
-
-**All projects:**
-
-- Conventional commits and GitHub Flow are mandatory on every repository.
-- Every pull request requires at least one human approval before merge.
-- CI must be green before merge. The quality-gate job is not optional.

@@ -58,19 +58,13 @@ Every debugging session follows these steps in order. Do not skip ahead.
 
 ### Step 1 — OBSERVE: Capture the Failure
 
-Gather all available evidence before forming any hypothesis:
+Gather all available evidence before forming any hypothesis. Issue all independent evidence-gathering tool calls (git log, git diff, file reads, grep searches) in a single message:
 
 - The exact error message and full stack trace (not a paraphrase).
 - The conditions under which it occurs (always / sometimes / specific input).
 - When it first appeared (after which commit, deploy, or change).
 - Whether it is reproducible deterministically.
 - The environment: OS, runtime version, dependency versions.
-
-```bash
-# Check recent changes
-git log --oneline -20
-git diff HEAD~5 HEAD -- path/to/relevant/file
-```
 
 Do not proceed to Step 2 until you have documented all available observations.
 
@@ -178,48 +172,12 @@ Before reporting, verify your reasoning:
 
 ---
 
-## Diagnostic Tools Reference
+## Output Discipline
 
-### Code Investigation
-
-```bash
-# Find a string across the codebase
-rg "search term" --type ts
-rg "pattern" -A 3 -B 3  # with context lines
-
-# Find files modified recently
-git log --oneline --all --since="1 week ago" --name-only
-
-# Show what changed in a specific commit
-git show <commit-hash>
-
-# Blame a file to find when each line was introduced
-git blame path/to/file.ts
-
-# Find all usages of a symbol
-rg "MyClass|myFunction" --type ts
-```
-
-### Log Analysis
-
-```bash
-# Tail recent log output (if a log file exists)
-tail -n 200 logs/app.log
-
-# Search logs for error patterns
-grep -i "error\|exception\|fatal" logs/app.log | tail -50
-
-# Parse JSON logs
-cat logs/app.log | jq 'select(.level == "error") | {time, message, stack}'
-```
-
-### Test Execution (read-only runs)
-
-```bash
-# Run the failing test to observe the exact error
-npm run test -- --testPathPattern="failing.test"
-npm run test -- --verbose
-```
+- Reference code by `path/to/file:line`. Do not reproduce entire files or functions in your report.
+- Do not echo back tool output (grep results, git log, file contents). Summarize the relevant finding.
+- Begin responses with substantive content. No preamble.
+- Use the structured Debug Report format. Do not add prose around it.
 
 ---
 
