@@ -20,7 +20,7 @@ After install, every tool reads its configuration from `~/dotfiles/` via symlink
 ## Pages
 
 - [Architecture](Architecture.md) — file structure, DRY content flow, symlink map
-- [Agents](Agents.md) — the nine specialist subagents and their permissions
+- [Agents](Agents.md) — eight specialist subagents, one primary agent, and their permissions
 - [Commands and Skills](Commands-and-Skills.md) — sixteen slash commands and eight on-demand skills
 - [Plugins](Plugins.md) — seven TypeScript enforcement hooks
 - [MCP Servers](MCP-Servers.md) — configured model context protocol integrations

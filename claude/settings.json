@@ -1,8 +1,8 @@
 {
   "autoMemoryEnabled": true,
   "permissions": {
+    "defaultMode": "plan",
     "allow": [
-      "Bash(git:read)",
       "Bash(git status)",
       "Bash(git diff*)",
       "Bash(git log*)",
@@ -27,8 +27,10 @@
       "Bash(echo*)",
       "Bash(pwd)",
       "Bash(which*)",
-      "Bash(env)",
-      "Bash(printenv*)",
+      "Bash(printenv PATH)",
+      "Bash(printenv HOME)",
+      "Bash(printenv SHELL)",
+      "Bash(printenv USER)",
       "Read(*)",
       "Glob(*)",
       "Grep(*)"
@@ -41,6 +43,10 @@
       "Bash(sudo rm*)",
       "Bash(chmod 777*)",
       "Bash(curl * | bash*)",
+      "Bash(env)",
+      "Bash(env *)",
+      "Bash(printenv)",
+      "Bash(printenv *)",
       "Bash(wget * | bash*)",
       "Read(**/.env)",
       "Read(**/.env.local)",
@@ -63,7 +69,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'cmd=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .command 2>/dev/null || echo \"\"); if echo \"$cmd\" | grep -qE \"(rm\\s+-rf|git\\s+push\\s+--force|git\\s+push\\s+-f|curl.*\\|.*bash|wget.*\\|.*bash|dd\\s+if.*of=.*/dev/|mkfs|fdisk|parted|shred)\"; then echo \"BLOCKED: Dangerous command pattern detected: $cmd\" >&2; exit 1; fi'"
+            "command": "bash -c 'cmd=$(printf \"%s\" \"$CLAUDE_TOOL_INPUT\" | jq -r .command 2>/dev/null || echo \"\"); if printf \"%s\\n\" \"$cmd\" | grep -qE \"(rm\\s+-rf|git\\s+push\\s+--force|git\\s+push\\s+-f|curl.*\\|.*bash|wget.*\\|.*bash|dd\\s+if.*of=.*/dev/|mkfs|fdisk|parted|shred)\"; then printf \"BLOCKED: Dangerous command pattern detected: %s\\n\" \"$cmd\" >&2; exit 1; fi'"
           }
         ]
       }
@@ -74,7 +80,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'file=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .filePath 2>/dev/null || echo \"\"); if [ -z \"$file\" ]; then file=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r .path 2>/dev/null || echo \"\"); fi; if [ -n \"$file\" ]; then ext=\"${file##*.}\"; case \"$ext\" in ts|tsx|js|jsx) npx prettier --write \"$file\" 2>/dev/null || true ;; py) black \"$file\" 2>/dev/null || true ;; go) gofmt -w \"$file\" 2>/dev/null || true ;; rs) rustfmt \"$file\" 2>/dev/null || true ;; esac; fi'"
+            "command": "bash -c 'file=$(printf \"%s\" \"$CLAUDE_TOOL_INPUT\" | jq -r .filePath 2>/dev/null || echo \"\"); if [ -z \"$file\" ]; then file=$(printf \"%s\" \"$CLAUDE_TOOL_INPUT\" | jq -r .path 2>/dev/null || echo \"\"); fi; if [ -n \"$file\" ]; then ext=\"${file##*.}\"; case \"$ext\" in ts|tsx|js|jsx) npx prettier --write \"$file\" || true ;; py) ruff format \"$file\" || true ;; go) gofmt -w \"$file\" || true ;; rs) rustfmt \"$file\" || true ;; esac; fi'"
           }
         ]
       }
