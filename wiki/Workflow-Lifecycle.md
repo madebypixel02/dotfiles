@@ -30,7 +30,9 @@ No exploration or implementation begins until the ambiguity is resolved or expli
 
 ## Step 3 — Plan
 
-The orchestrator reads the codebase, produces a structured plan, and waits for confirmation:
+The orchestrator uses `plan_enter` to switch to the built-in plan agent. The plan agent is structurally read-only (file edits denied at the permission level) and saves its plan to `.opencode/plans/`. The user reviews the plan and exits plan mode to return control to the orchestrator.
+
+Example plan output:
 
 ```
 Goal: Add per-IP rate limiting middleware to the Express API.
