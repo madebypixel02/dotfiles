@@ -1,6 +1,6 @@
 ---
 description: Daily standup prep — analyses git commits, open work, and TODOs to generate What Was Done / Blockers / What's Next
-agent: build
+agent: orchestrator
 ---
 
 # Standup Preparation

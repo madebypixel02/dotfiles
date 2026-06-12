@@ -73,7 +73,7 @@ Always fill from the bottom up. Add unit tests first, integration tests second, 
 
 Before writing a single test:
 
-- Read the module(s) to be tested completely.
+- Read the module(s) to be tested completely. Batch all independent file reads and searches into a single message.
 - Identify: public interfaces, edge cases, error paths, side effects, external dependencies.
 - Read existing tests to understand the project's testing patterns, test runner, assertion library, and mocking approach.
 - Identify: the test runner (Jest, Vitest, Mocha, pytest, etc.), assertion style, existing factory/fixture patterns, mock libraries in use.

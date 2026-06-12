@@ -106,10 +106,10 @@ AI-generated code is a first draft. It must pass the same quality bar as human-w
 
 **Before marking any AI-assisted task complete, run:**
 
-1. **Type-check:** `[TYPECHECK_CMD]` — zero type errors.
-2. **Lint:** `[LINT_CMD]` — zero lint errors (warnings reviewed and justified or fixed).
-3. **Tests:** `[TEST_CMD]` — all existing tests pass; new code has new tests.
-4. **Build:** `[BUILD_CMD]` — clean build, no warnings treated as errors.
+1. **Type-check:** `make typecheck` (or `uv run pyright` for Python) — zero type errors.
+2. **Lint:** `make lint` (or `uv run ruff check .` for Python) — zero lint errors (warnings reviewed and justified or fixed).
+3. **Tests:** `make test` (or `uv run pytest` for Python) — all existing tests pass; new code has new tests.
+4. **Build:** `make build` — clean build, no warnings treated as errors.
 5. **Manual review:** Read every line of AI-generated code. Understand it. If you cannot explain it, do not commit it.
 
 **For security-sensitive code (auth, payments, PII handling), additionally:** 6. Check against `security.instructions.md` rules manually. 7. Have a second human reviewer look at the diff — do not rely solely on AI review for high-stakes code.

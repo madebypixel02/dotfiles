@@ -18,17 +18,17 @@ Every log entry must include the following fields:
 
 | Field            | Type     | Description                                          |
 | ---------------- | -------- | ---------------------------------------------------- |
-| `timestamp`      | ISO 8601 | UTC time of the event                                |
-| `level`          | string   | `debug`, `info`, `warn`, `error`, or `critical`      |
-| `component_name` | string   | Module or class that emitted the log entry           |
+| `@timestamp`     | ISO 8601 | UTC time of the event                                |
+| `log.level`      | string   | `debug`, `info`, `warn`, `error`, or `critical`      |
+| `service.name`   | string   | Module or class that emitted the log entry           |
 | `correlation_id` | string   | Request-scoped identifier propagated across services |
 | `message`        | string   | Human-readable description of the event              |
 
 ```json
 {
-  "timestamp": "2024-06-12T14:23:45.123Z",
-  "level": "info",
-  "component_name": "OrderService",
+  "@timestamp": "2024-06-12T14:23:45.123Z",
+  "log.level": "info",
+  "service.name": "OrderService",
   "correlation_id": "req_abc123def456",
   "message": "Order created",
   "order_id": "ord_789"

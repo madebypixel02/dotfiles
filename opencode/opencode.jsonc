@@ -434,7 +434,6 @@
   // ─── Instruction files ────────────────────────────────────────────────────
   // Loaded as system context for every session
   "instructions": [
-    "~/.config/opencode/AGENTS.md",
-    "~/.config/opencode/docs/ai-guidelines.md"
+    "~/.config/opencode/AGENTS.md"
   ]
 }
