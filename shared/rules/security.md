@@ -107,6 +107,141 @@ Apply these rules to every change that touches authentication, authorisation, da
 
 ---
 
+## GitHub Advanced Security
+
+Enable the following GitHub Advanced Security features on every repository. All findings must be reviewed and resolved before a release is cut.
+
+### CodeQL
+
+Configure CodeQL analysis to run on every push and pull request for all languages present in the repository. CodeQL findings at high or critical severity block merge.
+
+### Secret Scanning
+
+Enable Secret Scanning with push protection. Push protection prevents secrets from being committed even before a PR is opened. When a secret is detected:
+
+1. Rotate the secret immediately, regardless of whether it was actually exposed.
+2. Open an incident to investigate whether the secret was used maliciously.
+3. Do not attempt to rewrite history to remove the secret before rotating it; rotation is the higher priority.
+
+### Dependabot
+
+- Enable Dependabot alerts to receive notification of known vulnerabilities in dependencies.
+- Enable Dependabot automatic updates to receive pull requests for dependency updates.
+- High and critical CVEs must be addressed within 24 hours of the Dependabot alert appearing.
+- Medium CVEs must be addressed within 7 days.
+
+### Dependency Review
+
+Enable the Dependency Review GitHub Action on all pull requests. This action checks newly introduced or changed dependencies against the GitHub Advisory Database and blocks merge if any vulnerable version is added.
+
+### Copilot Autofix
+
+Where available, use GitHub Copilot Autofix suggestions for CodeQL findings. Review every suggestion before applying it; do not apply Autofix suggestions without understanding the change.
+
+---
+
+## Python Security
+
+### Bandit
+
+Run Bandit as part of CI and as a pre-commit hook on all Python source code:
+
+```
+uv run bandit -r src --exclude tests,scripts -s B101
+```
+
+- Exclude `tests/` and `scripts/` from analysis. Bandit findings in test code are not actionable and produce noise.
+- Skip rule `B101` (assert statements). Asserts in test code are intentional and excluded by the `--exclude tests` flag anyway.
+- All Bandit findings at medium severity or above in production source code block the CI pipeline.
+
+### Dependency Auditing
+
+Run `pip-audit` or `uv audit` as part of CI to detect known vulnerabilities in the installed dependency tree:
+
+```
+uv run pip-audit
+```
+
+Alternatively, if `uv audit` is available in the project's `uv` version:
+
+```
+uv audit
+```
+
+A finding at high or critical severity blocks the pipeline.
+
+### Semgrep
+
+Run Semgrep with the `p/python` rule set as a pre-commit hook and in CI:
+
+```
+semgrep --config p/python .
+```
+
+Findings at error level block the CI pipeline. Findings at warning level must be reviewed before merge but do not automatically block.
+
+---
+
+## AI/ML Security
+
+### Content Safety
+
+All user-facing AI agents and APIs that process user-generated text must route input and output through Azure AI Content Safety. Configure the safety categories (hate, self-harm, violence, sexual) at the threshold defined in the project's security risk assessment.
+
+### Guardrails
+
+- Validate agent output schema before returning responses to callers. Reject or quarantine any response that does not conform to the expected structure.
+- Implement a circuit breaker on model calls: if the model returns malformed or safety-blocked responses three times in a row, stop calling it and return a degraded response.
+
+### Prompt Injection Prevention
+
+- Treat all user-supplied text as untrusted. Never concatenate raw user input into a system prompt without sanitisation.
+- Use explicit structural delimiters between the system prompt and user-provided content, and instruct the model to treat the delimiters as authoritative boundaries.
+- Validate that user input does not contain the delimiter strings before inserting it into the prompt.
+- Include prompt injection test cases in the agent's golden dataset evaluation suite.
+
+### Logging Restrictions
+
+- Never log the full text of a user's conversational input. Log a truncated prefix (maximum 100 characters) or a hash for correlation purposes only.
+- Never log the full system prompt. Log the prompt name and version identifier only.
+- Never log model API keys, Azure connection strings, or OAuth tokens.
+- Log model responses at `debug` level only. Ensure `debug` logging is disabled in production by default.
+
+### AI Gateway Policies
+
+Route all model API calls through the designated AI Gateway (APIM for Azure, Apigee for Google Cloud). The gateway must enforce:
+
+- Rate limiting per authenticated user and per tenant.
+- Token budget limits per request and per rolling time window.
+- Authentication: reject unauthenticated requests before they reach the model endpoint.
+- Request and response logging to the audit log with sensitive field masking applied.
+
+### Data Classification
+
+Use Microsoft Purview to classify data that flows through AI pipelines. Data classified as Confidential or above must not be sent to external model providers without a documented data processing agreement and explicit approval from the data governance team.
+
+---
+
+## Secret Rotation
+
+### Environment-Specific Secrets
+
+Use GitHub Secrets (or the equivalent secrets store for the CI/CD platform in use) to manage secrets. Each environment (development, INT, CERT, PROD) must have its own set of secrets. Secrets must never be shared between environments.
+
+### Rotation Schedule
+
+Rotate secrets on a periodic schedule. The schedule is defined per secret type in the project's security runbook. At minimum:
+
+- API keys and access tokens: rotate every 90 days.
+- Service account credentials: rotate every 90 days.
+- Signing keys: rotate annually unless the threat model requires more frequent rotation.
+
+### Immediate Rotation on Compromise
+
+If a secret is suspected or confirmed to have been exposed — including exposure in a Git commit, a log file, a support ticket, or a screen share — rotate it immediately. Do not wait for a scheduled rotation. After rotating, invalidate all sessions and tokens that were issued using the compromised secret.
+
+---
+
 ## CI/CD Security Gates
 
 All of the following checks must pass on every pull request. A failing check blocks merge.
