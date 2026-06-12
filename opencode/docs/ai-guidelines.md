@@ -193,3 +193,120 @@ AI assistance accelerates engineering, but some decisions require human judgment
 - License changes in dependencies (GPL contamination risk, etc.).
 
 When escalating: document the question clearly, what you have tried, what the AI suggested, and why you are uncertain. Make it easy for the human reviewer to give a useful answer quickly.
+
+---
+
+## 8. Enterprise AI Development Standards
+
+These standards apply to all production AI systems built within the enterprise. They are mandatory unless an explicit exception has been approved by the architecture board.
+
+### Language and Tooling
+
+- Python 3.11 is the required runtime for all AI and agent workloads.
+- `uv` is the mandatory package manager. Do not use `pip`, `poetry`, or `conda` directly in project scripts or CI pipelines.
+- Ruff is the required linter and formatter. No other Python linter is permitted.
+- Pylance is the required type checker for Python in VS Code and Copilot-enabled environments.
+- Bandit is required for static security analysis of all Python code.
+
+### Agent Frameworks and Protocols
+
+- LangGraph is the default framework for building production agentic systems. Justify any deviation in an ADR before implementation.
+- MCP (Model Context Protocol) is the required standard for integrating external tools and data sources into agent systems.
+- A2A (Agent-to-Agent) protocol is required for inter-agent communication in multi-agent systems. Direct HTTP calls between agents are not permitted.
+
+### Prompt Engineering
+
+- All production prompts must follow the RTCF structure: Role, Task, Context, Format.
+- Prompts are code. They must be versioned, reviewed, and tested like any other code artifact.
+- Do not construct prompts through string concatenation at runtime. Use structured templating.
+
+### Evaluation
+
+- Evaluation pipelines are mandatory for all production AI systems before promotion to any environment beyond development.
+- Golden datasets must be maintained for each production model or agent. Golden datasets require human curation and must not be generated entirely by AI.
+- Evaluation runs must be reproducible. Pin model versions, dataset versions, and evaluation metric definitions.
+- Regressions in evaluation scores block promotion to higher environments without explicit sign-off from the owning team lead.
+
+### Observability
+
+- Structured logging is required at all times. Never use `print()` in production code. Use the project's logging framework with structured fields.
+- OpenTelemetry is the required tracing standard. All agent invocations, tool calls, and LLM requests must emit trace spans.
+- Include model name, prompt token count, completion token count, and latency in every LLM call span.
+- Log levels: DEBUG for trace-level detail, INFO for normal operations, WARNING for recoverable anomalies, ERROR for failures requiring attention.
+
+### Testing
+
+- 80% line coverage is the minimum for all production code, including agent code and prompt construction logic.
+- Unit tests must cover each tool, node, and edge in a LangGraph agent graph in isolation.
+- Integration tests must cover the full agent loop against a stubbed or sandboxed LLM backend.
+- Do not mock the LLM in integration tests unless the test is explicitly validating retry or error-handling behavior.
+
+### Development Environments
+
+- DevContainers are required for all new projects. Every repository must include a `.devcontainer/devcontainer.json` that produces a fully functional development environment without manual setup steps.
+- The DevContainer must include all required tools: Python 3.11, `uv`, Ruff, Pylance, and any project-specific dependencies.
+
+### Version Control and CI/CD
+
+- GitHub Flow is the required branching model. Feature branches must be short-lived. Rebase before merging.
+- Draft PRs must be opened for any work in progress that spans more than one working day.
+- Conventional commits are required. See the repository root `commitlint.config.mjs` for the enforced ruleset.
+- Semantic release is required for all libraries and services. Version numbers are derived from commit history; do not set them manually.
+- Docker images must use multi-stage builds. Final stages must not contain build tools, test dependencies, or source code.
+- All Docker images must be published to GHCR (GitHub Container Registry).
+- Deployments must use GitHub Environments with required reviewers for INT, CERT, and PROD. Direct deploys to PROD without passing INT and CERT are prohibited.
+
+### AI Security
+
+- All user-facing AI systems must integrate Azure Content Safety or an equivalent approved content filtering service.
+- Guardrails must be implemented at both the input and output boundaries of every production agent.
+- Prompt injection prevention is a first-class requirement. Treat all user-supplied content as untrusted and sanitize before including in prompts.
+- Do not expose raw model error messages to end users. Log them internally and return a sanitized response.
+- Conduct a threat model review for any agent that can take actions with side effects (file writes, API calls, database mutations).
+
+---
+
+## 9. Model Selection Guidelines
+
+Selecting the right model for a task controls both cost and quality. These guidelines apply to all model usage across Azure AI Foundry and Vertex AI Model Garden.
+
+### Use a large/capable model for:
+
+- Architecture design, system design, and evaluation of tradeoffs with long-term consequences.
+- Security-sensitive code: authentication flows, cryptography integration, permission models, and threat modelling.
+- Complex debugging that requires reasoning across many files or layers.
+- Writing or reviewing Architecture Decision Records (ADRs).
+- Generating comprehensive test strategies for complex or safety-critical domains.
+- Multi-step agentic tasks where incorrect intermediate decisions cannot be cheaply corrected.
+
+### Use a small/fast model for:
+
+- Boilerplate and scaffolding: CRUD endpoints, migration files, configuration stubs.
+- Renaming, reformatting, or restructuring clearly-defined code.
+- Writing docstrings and JSDoc for already-understood code.
+- Translating types or schemas between formats (JSON Schema to Zod, OpenAPI to TypeScript types).
+- Simple, well-scoped bug fixes with a clear error message and a clear file location.
+- Drafting commit messages, PR descriptions, and changelog entries.
+
+### Default cheap models
+
+- Azure: `gpt-4.1-nano` is the default for low-complexity tasks.
+- Google: `gemini-2.5-flash-lite` is the default for low-complexity tasks.
+- Prefer these models for any task that does not require extended reasoning or large context windows.
+
+### Model Catalogs
+
+- Azure AI Foundry is the primary catalog for Azure-hosted deployments. All model selections must reference a deployment from the approved Foundry catalog.
+- Vertex AI Model Garden is the primary catalog for Google Cloud-hosted deployments.
+- Models not present in either catalog require approval from the platform engineering team before use.
+
+### Hugging Face Models
+
+- Hugging Face models are not permitted in production without prior written approval from the security and architecture teams.
+- Approval requires a model card review, a license review, and a vulnerability scan of the model weights.
+
+### AI Gateway
+
+- All model traffic must route through the designated AI Gateway: Azure APIM for Azure-hosted workloads, Google Apigee for Google Cloud-hosted workloads.
+- The gateway provides unified rate limiting, cost attribution, audit logging, and tool serving.
+- Direct calls from application code to model provider APIs bypassing the gateway are prohibited in production environments.

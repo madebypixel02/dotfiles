@@ -1,8 +1,7 @@
 ---
-name: implementer
 description: Primary implementation subagent. Write or modify production code following SOLID principles and existing project patterns. Delegate here for all feature work, bug fixes, and code changes. Always runs the test suite after making changes.
 mode: subagent
-model: github-copilot/claude-sonnet-4-6
+model: github-copilot/claude-sonnet-4.6
 temperature: 0.15
 color: "#9ece6a"
 steps: 30

@@ -237,6 +237,22 @@ for d in agents rules skills; do
 done
 
 # ---------------------------------------------------------------------------
+# Step 4b: Copilot instructions (informational)
+# ---------------------------------------------------------------------------
+log_header "GitHub Copilot instructions"
+
+COPILOT_SRC="${DOTFILES_DIR}/copilot"
+if [[ -d "$COPILOT_SRC" ]]; then
+  log_info "Copilot instructions available at ${COPILOT_SRC}/"
+  log_info "To use in a project, copy the relevant files:"
+  log_info "  cp ${COPILOT_SRC}/copilot-instructions.md <project>/.github/copilot-instructions.md"
+  log_info "  cp -r ${COPILOT_SRC}/instructions/ <project>/.github/instructions/"
+  log_info "Or create symlinks for global use."
+else
+  log_info "Copilot instructions directory not found -- skipping"
+fi
+
+# ---------------------------------------------------------------------------
 # Step 5: Plugin dependencies
 # ---------------------------------------------------------------------------
 log_header "Plugin dependencies"

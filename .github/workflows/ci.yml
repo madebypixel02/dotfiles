@@ -106,7 +106,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.11'
 
       - name: Cache pre-commit environments
         uses: actions/cache@v4
@@ -118,8 +118,52 @@ jobs:
 
       - name: Install and run pre-commit
         run: |
-          pip install --quiet pre-commit
+          pip install --quiet pre-commit  # bootstrap tool, not a project dependency
           SKIP=no-commit-to-branch pre-commit run --all-files --show-diff-on-failure
+
+  python-lint:
+    name: Python Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Lint with Ruff
+        run: uvx ruff check . --output-format=github
+
+      - name: Check formatting with Ruff
+        run: uvx ruff format --check .
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Bandit security scan
+        run: |
+          pipx install bandit
+          bandit -r . --skip B101 -x tests,scripts,.git,node_modules --format json --output bandit-report.json || true
+          bandit -r . --skip B101 -x tests,scripts,.git,node_modules --severity-level medium
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
 
   validate-install:
     name: Validate Install (${{ matrix.os }})
@@ -147,6 +191,8 @@ jobs:
       - shellcheck
       - actionlint
       - pre-commit
+      - python-lint
+      - security-scan
       - validate-install
     steps:
       - name: Evaluate upstream job results
