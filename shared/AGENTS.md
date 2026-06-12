@@ -208,7 +208,8 @@ Write migrations that are reversible. Never drop columns or tables without a dep
 - All public functions, classes, types, and endpoints require docstrings or JSDoc
 - Update architecture decision records (see `shared/prompts/adr.md`) when making significant design choices
 - Use MkDocs with the Material theme for project documentation sites. Configuration lives in `mkdocs.yml` at the repository root.
-- Reference the relevant rule files when documenting standards: `shared/rules/python.md`, `shared/rules/observability.md`, `shared/rules/ai-development.md`, `shared/rules/cicd.md`, `shared/rules/security.md`, `shared/rules/testing.md`, `shared/rules/workflow.md`
+- All Markdown files must pass `markdownlint-cli2` with the project's `.markdownlint.jsonc` configuration. See `shared/rules/markdown.md` for the complete formatting specification.
+- Reference the relevant rule files when documenting standards: `shared/rules/python.md`, `shared/rules/observability.md`, `shared/rules/ai-development.md`, `shared/rules/cicd.md`, `shared/rules/security.md`, `shared/rules/testing.md`, `shared/rules/workflow.md`, `shared/rules/markdown.md`
 
 ---
 
