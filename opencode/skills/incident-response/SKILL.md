@@ -56,10 +56,10 @@ Run through this signal checklist in parallel (split with another responder):
 
 Apply the **DEBT** framework:
 
-- **D**eployment — Was anything deployed recently? Check CI/CD history.
-- **E**nvironment — Did infrastructure change? Scaling events? Config updates?
-- **B**ug — Is there a known issue or recent code change that could cause this?
-- **T**raffic — Unexpected traffic spike? DDoS? Crawler? New viral feature?
+- **Deployment** — Was anything deployed recently? Check CI/CD history.
+- **Environment** — Did infrastructure change? Scaling events? Config updates?
+- **Bug** — Is there a known issue or recent code change that could cause this?
+- **Traffic** — Unexpected traffic spike? DDoS? Crawler? New viral feature?
 
 Use binary search for scope: is it all regions or one? All services or one? All users or a subset?
 
