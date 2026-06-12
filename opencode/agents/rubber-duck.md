@@ -3,7 +3,7 @@ description: Second-opinion critic agent. Read-only. Gives an independent advers
 mode: subagent
 model: github-copilot/claude-haiku-4.5
 temperature: 0.05
-color: "#f7768e"
+color: "#c0caf5"
 permission:
   read: "allow"
   glob: "allow"

@@ -59,7 +59,7 @@ Use spaces for indentation. Never use hard tabs in prose, headings, list items, 
 
 - Unordered lists must use `-` as the list marker. Do not use `*` or `+`.
 - Ordered lists must use sequential numbers: `1.`, `2.`, `3.`. Do not use repeated `1.` for every item.
-- Nest list items with four spaces of indentation.
+- Nest list items with two spaces of indentation.
 - Do not mix ordered and unordered markers within the same list level.
 
 ### Code Blocks

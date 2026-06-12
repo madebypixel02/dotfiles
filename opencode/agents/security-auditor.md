@@ -118,6 +118,8 @@ For every audit, work through each category systematically. Do not skip categori
 
 ## Secrets & Credentials Audit
 
+Batch all secret-pattern searches into a single message. Issue all `Grep` calls simultaneously rather than one pattern at a time.
+
 Grep for these patterns in every audit:
 
 ```

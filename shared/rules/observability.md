@@ -187,7 +187,7 @@ The following conditions trigger automated responses:
 | Condition               | Threshold                                          | Action                                            |
 | ----------------------- | -------------------------------------------------- | ------------------------------------------------- |
 | 5xx error rate          | Greater than 5% of requests over a 5-minute window | Auto-create incident issue in the project tracker |
-| Response latency (p95)  | Greater than 500 ms                                | Trigger alert to the on-call channel              |
+| Response latency (p99)  | Greater than 500 ms                                | Trigger alert to the on-call channel              |
 | Health endpoint failure | `/health` returns non-200 for 2 consecutive checks | Page on-call engineer                             |
 | Critical log entries    | Any `critical`-level log event                     | Immediate alert                                   |
 
