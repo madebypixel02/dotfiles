@@ -161,6 +161,19 @@ Make refactoring commits separate from behaviour changes. Confirm tests pass bef
 
 Write migrations that are reversible. Never drop columns or tables without a deprecation window. Test migrations against a copy of production data shape if possible.
 
+### Task List Discipline
+
+For any multi-step task, initialize a task list before beginning work. Update it continuously throughout execution — not only at the start and not only at the end. Waiting until the task is complete to mark items done is non-compliant.
+
+Required update points:
+
+- Before starting each step: mark it as in-progress.
+- After completing each step: mark it as done.
+- When blocked or encountering an unexpected dependency: record the blocker against the affected item.
+- When scope changes mid-task: add, remove, or revise items immediately to reflect the current plan.
+
+Task lists must reflect the real state of work at all times. A task list that is only accurate at the moment it was created or the moment the task ended provides no value for oversight or recovery.
+
 ---
 
 ## What to Do and Not to Do
@@ -239,6 +252,39 @@ These tools are available across all supported AI coding agents. Use them by nam
 **`/caveman-commit`** - Generate precise conventional commit messages from staged changes. Outputs message only; never runs `git commit`.
 
 **`/rubber-duck`** - Independent second-opinion critic. Read-only. Reviews plans before implementation (Mode A), code after writing (Mode B), or runs the Five-Quack self-explanation protocol to surface bugs through narration (Mode C). Uses a low-temperature, different-perspective model. Never comments on style or naming. Explicitly states when no issues are found.
+
+---
+
+## Delegation Hierarchy
+
+The agent hierarchy has three tiers. Delegation outside these tiers is forbidden.
+
+| Tier | Agent | May call |
+| --- | --- | --- |
+| 1 — Hub | Orchestrator | Any agent |
+| 2 — Implementer | Builder | `@reviewer`, `@test-architect`, `@security-auditor` only |
+| 3 — Leaf | All other agents | No agents |
+
+**Tier 3 agents (leaf nodes):** Planner, Reviewer, Security Auditor, Test Architect,
+Docs Writer, Debugger, Rubber Duck, Release Manager. These agents read, analyse, and
+produce output. They never spawn subagents. Any session in which a leaf agent invokes
+the Task tool is a session in which that agent failed its role.
+
+**Tier 2 agent (Builder):** The builder may invoke `@reviewer`, `@test-architect`, and
+`@security-auditor` via the Task tool after completing an implementation. It must not
+invoke any other agent — including `@planner`, `@orchestrator`, `@debugger`,
+`@docs-writer`, `@release-manager`, or `@rubber-duck`. If a task requires planning
+before implementation, the builder must report back to the orchestrator; it must not
+invoke `@planner` itself.
+
+**Tier 1 agent (Orchestrator):** The orchestrator is the only agent with unrestricted
+delegation rights. It coordinates all other agents and is the sole entry point for
+invoking `@planner`.
+
+**Why this hierarchy exists:** Cross-tier delegation (e.g., Planner spawning a Planner,
+Builder spawning a Planner) creates non-deterministic execution trees, unpredictable step
+counts, and audit trails that cannot be reviewed. The hierarchy enforces a flat,
+predictable delegation model where every action traces back to a single coordinator.
 
 ---
 
