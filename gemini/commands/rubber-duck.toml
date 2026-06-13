@@ -1,0 +1,246 @@
+description = "Second-opinion rubber-duck review — critiques plans before implementation (Mode A), code after writing (Mode B), or runs the Five-Quack self-explanation protocol (Mode C)"
+
+prompt = """
+# Rubber Duck Review
+
+## Repository context
+
+```
+!{git diff HEAD --stat 2>/dev/null | head -20 || echo "(no git context)"}
+!{git log --oneline -5 2>/dev/null || echo "(no commits)"}
+```
+
+## Task
+
+{{args}}
+
+## Recent changes
+
+```
+!{git diff HEAD 2>/dev/null | head -400 || echo "(no diff available)"}
+```
+
+---
+
+Review the above using the appropriate mode:
+
+- **Mode A (Plan Critique)** — if `{{args}}` describes a proposed approach, design, or plan not yet implemented
+- **Mode B (Code Critique)** — if `{{args}}` contains actual code, file paths, or references to written implementation
+- **Mode C (Quack Protocol)** — if `{{args}}` contains "quack this", "explain to the duck", "rubber duck this", or similar phrasing
+
+If ambiguous, default to Mode B if there is a git diff present, Mode A otherwise.
+
+Produce the full structured output for the chosen mode. Do not mix modes.
+
+---
+
+## Mode A — Plan Critique
+
+_Use when `{{args}}` describes a proposed approach, design, or plan not yet implemented._
+
+Interrogate the plan for:
+
+- **Edge cases:** What happens at empty, zero, maximum, or boundary inputs? What if a dependency is unavailable? What if two callers arrive simultaneously?
+- **Simpler alternatives:** Is there a solution with fewer moving parts that still satisfies the requirements? Complexity has carrying costs.
+- **Failure modes:** When (not if) this fails in production, does it fail loudly or silently (wrong answer, data corruption, dropped message)? Can it be recovered from?
+- **Hidden assumptions:** What does the plan assume about external systems, input formats, call ordering, or timing? State each assumption explicitly and ask whether it could be wrong.
+- **Unnecessary abstraction:** Does the plan introduce layers, interfaces, or patterns beyond what the current problem requires?
+- **Security implications:** If the plan involves external input, authentication, authorisation, file paths, network calls, or persistence — what are the security consequences of each?
+
+**Output structure:**
+
+```
+## Rubber Duck Review
+
+**Mode:** Plan Critique
+**Reviewed:** [description of plan]
+
+### Blocking Issues
+- [issue] — [why this causes the plan to fail] — [concrete alternative]
+
+### Non-blocking Issues
+- [issue] — [why it matters] — [suggestion]
+
+### Suggestions
+- [optional, only with clear reasoning]
+
+### Verdict
+[No blocking issues found. / X blocking issue(s) require attention before proceeding.]
+```
+
+---
+
+## Mode B — Code Critique
+
+_Use when `{{args}}` contains actual code, file paths, or references to written implementation._
+
+Look for things that cause the code to behave incorrectly, fail, lose data, or be exploited.
+
+**Explicitly excluded from scope:**
+
+- Variable names, function names, class names
+- Formatting, indentation, line length
+- Comment quality or presence
+- Coding conventions, idioms, or style preferences
+
+**What to look for:**
+
+**Logic errors:**
+
+- Off-by-one bugs at boundaries (loops, slices, indices)
+- Incorrect operator precedence or short-circuit evaluation
+- Wrong comparison type (reference vs value, signed vs unsigned, case sensitivity)
+- Incorrect algorithm (wrong sort, wrong aggregation, wrong formula)
+- State machines with invalid or impossible transitions
+
+**Concurrency hazards:**
+
+- Shared mutable state accessed without synchronisation
+- Race conditions: check-then-act, time-of-check-time-of-use (TOCTOU)
+- Goroutine or thread leaks (started but never stopped)
+- Deadlock potential from inconsistent lock ordering or circular waits
+- Missing context propagation or cancellation in concurrent operations
+
+**Resource leaks:**
+
+- File handles opened but not closed in every code path (including error paths)
+- Database connections not returned to pool
+- HTTP response bodies not drained and closed before connection reuse
+- Event listeners or callbacks registered but never removed
+
+**Security vulnerabilities:**
+
+- User-supplied input used unsanitised in database queries, shell commands, file paths, or HTML output
+- Authentication checks that are missing, skipped on certain paths, or bypassable
+- Authorisation checks absent on sensitive operations
+- Secrets, tokens, or PII logged or returned in API responses
+- Path traversal via user-supplied filenames
+- Non-constant-time comparison of secret values (timing attack)
+- Redirect URLs accepted from user input without an allowlist
+
+**Missing error handling:**
+
+- Errors discarded silently
+- Errors returned from callees but not checked by callers
+- Partial operation failure leaving persistent state inconsistent
+- Missing nil/null/undefined checks before dereference
+
+**Incorrect external system assumptions:**
+
+- Assuming an operation is idempotent when the external system does not guarantee it
+- Assuming ordering guarantees without verification
+- Assuming a network call completes within a fixed time bound under all conditions
+- Trusting external system timestamps, sequence numbers, or identifiers without validation
+
+**Tests that do not test:**
+
+- Assertions that pass regardless of the implementation (always-true)
+- Mocks so pervasive that the actual component under test is never exercised
+- Test coverage of only the happy path when error paths are the critical ones
+- Assertions on intermediate values or implementation details rather than observable outcomes
+- Tests with ordering dependencies or shared mutable state between test cases
+
+**Output structure:**
+
+```
+## Rubber Duck Review
+
+**Mode:** Code Critique
+**Reviewed:** [files or description of code reviewed]
+
+### Blocking Issues
+- [file:line] [issue] — [why it causes incorrect behavior] — [concrete fix]
+
+### Non-blocking Issues
+- [file:line] [issue] — [why it matters] — [suggestion]
+
+### Suggestions
+- [optional, only with clear reasoning]
+
+### Verdict
+[No blocking issues found. / X blocking issue(s) require attention before proceeding.]
+```
+
+---
+
+## Mode C — The Quack Protocol
+
+_Use when `{{args}}` contains "quack this", "explain to the duck", "rubber duck this", or similar phrasing._
+
+Work through the Five Quacks in order. Do not skip ahead.
+
+### Quack 1 — Scene
+
+State in one paragraph, from memory:
+
+- What this code is **supposed** to do (its intended behavior)
+- What symptom you are **currently seeing** (the bug, the wrong output, the failing test, the exception)
+- What you **expected** to happen instead
+
+Do not look at the code yet. Describe it from memory. Gaps in your description are often where the bug lives.
+
+### Quack 2 — Walk
+
+Read the code now. Then walk through it line by line, narrating exactly what each line does with specific values. Be literal — state what it actually does, not what you intended it to do.
+
+### Quack 3 — Catch
+
+Continue the walk until you say **"Wait —"**
+
+The **Quack Point** is the exact moment where your explanation of what should happen contradicts what the code actually does. This is the location of the bug.
+
+If you walk the full execution and your explanation matches the code at every step, state that explicitly. The bug is elsewhere.
+
+### Quack 4 — Fix
+
+Explain the fix in plain English before writing a single line of code:
+
+> "The problem is [root cause in one sentence]. The fix is to [specific change]. This resolves the issue because [causal reasoning]. The fix does not affect [adjacent behavior] because [reason]."
+
+### Quack 5 — Verify
+
+With the fix applied (mentally or actually), trace execution again from the start. Confirm:
+
+1. The Quack Point from Quack 3 is resolved
+2. The symptom from Quack 1 would not occur with the fix in place
+3. No adjacent behavior is broken
+
+**Output structure:**
+
+```
+## Rubber Duck Session
+
+**Symptom:** [one sentence from Quack 1]
+
+### Quack 1 — Scene
+[What it should do / what you're seeing / what you expected]
+
+### Quack 2 — Walk
+[Step-by-step execution trace with file:line references]
+
+### Quack 3 — Catch
+**Quack Point:** [file:line] — [where explanation contradicted code]
+
+### Quack 4 — Fix
+**Root cause:** [one sentence]
+**Fix (plain English):** [full explanation before any code]
+
+### Quack 5 — Verify
+[Re-walk confirming fix resolves the quack point and symptom]
+
+### Result
+[Bug found and explained at [file:line]. / No quack point found — the bug is elsewhere.]
+```
+
+---
+
+## Hard Rules (all modes)
+
+1. Never comment on naming, style, formatting, indentation, comment quality, or coding conventions.
+2. Never suggest a pattern or architectural change without a concrete reason the current code will break or behave incorrectly.
+3. Explicitly state "No blocking issues found" when the work is correct. Do not invent problems to appear useful.
+4. Use file:line references for every finding. Findings without location references are not actionable.
+5. Provide one concrete fix per blocking issue, not a list of options.
+6. Do not repeat findings. If the same pattern appears in multiple places, note it once and indicate recurrence.
+7. Do not soften findings that matter. A blocking issue is blocking.
+"""

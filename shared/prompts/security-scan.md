@@ -1,199 +1,262 @@
-# Security Scan Workflow
+# Security Audit Workflow
 
-Use this workflow to conduct a structured security review of a codebase, module, or pull request.
+Conduct a comprehensive security review of this codebase. The mandate is to find every exploitable vulnerability and produce an actionable remediation report.
 
----
-
-## Input
-
-[SCAN TARGET] — specify what to scan: the entire repository, a specific service or module (provide path), a pull request, or a particular feature (describe it). Include any known compliance requirements (SOC 2, PCI DSS, HIPAA, GDPR) that apply.
+Be thorough, be sceptical, and assume an adversarial perspective. A missed vulnerability in this report could result in a breach.
 
 ---
 
-## Scan Philosophy
+## Audit Scope
 
-A security scan is not a checklist exercise. Its purpose is to find real vulnerabilities: conditions that an adversary could exploit to read data they should not, write data they should not, execute code they should not, or deny service to legitimate users. A scan that produces a clean report on vulnerable code is worse than no scan.
+Work through each of the following OWASP Top 10 categories (2021 edition) plus additional enterprise concerns. For each finding, record:
 
-Apply an adversarial mindset throughout. For each piece of code ask: how would a motivated attacker try to misuse this?
-
----
-
-## Phase 1 — Reconnaissance
-
-**Understand the attack surface.**
-List every point where untrusted data enters the system:
-
-- HTTP endpoints (REST, GraphQL, WebSocket, file upload)
-- Queue and event consumers
-- CLI arguments and environment variables
-- Files read from disk
-- Responses from external APIs and databases
-- Inter-service gRPC or internal HTTP calls
-
-**Understand the trust model.**
-What actors exist (anonymous user, authenticated user, admin, service account)? What is each permitted to do? Where are the privilege boundaries?
-
-**Identify sensitive data.**
-What data does the system store or transmit? PII, payment card data, credentials, health data, intellectual property? Where does it flow?
-
-**Review recent changes.**
-Run `git log --oneline -30` to see what has changed recently. New code is higher risk than stable, well-exercised code.
+- **Category** (OWASP reference)
+- **Severity** (CRITICAL / HIGH / MEDIUM / LOW / INFO)
+- **CVSS Score estimate** (0.0 - 10.0)
+- **Location** (file:line or module)
+- **Description** (what is vulnerable and why)
+- **Proof of Concept** (minimal attack scenario)
+- **Remediation** (specific, actionable fix)
+- **References** (CWE number, OWASP reference)
 
 ---
 
-## Phase 2 — Injection Vulnerabilities
+### A01 — Broken Access Control
 
-**SQL injection.**
-Find every database query. Confirm each uses parameterised queries or a prepared statement. Flag any string concatenation into a query, any ORM raw query escape hatch, or any dynamic `ORDER BY` or table name constructed from user input.
-
-**Command injection.**
-Find every shell invocation. Confirm arguments are passed as arrays (not interpolated strings). Flag any call that constructs a shell command from user-supplied input. Prefer language-native alternatives to shell invocations entirely.
-
-**Template injection.**
-Find every server-side template render. Confirm user-supplied data is not passed as a template string (only as data into a template). Flag any `eval`, `exec`, or dynamic code execution paths.
-
-**HTML/XSS.**
-Find every place user-supplied data is rendered in an HTML response. Confirm auto-escaping is enabled in the template engine and not disabled per-block. Flag any use of `innerHTML`, `dangerouslySetInnerHTML`, or equivalent.
-
-**Path traversal.**
-Find every file path constructed from user input. Confirm the path is canonicalised and restricted to an explicit allowed directory before use.
-
-**Redirect injection.**
-Find every redirect constructed from user input. Confirm the target URL is validated against an allowlist of permitted destinations.
+- Are all sensitive endpoints protected by authentication middleware?
+- Are authorisation checks performed server-side for every sensitive operation?
+- Can users access other users' data by manipulating IDs (IDOR)?
+- Are directory listings disabled?
+- Is CORS configured to allow only trusted origins?
+- Are admin functions separated from user functions at the framework/routing level?
+- Can privilege escalation occur (user to admin, tenant A to tenant B)?
 
 ---
 
-## Phase 3 — Authentication and Session Management
+### A02 — Cryptographic Failures
 
-- Is authentication implemented using a proven library or identity provider?
-- Are passwords stored with bcrypt, scrypt, or Argon2? (Never MD5, SHA-1, or plain SHA-256)
-- Is there account lockout or exponential backoff after failed login attempts?
-- Are session tokens rotated after login, password change, and privilege escalation?
-- Are session cookies set with `HttpOnly`, `Secure`, and `SameSite=Strict` (or `Lax` where cross-site is needed)?
-- Does logout invalidate the server-side session (not just delete the cookie)?
-- Are password reset tokens single-use and time-limited?
-- Is multi-factor authentication available for sensitive operations?
-
----
-
-## Phase 4 — Authorisation
-
-- Is authorisation checked server-side on every action (not just hidden in the UI)?
-- Is the authorisation logic centralised, or scattered as ad-hoc `if user.isAdmin` checks?
-- For every API endpoint: what happens if an authenticated user calls it with another user's resource ID? (Test for Insecure Direct Object Reference)
-- For collection endpoints: does the query filter to resources the caller is permitted to see, or does it return all records and rely on the client to hide them?
-- Are admin-only endpoints protected by both authentication and an admin-role check?
-- Are there any endpoints that are authenticated but not authorised (any logged-in user can reach any resource)?
+- Is sensitive data (PII, financial data, health data) encrypted at rest?
+- Is HTTPS enforced for all communications?
+- Are weak or deprecated algorithms used (MD5, SHA1, DES, RC4)?
+- Are passwords hashed with modern adaptive algorithms (bcrypt, argon2, scrypt)?
+- Are cryptographic keys stored securely (not in code, not in logs)?
+- Is there any custom cryptography implementation (almost always a red flag)?
+- Are JWT tokens validated correctly (algorithm confusion, none algorithm attack)?
+- Are TLS certificates properly validated in HTTP client code?
 
 ---
 
-## Phase 5 — Secrets and Configuration
+### A03 — Injection
 
-- Search the codebase for patterns that look like hardcoded secrets: `api_key`, `password`, `secret`, `token`, `private_key` assigned to string literals
-- Check `.env` files, configuration files, and test fixtures for committed credentials
-- Confirm secrets are read from environment variables or a secrets manager at runtime
-- Check that the `.gitignore` prevents `.env`, `*.pem`, `*.key`, and similar files from being committed
-- Confirm that different secrets are used for each environment
-- Check that secrets are not logged (search log statements for variable names that hold secrets)
-
----
-
-## Phase 6 — Cryptography
-
-- Is TLS enforced for all external communication? Is certificate verification enabled (not skipped)?
-- Are weak or deprecated algorithms in use? (MD5, SHA-1, DES, RC4, RSA < 2048 bits, EC < 256 bits)
-- Are cryptographically secure random sources used for token generation, nonce generation, and key generation?
-- Are encryption keys stored separately from encrypted data?
-- Is there any custom cryptographic implementation? (Flag for expert review — custom crypto is almost always wrong)
+- **SQL injection:** Are all database queries parameterised or use an ORM correctly?
+- **NoSQL injection:** Are MongoDB/Redis/Elasticsearch queries sanitised?
+- **Command injection:** Are any shell commands constructed from user input?
+- **LDAP injection:** Are LDAP queries parameterised?
+- **XPath injection:** Are XML queries parameterised?
+- **Template injection:** Is user input ever passed to template engines without escaping?
+- **Log injection:** Is user input sanitised before logging (CRLF injection)?
 
 ---
 
-## Phase 7 — Input Validation and Data Integrity
+### A04 — Insecure Design
 
-- Is all external input validated at the entry point for type, format, length, and value range?
-- Are error messages returned to the caller informative enough to help attackers (stack traces, SQL errors, internal paths)?
-- Are file uploads validated by content inspection (not just filename or Content-Type header)?
-- Are integer overflow conditions possible in size or count calculations?
-- Are there mass assignment vulnerabilities (accepting arbitrary fields from user input into a model)?
-
----
-
-## Phase 8 — Logging and Monitoring
-
-- Are authentication events (success and failure) logged?
-- Are authorisation failures logged with context?
-- Are administrative actions logged?
-- Are sensitive values (passwords, tokens, PII) absent from log lines?
-- Are logs shipped to a system the application process cannot modify or delete?
-- Are there alerts configured for anomalous patterns (spike in auth failures, unusual data access volume)?
+- Is there security validation at the design level or only the implementation level?
+- Are rate limits implemented on sensitive endpoints (login, password reset, API)?
+- Is there protection against automated attacks (CAPTCHA, account lockout)?
+- Does the application follow the principle of least privilege?
+- Are business logic flows susceptible to race conditions or TOCTOU vulnerabilities?
 
 ---
 
-## Phase 9 — Dependencies
+### A05 — Security Misconfiguration
 
-Run a dependency vulnerability scan using the appropriate tool for the project:
-
-- JavaScript/TypeScript: `npm audit` or `yarn audit`
-- Python: `pip-audit` or `safety check`
-- Go: `govulncheck ./...`
-- Java: `mvn dependency-check:check` or `gradle dependencyCheckAnalyze`
-- General: `trivy fs .`
-
-For each vulnerability found: record the package, CVE, severity, and whether the vulnerable code path is reachable in this application. Prioritise critical and high severity issues that are in reachable code paths.
-
----
-
-## Phase 10 — HTTP Security Headers
-
-Verify the following headers are present on all responses (or at minimum on HTML responses):
-
-- `Content-Security-Policy` — restricts resource origins; prevents XSS escalation
-- `X-Content-Type-Options: nosniff` — prevents MIME-type sniffing
-- `X-Frame-Options: DENY` — prevents clickjacking (or use CSP `frame-ancestors`)
-- `Strict-Transport-Security` — enforces HTTPS; include `max-age` ≥ 1 year and `includeSubDomains`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- Absent or minimal `Server` and `X-Powered-By` headers
+- Are default credentials changed or removed?
+- Are stack traces or debug information exposed to end users?
+- Are unnecessary features, endpoints, or services enabled?
+- Are security headers set correctly?
+  - `Content-Security-Policy`
+  - `X-Frame-Options` / `frame-ancestors`
+  - `X-Content-Type-Options: nosniff`
+  - `Strict-Transport-Security`
+  - `Referrer-Policy`
+  - `Permissions-Policy`
+- Are error messages generic (not leaking system information)?
+- Is the application running with minimal OS/container privileges?
 
 ---
 
-## Findings Report Structure
+### A06 — Vulnerable and Outdated Components
 
-For each finding, record:
+Based on the dependency audit output above:
 
+- List all known CVEs in current dependencies with CVSS >= 7.0.
+- List dependencies that are significantly out of date (major version behind).
+- Identify unmaintained packages (no releases in > 2 years).
+- Check for licence compliance issues (GPL in a closed-source project, etc.).
+
+---
+
+### A07 — Identification and Authentication Failures
+
+- Are session tokens long, random, and unpredictable?
+- Are sessions invalidated server-side on logout?
+- Is there protection against credential stuffing (rate limiting + lockout)?
+- Are passwords subject to minimum complexity requirements?
+- Is multi-factor authentication available for privileged accounts?
+- Are password reset flows secure (no enumeration, token expiry, one-time use)?
+- Are "remember me" tokens stored and validated securely?
+
+---
+
+### A08 — Software and Data Integrity Failures
+
+- Are software updates verified with signatures?
+- Are CI/CD pipelines protected against tampering?
+- Are serialised objects validated before deserialisation (pickle, Java serialisation, etc.)?
+- Are third-party scripts (CDN resources) using Subresource Integrity (SRI) hashes?
+
+---
+
+### A09 — Security Logging and Monitoring Failures
+
+- Are security-relevant events logged (login, logout, failed auth, privilege change)?
+- Are logs protected from tampering?
+- Do logs contain sufficient detail for forensic analysis (timestamp, user, IP, action)?
+- Do logs contain sensitive data that should not be logged (passwords, tokens, PII)?
+- Is there alerting on anomalous patterns (repeated failures, unusual access times)?
+
+---
+
+### A10 — Server-Side Request Forgery (SSRF)
+
+- Does the application fetch URLs supplied by users?
+- Are internal network addresses (169.254.x.x, 10.x.x.x, 172.16.x.x, 127.x.x.x) blocked?
+- Are URL schemes validated (only http/https, not file:// gopher:// dict://)?
+- Are DNS rebinding attacks mitigated?
+
+---
+
+### Additional Enterprise Checks
+
+**Secrets in Code and Version Control**
+
+- Are there any secrets committed to git history (check with the git log output above)?
+- Is there a `.gitignore` entry for `.env` files?
+- Is a secrets scanner (git-secrets, gitleaks, truffleHog) integrated in CI?
+
+**Supply Chain Security**
+
+- Are dependency lock files committed and used in CI?
+- Are package integrity checks enforced (`npm ci` not `npm install`)?
+
+**Container and Infrastructure Security** (if applicable)
+
+- Are containers running as root?
+- Are secrets passed via environment variables (not baked into images)?
+
+**API Security**
+
+- Are API keys rotatable without redeployment?
+- Is there API key scoping (principle of least privilege per key)?
+- Are webhooks validated (HMAC signature verification)?
+
+---
+
+## Security Report
+
+Produce the final report in this structure:
+
+```markdown
+# Security Audit Report
+
+**Date:** !`date +"%Y-%m-%d"`
+**Project:** !`basename $(pwd) 2>/dev/null || echo "Unknown"`
+**Auditor:** OpenCode Security Auditor Agent
+**Scope:** Full codebase + dependencies
+
+---
+
+## Executive Summary
+
+[2-3 paragraph summary of overall security posture. Include total finding count by severity.]
+
+**Risk Rating:** [CRITICAL / HIGH / MEDIUM / LOW]
+
+| Severity | Count |
+| -------- | ----- |
+| CRITICAL | [n]   |
+| HIGH     | [n]   |
+| MEDIUM   | [n]   |
+| LOW      | [n]   |
+| INFO     | [n]   |
+
+---
+
+## Findings
+
+### [SEV-001] [Severity] — [Title]
+
+| Field             | Value                          |
+| ----------------- | ------------------------------ |
+| **Category**      | OWASP A0X / [name]             |
+| **Severity**      | CRITICAL / HIGH / MEDIUM / LOW |
+| **CVSS Estimate** | [0.0-10.0]                     |
+| **Location**      | [file:line]                    |
+| **CWE**           | CWE-[number]                   |
+
+**Description:** [What is vulnerable and why]
+
+**Attack Scenario:** [How an attacker would exploit this]
+
+**Remediation:** [Specific, actionable fix]
+
+**References:** [Links or CWE/CVE references]
+
+---
+
+[Repeat for each finding, ordered by severity descending]
+
+---
+
+## Dependency Vulnerabilities
+
+| Package   | Version   | CVE              | CVSS    | Fixed In  | Action                  |
+| --------- | --------- | ---------------- | ------- | --------- | ----------------------- |
+| [package] | [version] | [CVE-XXXX-XXXXX] | [score] | [version] | [update/replace/accept] |
+
+---
+
+## Remediation Priority
+
+### Immediate (fix before next deployment)
+
+- [ ] [SEV-001]: [brief description]
+
+### Short-term (fix within 2 weeks)
+
+- [ ] [SEV-00X]: [brief description]
+
+### Medium-term (fix within next sprint)
+
+- [ ] [SEV-00X]: [brief description]
+
+### Accepted / Won't Fix
+
+- [ ] [SEV-00X]: [brief description] — [justification]
+
+---
+
+## Positive Security Controls Observed
+
+[List security controls that are correctly implemented — this builds confidence and acknowledges good work]
+
+---
+
+## Recommendations
+
+[3-5 strategic recommendations beyond the specific findings]
 ```
-Finding: [Short title]
-Severity: [Critical / High / Medium / Low / Informational]
-Location: [File path, line number, or endpoint]
-Description: [What the vulnerability is]
-Impact: [What an attacker can achieve by exploiting it]
-Evidence: [The specific code or configuration that demonstrates the issue]
-Remediation: [Specific steps to fix it]
-References: [CVE number, CWE number, or documentation link if applicable]
-```
-
-Severity definitions:
-
-- **Critical** — remote code execution, authentication bypass, unrestricted data exfiltration
-- **High** — privilege escalation, significant data exposure, SQL injection
-- **Medium** — limited data exposure, CSRF, stored XSS
-- **Low** — information disclosure, missing security headers on non-sensitive endpoints
-- **Informational** — best practice improvements with no direct exploitability
 
 ---
 
-## Security Scan Checklist
-
-- [ ] Attack surface enumerated
-- [ ] Trust model and privilege boundaries documented
-- [ ] Sensitive data flows identified
-- [ ] Injection vulnerabilities assessed (SQL, command, template, HTML, path, redirect)
-- [ ] Authentication implementation reviewed
-- [ ] Authorisation checked for every action, including IDOR
-- [ ] Secrets scan performed; no hardcoded credentials found
-- [ ] Cryptography reviewed for algorithm strength and correct usage
-- [ ] Input validation assessed
-- [ ] Error messages reviewed for information leakage
-- [ ] Dependency vulnerability scan run
-- [ ] HTTP security headers verified
-- [ ] Logging reviewed for security events and sensitive value leakage
-- [ ] All findings documented with severity, location, impact, and remediation
+Save this report to `docs/security/audit-!`date +"%Y%m%d"`.md`.

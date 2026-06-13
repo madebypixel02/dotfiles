@@ -19,14 +19,15 @@ bash install.sh --dry-run
 
 ## What's Inside
 
-| Path                 | Contents                                                     | Purpose                                                                                 |
-| -------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| `opencode/agents/`   | 8 agent `.md` files                                          | Orchestrator + specialist subagents for OpenCode                                        |
-| `opencode/commands/` | 12 slash-command `.md` files                                 | `/feature`, `/pr-review`, `/release`, `/security-scan`, etc.                            |
-| `opencode/plugins/`  | 5 TypeScript plugins                                         | Audit logging, context injection, notifications, quality gates, secret guard            |
-| `opencode/skills/`   | 5 skill directories                                          | Enterprise standards, incident response, API versioning, DB patterns, parallel workflow |
-| `claude/`            | `CLAUDE.md`, `settings.json`, `agents/`, `rules/`, `skills/` | Claude Code configuration                                                               |
-| `shared/AGENTS.md`   | Shared agent instructions                                    | Single source of truth read by both OpenCode and Claude Code                            |
+| Path                 | Contents                                                     | Purpose                                                                                      |
+| -------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `opencode/agents/`   | 10 agent `.md` files                                         | Orchestrator + specialist subagents for OpenCode                                             |
+| `opencode/commands/` | 13 slash-command `.md` files                                 | `/feature`, `/pr-review`, `/release`, `/security-scan`, etc.                                 |
+| `opencode/plugins/`  | 6 TypeScript plugins                                         | Audit logging, context injection, caveman guard, humanizer hook, quality gates, secret guard |
+| `opencode/skills/`   | 8 skill directories                                          | Enterprise standards, incident response, API versioning, DB patterns, parallel workflow      |
+| `claude/`            | `CLAUDE.md`, `settings.json`, `agents/`, `rules/`, `skills/` | Claude Code configuration                                                                    |
+| `gemini/`            | `GEMINI.md`, `settings.json`, `commands/` (16 commands)      | Gemini CLI configuration and slash commands                                                  |
+| `shared/AGENTS.md`   | Shared agent instructions                                    | Single source of truth read by OpenCode, Claude Code, and Gemini CLI                         |
 
 ---
 
@@ -47,13 +48,20 @@ The repo uses a **DRY symlink strategy**: one file in the repo, one symlink wher
 │
 ├── shared/
 │   └── AGENTS.md       ──symlink──▶  ~/.config/opencode/AGENTS.md
+│                       ──symlink──▶  ~/.gemini/AGENTS.md
+│                       (Claude reads this via @include in CLAUDE.md)
 │
-└── claude/
-    ├── CLAUDE.md        ──symlink──▶  ~/.claude/CLAUDE.md
-    ├── settings.json    ──symlink──▶  ~/.claude/settings.json
-    ├── agents/          ──symlink──▶  ~/.claude/agents/
-    ├── rules/           ──symlink──▶  ~/.claude/rules/
-    └── skills/          ──symlink──▶  ~/.claude/skills/
+├── claude/
+│   ├── CLAUDE.md        ──symlink──▶  ~/.claude/CLAUDE.md
+│   ├── settings.json    ──symlink──▶  ~/.claude/settings.json
+│   ├── agents/          ──symlink──▶  ~/.claude/agents/
+│   ├── rules/           ──symlink──▶  ~/.claude/rules/
+│   └── skills/          ──symlink──▶  ~/.claude/skills/
+│
+└── gemini/
+    ├── GEMINI.md        ──symlink──▶  ~/.gemini/GEMINI.md
+    ├── settings.json    ──symlink──▶  ~/.gemini/settings.json
+    └── commands/        ──symlink──▶  ~/.gemini/commands/
 ```
 
 ---
@@ -66,11 +74,15 @@ Full agent + command + plugin + skill ecosystem. All configuration lives in `ope
 
 ### Claude Code
 
-Reads `~/.claude/CLAUDE.md`, `settings.json`, and sub-directories. Shared agent instructions are symlinked from `shared/AGENTS.md`.
+Reads `~/.claude/CLAUDE.md`, `settings.json`, and sub-directories. Shared agent instructions are pulled in via `@include` in `CLAUDE.md`, which references `shared/AGENTS.md`.
 
 ### GitHub Copilot
 
 Per-project setup via `.github/` directory. See [Per-Project Setup](#per-project-setup) below.
+
+### Gemini CLI
+
+Reads `~/.gemini/GEMINI.md`, `settings.json`, and `commands/`. Shared agent instructions are symlinked from `shared/AGENTS.md` and referenced via `@./AGENTS.md` in `GEMINI.md`.
 
 ---
 
@@ -81,6 +93,7 @@ Per-project setup via `.github/` directory. See [Per-Project Setup](#per-project
    ```bash
    ls -la ~/.config/opencode/
    ls -la ~/.claude/
+   ls -la ~/.gemini/
    ```
 
 2. **Add your OpenCode config** (if you don't have one yet)
@@ -93,8 +106,9 @@ Per-project setup via `.github/` directory. See [Per-Project Setup](#per-project
 3. **Set your API keys** — never commit these; use environment variables or your OS keychain:
 
    ```bash
-   export ANTHROPIC_API_KEY=sk-ant-...
-   export OPENAI_API_KEY=sk-...
+   export ANTHROPIC_API_KEY=<your-anthropic-api-key>
+   export OPENAI_API_KEY=<your-openai-api-key>
+   export GEMINI_API_KEY=<your-gemini-api-key>
    ```
 
 4. **Start OpenCode** and verify agents are visible:
@@ -122,7 +136,7 @@ cd ~/dotfiles
 git pull
 ```
 
-OpenCode and Claude Code will see the new content immediately — no re-running `install.sh` required (unless you add new top-level symlinks).
+OpenCode, Claude Code, and Gemini CLI will see the new content immediately — no re-running `install.sh` required (unless you add new top-level symlinks).
 
 ---
 
@@ -150,5 +164,8 @@ Then edit `.github/copilot-instructions.md` to add project-specific context. Com
 | Shared agent instructions           | `shared/AGENTS.md`               |
 | Claude Code rules                   | `claude/CLAUDE.md`               |
 | Claude settings                     | `claude/settings.json`           |
+| Gemini CLI instructions             | `gemini/GEMINI.md`               |
+| Gemini settings / MCP servers       | `gemini/settings.json`           |
+| Gemini slash commands               | `gemini/commands/<command>.toml` |
 
 All changes are reflected instantly via symlinks. No reinstall needed.

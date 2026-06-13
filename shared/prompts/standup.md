@@ -16,7 +16,7 @@ A standup is a synchronisation mechanism for the team, not a status report to ma
 
 A good standup update is:
 
-- **Brief** — 60–90 seconds to deliver verbally
+- **Brief** — 60-90 seconds to deliver verbally
 - **Specific** — references actual tasks, PRs, decisions, not vague activity
 - **Actionable** — identifies what help or decisions are needed
 - **Forward-looking** — focuses on what matters today, not an exhaustive log of yesterday
@@ -82,7 +82,7 @@ Blockers / Risks:
 - None (if no blockers)
 ```
 
-**Writing guidelines:**
+Writing guidelines:
 
 - Use past tense for yesterday's items: "Completed", "Merged", "Reviewed", "Investigated"
 - Use active voice for today's items: "Will finish", "Continuing", "Starting"
@@ -93,7 +93,7 @@ Blockers / Risks:
 
 ## Examples
 
-**Well-written standup:**
+Well-written standup:
 
 ```
 Yesterday:
@@ -108,7 +108,7 @@ Blockers:
 - Need sign-off from Jordan on the retention policy decision (DM'd them; hoping for response this morning)
 ```
 
-**Poorly written standup (avoid this):**
+Poorly written standup (avoid this):
 
 ```
 Yesterday:
@@ -121,6 +121,16 @@ Today:
 Blockers:
 - Waiting on people
 ```
+
+---
+
+## Calendar Context
+
+Note any context that affects the standup:
+
+- If it is Monday, aggregate the full previous week's work (not just yesterday)
+- If it is Friday, flag any work that needs to be in a known state before the weekend
+- If there was a holiday yesterday, acknowledge that and extend the "yesterday" window accordingly
 
 ---
 
@@ -143,5 +153,5 @@ Beyond the standard three items, flag to the team during standup if:
 - [ ] Yesterday's work summarised in specific, concrete terms
 - [ ] Today's primary task identified and aligned with sprint goal
 - [ ] Blockers identified with specific asks
-- [ ] Update fits in 60–90 seconds
+- [ ] Update fits in 60-90 seconds
 - [ ] Any team-level risks or flags identified

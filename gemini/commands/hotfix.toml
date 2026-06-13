@@ -1,0 +1,213 @@
+description = "Emergency production hotfix — rapid triage, minimal fix, targeted tests, security check, release prep"
+
+prompt = """
+# HOTFIX: {{args}}
+
+EMERGENCY MODE ACTIVE — Speed and safety are the dual priorities. Skip ceremony, never skip correctness.
+
+You are an orchestrator coordinating a production hotfix. The incident is:
+
+> **{{args}}**
+
+Follow this workflow without deviation. Every phase has a time-box to enforce urgency.
+
+---
+
+## Incident Context
+
+```
+Current branch: !{git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "(not a git repo)"}
+
+Production / main branch status:
+!{git log origin/main --oneline -5 2>/dev/null || git log --oneline -5 2>/dev/null || echo "(unable to read main branch)"}
+
+Recent deployments (tags):
+!{git tag --sort=-creatordate 2>/dev/null | head -10 || echo "(no tags found)"}
+
+Uncommitted changes (must be clean before hotfix):
+!{git status --short 2>/dev/null || echo "(unable to check status)"}
+
+Relevant recent changes to potentially affected areas:
+!{git log --oneline --all -20 2>/dev/null || echo "(no git history)"}
+```
+
+---
+
+## Phase 1 — Triage [TIME-BOX: 5 minutes]
+
+Answer these questions immediately. Do not proceed until all are answered:
+
+1. **What is broken?** Describe the exact failure mode (crash, data corruption, security breach, performance degradation, etc.).
+2. **What is the blast radius?** Which users, services, or data are affected?
+3. **What is the severity?** P0 (complete outage) / P1 (critical degraded) / P2 (partial degraded)?
+4. **Is there an immediate mitigation?** (feature flag off, rollback possible, rate limit reducible?)
+5. **What is the root cause hypothesis?** Which commit, PR, or change is the likely culprit?
+
+```
+Git bisect hint (recent commits since last tag):
+!{git log $(git describe --tags --abbrev=0 2>/dev/null || echo HEAD~20)..HEAD --oneline 2>/dev/null || echo "(unable to compute range)"}
+```
+
+**Triage Output:** A one-paragraph incident summary with answers to all five questions.
+
+---
+
+## Phase 2 — Branch and Isolate [TIME-BOX: 2 minutes]
+
+1. Confirm the working branch is clean.
+2. The hotfix MUST branch from the production/main ref, not from a feature branch.
+3. Name the branch: `hotfix/<date>-<slug>` where slug is a 2-3 word description.
+
+Recommended branch command (do not run — provide as instruction):
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b hotfix/$(date +%Y%m%d)-<slug>
+```
+
+---
+
+## Phase 3 — Minimal Fix
+
+**Principle of Minimum Effective Change:**
+
+- Fix ONLY the confirmed root cause.
+- Do NOT refactor surrounding code.
+- Do NOT add unrelated improvements.
+- Do NOT rename variables or restructure logic.
+- If the fix is larger than approximately 50 lines, it is not a hotfix — escalate to a proper release.
+
+Implement the fix now.
+
+### Fix Verification Checklist (self-review):
+
+- [ ] The change addresses exactly the triage root cause — nothing more.
+- [ ] No new dependencies introduced.
+- [ ] No changes to data schemas or migrations (hotfixes must be zero-downtime).
+- [ ] No changes to public API contracts (unless the contract itself was the bug).
+- [ ] Environment variables / config changes are documented.
+
+---
+
+## Phase 4 — Targeted Tests [TIME-BOX: 10 minutes]
+
+Write the minimum tests that:
+
+1. **Reproduce the bug** — a failing test that demonstrates the exact failure mode (this test must have failed before the fix).
+2. **Verify the fix** — the same test must pass after the fix.
+3. **Protect regressions** — one test confirming related code paths still work.
+
+Rules:
+
+- Tests must be fast (unit or narrow integration — no slow E2E in a hotfix).
+- Do NOT write comprehensive test coverage in a hotfix — that is follow-up work.
+- The regression test file must clearly note the incident it covers.
+
+---
+
+## Phase 5 — Security Check [TIME-BOX: 5 minutes]
+
+Even in an emergency, do not skip security:
+
+- [ ] Does the fix introduce any new input handling? If so, is it validated?
+- [ ] Could an attacker exploit the window between vulnerability discovery and deployment?
+- [ ] Does the fix involve authentication, authorisation, or session handling?
+- [ ] Are any secrets, tokens, or credentials referenced? Are they in environment variables, not code?
+- [ ] Does the fix change any data access patterns in ways that could expose data to wrong parties?
+
+If ANY of these are answered YES, document the risk and the mitigation explicitly.
+
+---
+
+## Phase 6 — Release Preparation
+
+Produce all release artefacts:
+
+### Commit Message (conventional commit format):
+
+```
+fix: <concise description of what was broken and what was fixed>
+
+Incident: <incident ID or description>
+Root cause: <one sentence>
+Fix: <one sentence>
+Tested: <how it was verified>
+Breaking changes: none
+
+Refs: #<issue number if applicable>
+```
+
+### CHANGELOG Entry:
+
+```
+### [hotfix] - !{date +"%Y-%m-%d"}
+
+**Fixed:** {{args}}
+
+- Root cause: [description]
+- Impact: [who was affected]
+- Resolution: [what changed]
+```
+
+### Rollback Instructions:
+
+Document exactly how to revert this hotfix if it causes new issues:
+
+```bash
+# To rollback this hotfix:
+git revert <commit-sha>
+# Or to hard rollback to previous release:
+git checkout <previous-tag>
+```
+
+### Post-Mortem Stub:
+
+Create a stub for the post-mortem document at `docs/incidents/!{date +"%Y%m%d"}-<slug>.md`:
+
+```
+# Incident Post-Mortem: {{args}}
+
+**Date:** !{date +"%Y-%m-%d"}
+**Severity:** [P0/P1/P2]
+**Duration:** [TBD]
+**Author:** [TBD]
+
+## Timeline
+
+- [TBD]
+
+## Root Cause
+
+[TBD]
+
+## Impact
+
+[TBD]
+
+## Resolution
+
+[TBD]
+
+## Action Items
+
+- [ ] Write comprehensive regression tests (follow-up PR)
+- [ ] [TBD additional items]
+```
+
+---
+
+## Hotfix Complete
+
+Final checklist before requesting merge:
+
+- [ ] Fix is on `hotfix/*` branch cut from `main`
+- [ ] Bug reproduction test exists and was red before fix, green after
+- [ ] Security check passed or risks documented
+- [ ] Commit message follows conventional commit format
+- [ ] CHANGELOG entry written
+- [ ] Rollback instructions documented
+- [ ] Post-mortem stub created
+- [ ] PR is targeted at `main` (not at a feature branch)
+- [ ] Reviewers are tagged for emergency review
+"""

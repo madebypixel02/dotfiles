@@ -234,5 +234,5 @@ When delivering test files to the orchestrator:
 - <item with rationale>
 
 **Prerequisites to run:**
-- <any environment setup the implementer or CI needs to be aware of>
+- <any environment setup the builder or CI needs to be aware of>
 ```

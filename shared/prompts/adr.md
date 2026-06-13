@@ -1,4 +1,4 @@
-# Architecture Decision Record (ADR)
+# Architecture Decision Record (ADR) Workflow
 
 Use this workflow to document a significant architectural decision in a durable, reviewable format.
 
@@ -24,42 +24,151 @@ Do not write an ADR for routine implementation choices. ADRs are for decisions a
 
 ---
 
-## ADR Template
+## Phase 1 — ADR Numbering
 
-Create the ADR document using the structure below. Write in plain prose — clear, specific, and honest about trade-offs.
+Determine the next ADR number:
+
+1. List all existing ADR files in `docs/decisions/` or `docs/adr/`
+2. Find the highest existing number (for example, `ADR-0007-...` means next is `0008`)
+3. If no ADRs exist, start at `0001`
+4. Format: four-digit zero-padded number (`0001`, `0042`, `0100`)
 
 ---
 
-```
-# ADR-[NUMBER]: [TITLE]
+## Phase 2 — Context Research
 
-**Date:** [YYYY-MM-DD]
-**Status:** [Proposed | Accepted | Deprecated | Superseded by ADR-N]
-**Deciders:** [Names or roles of people who made or approved this decision]
-**Consulted:** [Names or roles of people whose input was sought]
+Before proposing a decision, deeply research the context.
+
+### Problem Statement
+
+Articulate the exact problem or need being addressed:
+
+- What is the current state that is unsatisfactory?
+- What specific requirements or constraints must the solution satisfy?
+- What are the quality attributes at stake (performance, security, maintainability, cost, developer experience)?
+- What is the cost of inaction?
+
+### Constraints
+
+Identify non-negotiable constraints:
+
+- Technical constraints (existing stack, language, runtime, infrastructure)
+- Organisational constraints (team expertise, time, budget)
+- Regulatory and compliance constraints
+- Compatibility requirements (existing APIs, clients, data formats)
+
+### Related Decisions
+
+Search for related ADRs that provide context:
+
+- Decisions that this new decision builds on
+- Decisions that this new decision may supersede or constrain
+- Decisions that conflict with options being considered
+
+---
+
+## Phase 3 — Options Research
+
+Research and evaluate at least three viable options (two if the decision is binary). For each option:
+
+```
+Option N: [Name]
+
+Description: [What this approach involves]
+
+How it works: [Technical explanation]
+
+Examples/Precedent: [Where this is used in industry or similar systems]
+
+Pros:
+- [advantage 1]
+- [advantage 2]
+
+Cons:
+- [disadvantage 1]
+- [disadvantage 2]
+
+Risks:
+- [risk 1]
+
+Estimated Effort: [Low / Medium / High / Unknown]
+
+Fit with current constraints: [Good / Partial / Poor] — [explanation]
+```
+
+Research options using:
+
+- Existing codebase patterns
+- Well-known industry solutions
+- Trade-off analysis against the stated requirements
+
+---
+
+## Phase 4 — Decision
+
+After evaluating all options:
+
+### Recommendation
+
+State the recommended option clearly and explain:
+
+- Why this option was chosen over the alternatives
+- Which quality attributes it best satisfies
+- What trade-offs are being accepted
+- What assumptions underlie this decision (if any of these assumptions change, the decision should be revisited)
+
+### Dissenting Views
+
+If any viable alternatives were seriously considered and rejected, document the strongest counter-argument for completeness. A reviewer should understand why the rejected options were not chosen.
+
+---
+
+## Phase 5 — Write Formal ADR
+
+Produce the complete ADR document. This is the permanent record. Write in plain prose — clear, specific, and honest about trade-offs.
+
+```
+---
+adr: [NNNN]
+title: [Full Decision Title]
+date: [YYYY-MM-DD]
+status: Proposed
+deciders:
+  [List of people involved in this decision]
+supersedes: [ADR-XXXX if this supersedes a prior decision, otherwise "N/A"]
+superseded-by: N/A
+tags: [comma-separated tags: architecture, database, api, security, etc.]
+---
+
+# ADR-[NNNN]: [Full Decision Title]
+
+## Status
+
+Proposed — Awaiting review and acceptance by [team/lead/architect]
+
+To accept this ADR, change Proposed to Accepted and record the date.
+To supersede this ADR, create a new ADR and update the superseded-by field.
 
 ---
 
 ## Context
 
-[Describe the situation that requires a decision. What problem are we trying to solve?
-What forces are at play — technical constraints, business requirements, team capabilities,
-time pressure, compliance requirements? What would happen if we made no decision?
+[Describe the situation and forces at play. What is the technical and/or business context?
+What problem are we solving? Why does this decision need to be made now?
 
-Be specific. Avoid vague statements like "we need to scale". Prefer: "The users table
-currently has 8M rows and grows at 200k per week. Our primary query (find users by
-email domain with recent activity) runs full table scans and takes 4s at p99, which
-exceeds our 500ms SLA."]
+Include:
+- Current state of the system
+- Requirements driving this decision
+- Constraints that limit available options
+- Quality attributes at stake]
 
 ---
 
-## Decision
+## Decision Drivers
 
-[State the decision in one or two sentences. Be unambiguous. This should be readable
-as a standalone statement.
-
-Example: "We will introduce a read replica and add a composite index on (email_domain,
-last_active_at) to the users table, rather than migrating to a distributed database."]
+- [driver 1: the most important requirement]
+- [driver 2: a constraint or quality attribute]
+- [driver 3: a secondary requirement]
 
 ---
 
@@ -67,79 +176,116 @@ last_active_at) to the users table, rather than migrating to a distributed datab
 
 ### Option 1: [Name]
 
-[Brief description of the approach.]
+[Description]
 
-**Pros:**
-- [Advantage 1]
-- [Advantage 2]
-
-**Cons:**
-- [Disadvantage 1]
-- [Disadvantage 2]
-
-**Why not chosen:** [If this was not the chosen option, explain why.]
-
----
+Pros: [inline list]
+Cons: [inline list]
 
 ### Option 2: [Name]
 
-[Repeat the structure above for each option considered.]
+[Description]
+
+Pros: [inline list]
+Cons: [inline list]
+
+### Option 3: [Name] (if applicable)
+
+[Description]
+
+Pros: [inline list]
+Cons: [inline list]
 
 ---
 
-### Option N: [Chosen option name]
+## Decision
 
-[Include the chosen option in this list as well, with its own pros and cons.]
+We will adopt Option [N]: [Name].
 
-**Why chosen:** [The decisive factors that led to this option being selected over the alternatives.]
+[Explain the rationale. Why does this option best satisfy the decision drivers?
+What trade-offs are we consciously accepting? What is out of scope for this decision?]
 
 ---
 
 ## Consequences
 
 ### Positive
-- [What becomes easier or better as a result of this decision]
-- [What problems this decision solves]
+
+- [expected benefit 1]
+- [expected benefit 2]
 
 ### Negative
-- [What becomes harder or worse as a result of this decision]
-- [Technical debt this decision incurs]
-- [What this decision forecloses]
 
-### Risks
-- [Risk 1]: [Likelihood] — [Mitigation]
-- [Risk 2]: [Likelihood] — [Mitigation]
+- [accepted trade-off 1]
+- [accepted trade-off 2]
+
+### Risks and Mitigations
+
+| Risk | Likelihood | Impact | Mitigation |
+| [risk] | High/Med/Low | High/Med/Low | [mitigation] |
 
 ---
 
 ## Implementation Notes
 
-[Optional: any guidance for teams implementing the decision. Key steps, gotchas,
-sequencing requirements, or links to implementation issues/PRs.]
+[Optional: brief guidance for implementing this decision. Not implementation details —
+just key notes that will help engineers act on this decision correctly.]
 
 ---
 
-## Review Date
+## Review Criteria
 
-[If this decision should be revisited after a certain period or after certain conditions
-are met, state it here. Example: "Review if user table exceeds 100M rows" or
-"Review Q4 2026 when the team evaluates distributed database options."]
+[How will we know if this decision was correct? What metrics, signals, or events
+would cause us to revisit it?]
+
+- Revisit if: [condition]
+- Revisit if: [condition]
+
+---
+
+## References
+
+- [Reference 1: link or citation]
+- [Reference 2: link or citation]
+- [Related ADR: ADR-XXXX if applicable]
 ```
 
 ---
 
-## ADR Filing and Numbering
+## Phase 6 — Save the ADR
 
-- Store ADRs in the project's ADR directory (typically `docs/adr/` or `architecture/decisions/`)
-- Number ADRs sequentially: `ADR-001`, `ADR-002`, etc.
-- Name files consistently: `0042-choose-message-broker.md`
-- Do not delete superseded ADRs — mark them as `Superseded by ADR-N` and keep them for history
+Save the completed ADR to `docs/decisions/ADR-[NNNN]-[kebab-case-title].md`.
+
+Create the `docs/decisions/` directory if it does not exist.
+
+Also create or update `docs/decisions/README.md` as an index of all ADRs:
+
+```
+# Architecture Decision Records
+
+This directory contains Architecture Decision Records (ADRs) for this project.
+
+ADRs record significant architectural decisions including the context, options, and rationale.
+
+## Index
+
+| ADR | Title | Date | Status |
+| [ADR-NNNN](./ADR-NNNN-title.md) | [Title] | [Date] | [Status] |
+
+## Process
+
+1. Use the ADR workflow to generate a new ADR.
+2. Review the generated document and fill in team-specific details.
+3. Change status from Proposed to Accepted after team review.
+4. Never delete an ADR — supersede it with a new one if the decision changes.
+```
+
+---
 
 ## ADR Status Lifecycle
 
 - **Proposed** — the decision is under discussion; not yet final
 - **Accepted** — the decision has been made and is in effect
-- **Deprecated** — the decision was valid but is no longer relevant (e.g., the component it covered was removed)
+- **Deprecated** — the decision was valid but is no longer relevant
 - **Superseded by ADR-N** — a later decision replaces this one; link to the superseding ADR
 
 ---
@@ -157,3 +303,16 @@ Before filing the ADR, verify:
 - [ ] The ADR is written at a level of detail that a new team member can understand without additional context
 - [ ] Status, date, and deciders are filled in
 - [ ] ADR is numbered and filed in the correct directory
+
+---
+
+## ADR Summary
+
+```
+ADR Number:  ADR-[NNNN]
+Title:       [DECISION TOPIC]
+File:        docs/decisions/ADR-[NNNN]-[kebab-slug].md
+Status:      Proposed
+Options:     [N] options evaluated
+Recommended: Option [N] — [name]
+```

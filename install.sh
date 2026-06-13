@@ -46,6 +46,7 @@ fi
 
 OPENCODE_CONFIG="${CONFIG_HOME}/opencode"
 CLAUDE_DIR="${HOME}/.claude"
+GEMINI_DIR="${HOME}/.gemini"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -65,6 +66,7 @@ do_symlink() {
 
   if [[ "$DRY_RUN" == "true" ]]; then
     echo -e "  ${CYAN}[dry-run]${RESET} would symlink ${BOLD}${link}${RESET} → ${target}"
+    COUNT_CREATED=$((COUNT_CREATED + 1))
     return
   fi
 
@@ -103,22 +105,28 @@ do_symlink() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 1: Install OpenCode if missing
+# Step 1: OpenCode presence check
 # ---------------------------------------------------------------------------
 log_header "OpenCode installation check"
 
 if command -v opencode &>/dev/null; then
   log_info "opencode already installed: $(command -v opencode)"
 else
-  if [[ "$DRY_RUN" == "true" ]]; then
-    log_info "[dry-run] would install opencode via the official install script"
-  else
-    echo -e "  ${YELLOW}opencode not found — installing...${RESET}"
-    install_script="$(mktemp)"
-    curl -fsSL https://opencode.ai/install -o "${install_script}"
-    bash "${install_script}"
-    rm -f "${install_script}"
-  fi
+  log_info "opencode not found — install it manually before using OpenCode configuration."
+  log_info "See: https://opencode.ai/install"
+  log_info "Continuing with dotfiles symlink setup."
+fi
+
+# ---------------------------------------------------------------------------
+# Step 1b: Gemini CLI presence check (informational only)
+# ---------------------------------------------------------------------------
+log_header "Gemini CLI installation check"
+
+if command -v gemini &>/dev/null; then
+  log_info "gemini already installed: $(command -v gemini)"
+else
+  log_info "gemini not found — install it to use Gemini CLI configuration."
+  log_info "See: https://github.com/google-gemini/gemini-cli#installation"
 fi
 
 # ---------------------------------------------------------------------------
@@ -137,6 +145,8 @@ dirs=(
   "${CLAUDE_DIR}/agents"
   "${CLAUDE_DIR}/rules"
   "${CLAUDE_DIR}/skills"
+  "${GEMINI_DIR}"
+  "${GEMINI_DIR}/commands"
   "${DOTFILES_DIR}/claude"
   "${DOTFILES_DIR}/claude/agents"
   "${DOTFILES_DIR}/claude/rules"
@@ -167,6 +177,8 @@ else
   else
     log_info "Cloning blader/humanizer..."
     if git clone --depth=1 --quiet https://github.com/blader/humanizer.git "${HUMANIZER_DIR}" 2>/dev/null; then
+      # Pinned 2026-06-13: prevents supply-chain drift from upstream changes
+      git -C "${HUMANIZER_DIR}" checkout 9600f2b7241cb4eed6ad803abee5ea01d67fe8e4 --quiet 2>/dev/null || true
       log_info "humanizer cloned"
     else
       log_info "humanizer clone failed -- skipping (network issue?)"
@@ -250,6 +262,34 @@ if [[ -d "$COPILOT_SRC" ]]; then
   log_info "Or create symlinks for global use."
 else
   log_info "Copilot instructions directory not found -- skipping"
+fi
+
+# ---------------------------------------------------------------------------
+# Step 4c: Gemini CLI symlinks
+# ---------------------------------------------------------------------------
+log_header "Gemini CLI symlinks (${GEMINI_DIR}/)"
+
+for f in GEMINI.md settings.json; do
+  src="${DOTFILES_DIR}/gemini/${f}"
+  if [[ -f "$src" ]]; then
+    do_symlink "$src" "${GEMINI_DIR}/${f}"
+  else
+    log_info "Skipping ${f} (${src} not found)"
+  fi
+done
+
+src="${DOTFILES_DIR}/gemini/commands"
+if [[ -d "$src" ]]; then
+  do_symlink "$src" "${GEMINI_DIR}/commands"
+else
+  log_info "Skipping gemini/commands/ (directory not found in dotfiles)"
+fi
+
+src="${DOTFILES_DIR}/shared/AGENTS.md"
+if [[ -f "$src" ]]; then
+  do_symlink "$src" "${GEMINI_DIR}/AGENTS.md"
+else
+  log_info "Skipping AGENTS.md (${DOTFILES_DIR}/shared/AGENTS.md not found)"
 fi
 
 # ---------------------------------------------------------------------------

@@ -25,51 +25,44 @@
  *   • Errors thrown in before-hooks abort the tool call cleanly.
  */
 
-import type { Plugin } from "@opencode-ai/plugin";
-import { basename } from "path";
+import { basename, resolve } from "node:path";
 
-// ---------------------------------------------------------------------------
-// Blocked path patterns
-// ---------------------------------------------------------------------------
+import type { Plugin } from "@opencode-ai/plugin";
 
 /**
  * Glob-style patterns for sensitive file paths.
  * Matched against the resolved basename and the full path string.
  */
-const BLOCKED_PATH_PATTERNS: RegExp[] = [
-  // dotenv files
+export const BLOCKED_PATH_PATTERNS: RegExp[] = [
   /^\.env$/,
-  /^\.env\..+/, // .env.local, .env.production, etc.
-  // certificates & private keys
+  /^\.env\..+/,
   /\.pem$/i,
   /\.key$/i,
   /^id_rsa$/,
   /^id_ed25519$/,
   /^id_ecdsa$/,
   /^id_dsa$/,
-  // credential / secret config files
   /^credentials\.json$/i,
   /^secrets\.ya?ml$/i,
   /\.secret$/i,
   /^\.netrc$/,
   /^\.pgpass$/,
-  // cloud provider auth files
-  /^credentials$/, // AWS ~/.aws/credentials
-  /^config$/, // may catch too broadly — checked alongside path
+  /^credentials$/,
+  /^config$/,
   /^service[_-]account\.json$/i,
-  // SSH directory
   /authorized_keys$/,
   /known_hosts$/,
-  // GPG
   /\.gpg$/i,
   /\.asc$/i,
-  // macOS keychain exports
   /\.p12$/i,
   /\.pfx$/i,
 ];
 
-/** Path fragments that elevate a generic filename to "definitely sensitive" */
-const SENSITIVE_PATH_FRAGMENTS = [
+/**
+ * Path fragments that elevate a generic filename to "definitely sensitive".
+ * A file whose full path contains any of these substrings is always blocked.
+ */
+export const SENSITIVE_PATH_FRAGMENTS = [
   "/.aws/",
   "/.ssh/",
   "/.gnupg/",
@@ -78,8 +71,9 @@ const SENSITIVE_PATH_FRAGMENTS = [
   "/.kube/",
 ];
 
-function isBlockedPath(filePath: string): { blocked: boolean; reason: string } {
-  const name = basename(filePath);
+export function isBlockedPath(filePath: string): { blocked: boolean; reason: string } {
+  const resolved = resolve(filePath);
+  const name = basename(resolved);
 
   for (const re of BLOCKED_PATH_PATTERNS) {
     if (re.test(name)) {
@@ -90,22 +84,17 @@ function isBlockedPath(filePath: string): { blocked: boolean; reason: string } {
     }
   }
 
-  // Check for sensitive directory context even if filename looks innocent
   for (const fragment of SENSITIVE_PATH_FRAGMENTS) {
-    if (filePath.includes(fragment)) {
+    if (resolved.includes(fragment)) {
       return {
         blocked: true,
-        reason: `Path "${filePath}" is inside a sensitive directory (${fragment.trim()})`,
+        reason: `Path "${resolved}" is inside a sensitive directory (${fragment.trim()})`,
       };
     }
   }
 
   return { blocked: false, reason: "" };
 }
-
-// ---------------------------------------------------------------------------
-// Bash command scanning
-// ---------------------------------------------------------------------------
 
 /**
  * Patterns that indicate a command is PRINTING/EXPORTING secret values.
@@ -116,14 +105,14 @@ function isBlockedPath(filePath: string): { blocked: boolean; reason: string } {
  *   ALLOWED — commands that read only key *names* (safe for code generation context)
  *
  * Safe key-name-only commands (handled by SAFE_BASH_PATTERNS allowlist):
- *   grep -o "^[^=]*" .env      → prints KEY names only, no values
- *   cut -d= -f1 .env           → same
- *   sed 's/=.*//' .env         → same
- *   awk -F= '{print $1}' .env  → same
+ *   grep -o "^[^=]*" .env      -- prints KEY names only, no values
+ *   cut -d= -f1 .env           -- same
+ *   sed strip-value-only .env  -- same
+ *   awk -F= print-first .env   -- same
  */
-const DANGEROUS_BASH_PATTERNS: Array<{ re: RegExp; description: string }> = [
+export const DANGEROUS_BASH_PATTERNS: Array<{ re: RegExp; description: string }> = [
   {
-    re: /\bcat\s+\.env\b/,
+    re: /\bcat\s+(?:[^\s]*\/)?\.env\b/,
     description: "cat .env — prints all environment variable values",
   },
   {
@@ -131,13 +120,14 @@ const DANGEROUS_BASH_PATTERNS: Array<{ re: RegExp; description: string }> = [
     description: "cat .env.* — prints all environment variable values from a dotenv variant",
   },
   {
-    re: /\bgrep\b.*\.env\b(?!.*-o.*\^\[)/,
-    description: "grep against .env file — may print secret values; use 'grep -o \"^[^=]*\" .env' to list key names only",
-    // Note: the allowlist exempts key-name-only grep patterns before this fires
+    re: /\bgrep\b.*\.env\b/,
+    description:
+      "grep against .env file — may print secret values; use 'grep -o \"^[^=]*\" .env' to list key names only",
   },
   {
-    re: /\bprintenv\b(?!\s+\w)/,
-    description: "printenv with no arguments — dumps all environment variable values",
+    re: /\bprintenv\b/,
+    description:
+      'printenv — prints environment variable values; use [ -n "$VAR" ] to check existence without printing',
   },
   {
     re: /\benv\s*\|\s*grep\b/,
@@ -186,35 +176,36 @@ const DANGEROUS_BASH_PATTERNS: Array<{ re: RegExp; description: string }> = [
  * they only expose key *names*, never values. Checked before the dangerous list.
  *
  * All of these strip the value portion (everything after the = sign) before output:
- *   grep -o "^[^=]*" .env      → KEY_NAME only
- *   grep -oP "^[^=]+" .env     → KEY_NAME only (Perl regex variant)
- *   cut -d= -f1 .env           → KEY_NAME only
- *   sed 's/=.*//' .env         → KEY_NAME only
- *   awk -F= '{print $1}' .env  → KEY_NAME only
+ *   grep -o "^[^=]*" .env      -- KEY_NAME only
+ *   grep -oP "^[^=]+" .env     -- KEY_NAME only (Perl regex variant)
+ *   cut -d= -f1 .env           -- KEY_NAME only
+ *   sed strip-value-only .env  -- KEY_NAME only
+ *   awk -F= print-first .env   -- KEY_NAME only
+ *
+ * Existence checks use shell test expressions, which never print values:
+ *   [ -z "$VAR" ]  /  [ -n "$VAR" ]  /  [[ -z "$VAR" ]]  /  [[ -n "$VAR" ]]
+ *
+ * Variable pass-through to a subprocess does not dump the environment:
+ *   env VAR=value command args
  */
-const SAFE_BASH_PATTERNS: RegExp[] = [
-  // Key-name-only reads from .env — safe for generating process.env.VAR_NAME references
-  /grep\s+-[a-zA-Z]*o[a-zA-Z]*\s+"?\^?\[?\^=\]?\*"?\s+\.env/,   // grep -o "^[^=]*" .env
-  /grep\s+-[a-zA-Z]*oP[a-zA-Z]*\s+"?\^?\[?\^=\]\+"?\s+\.env/,   // grep -oP "^[^=]+" .env
-  /cut\s+-d=?\s+-f1\s+\.env/,                                      // cut -d= -f1 .env
-  /sed\s+'s\/=.*\/\/'\s+\.env/,                                    // sed 's/=.*//' .env
-  /awk\s+['"-]F=.*print\s+\$1.*\.env/,                            // awk -F= '{print $1}' .env
-  // Existence checks — never print values
+export const SAFE_BASH_PATTERNS: RegExp[] = [
+  /grep\s+-[a-zA-Z]*o[a-zA-Z]*\s+"?\^?\[?\^=\]?\*"?\s+\.env/,
+  /grep\s+-[a-zA-Z]*oP[a-zA-Z]*\s+"?\^?\[?\^=\]\+"?\s+\.env/,
+  /cut\s+-d=?\s+-f1\s+\.env/,
+  /sed\s+'s\/=.*\/\/'\s+\.env/,
+  /awk\s+['"-]F=.*print\s+\$1.*\.env/,
   /\[\s*-z\s+"\$\w+"\s*\]/,
   /\[\s*-n\s+"\$\w+"\s*\]/,
   /\[\[\s*-z\s+"\$\w+"\s*\]\]/,
   /\[\[\s*-n\s+"\$\w+"\s*\]\]/,
-  // printenv VAR_NAME — checks a single named variable (exits non-zero if unset, prints nothing sensitive in scripts)
-  /printenv\s+\w+\s*(?:&&|\|\||;|$)/,
-  // env used only to pass variables to a subprocess, not to dump them
   /\benv\s+\w+=\S+\s+\w+/,
 ];
 
-function isSafeByAllowlist(command: string): boolean {
+export function isSafeByAllowlist(command: string): boolean {
   return SAFE_BASH_PATTERNS.some((re) => re.test(command));
 }
 
-function checkBashCommand(command: string): {
+export function checkBashCommand(command: string): {
   blocked: boolean;
   reason: string;
 } {
@@ -231,23 +222,18 @@ function checkBashCommand(command: string): {
   return { blocked: false, reason: "" };
 }
 
-// ---------------------------------------------------------------------------
-// Content scanning (write / edit)
-// ---------------------------------------------------------------------------
-
 /**
  * Patterns that suggest hardcoded secrets inside file content.
  * Ordered from most specific (least false-positive risk) to broadest.
  */
-const HARDCODED_SECRET_PATTERNS: Array<{ re: RegExp; description: string }> = [
+export const HARDCODED_SECRET_PATTERNS: Array<{ re: RegExp; description: string }> = [
   {
     re: /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/,
     description: "PEM private key block detected",
   },
   {
     re: /-----BEGIN CERTIFICATE-----/,
-    description:
-      "PEM certificate block detected (may contain sensitive material)",
+    description: "PEM certificate block detected (may contain sensitive material)",
   },
   {
     re: /(?:AKIA|ASIA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}/,
@@ -262,11 +248,11 @@ const HARDCODED_SECRET_PATTERNS: Array<{ re: RegExp; description: string }> = [
     description: "Hardcoded password assignment detected",
   },
   {
-    re: /\b(?:api[_-]?key|apikey)\s*[=:]\s*["'][A-Za-z0-9_\-]{16,}["']/i,
+    re: /\b(?:api[_-]?key|apikey)\s*[=:]\s*["'][A-Za-z0-9_-]{16,}["']/i,
     description: "Hardcoded API key assignment detected",
   },
   {
-    re: /\b(?:secret|token)\s*[=:]\s*["'][A-Za-z0-9_\-\.]{16,}["']/i,
+    re: /\b(?:secret|token)\s*[=:]\s*["'][A-Za-z0-9_\-.]{16,}["']/i,
     description: "Hardcoded secret/token assignment detected",
   },
   {
@@ -282,15 +268,15 @@ const HARDCODED_SECRET_PATTERNS: Array<{ re: RegExp; description: string }> = [
     description: "OpenAI secret key detected (sk-…)",
   },
   {
-    re: /xoxb-[A-Za-z0-9\-]+/,
+    re: /xoxb-[A-Za-z0-9-]+/,
     description: "Slack Bot Token detected (xoxb-…)",
   },
   {
-    re: /xoxp-[A-Za-z0-9\-]+/,
+    re: /xoxp-[A-Za-z0-9-]+/,
     description: "Slack User Token detected (xoxp-…)",
   },
   {
-    re: /SG\.[A-Za-z0-9_\-]{22}\.[A-Za-z0-9_\-]{43}/,
+    re: /SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}/,
     description: "SendGrid API key detected",
   },
   {
@@ -307,7 +293,7 @@ const HARDCODED_SECRET_PATTERNS: Array<{ re: RegExp; description: string }> = [
   },
 ];
 
-function scanContentForSecrets(content: string): {
+export function scanContentForSecrets(content: string): {
   found: boolean;
   description: string;
 } {
@@ -318,10 +304,6 @@ function scanContentForSecrets(content: string): {
   }
   return { found: false, description: "" };
 }
-
-// ---------------------------------------------------------------------------
-// Remediation hints
-// ---------------------------------------------------------------------------
 
 function pathRemediationHint(filePath: string): string {
   return (
@@ -353,10 +335,6 @@ function contentRemediationHint(description: string): string {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Tool name helpers
-// ---------------------------------------------------------------------------
-
 /** Tools that READ file content */
 const READ_TOOLS = new Set(["read", "Read", "readFile", "read_file"]);
 /** Tools that WRITE / MODIFY file content */
@@ -371,65 +349,51 @@ const WRITE_TOOLS = new Set([
   "edit_file",
 ]);
 /** Bash execution tools */
-const BASH_TOOLS = new Set([
-  "bash",
-  "Bash",
-  "shell",
-  "Shell",
-  "execute",
-  "run",
-]);
+const BASH_TOOLS = new Set(["bash", "Bash", "shell", "Shell", "execute", "run"]);
 
-function extractFilePath(args: Record<string, unknown>): string | undefined {
+export function extractFilePath(args: Record<string, unknown>): string | undefined {
   return (
-    (args["filePath"] as string | undefined) ??
-    (args["path"] as string | undefined) ??
-    (args["file"] as string | undefined) ??
-    (args["filename"] as string | undefined)
+    (args.filePath as string | undefined) ??
+    (args.path as string | undefined) ??
+    (args.file as string | undefined) ??
+    (args.filename as string | undefined)
   );
 }
 
 function extractContent(args: Record<string, unknown>): string | undefined {
   return (
-    (args["content"] as string | undefined) ??
-    (args["newString"] as string | undefined) ??
-    (args["text"] as string | undefined)
+    (args.content as string | undefined) ??
+    (args.newString as string | undefined) ??
+    (args.text as string | undefined)
   );
 }
 
-function extractCommand(args: Record<string, unknown>): string | undefined {
+export function extractCommand(args: Record<string, unknown>): string | undefined {
   return (
-    (args["command"] as string | undefined) ??
-    (args["cmd"] as string | undefined) ??
-    (args["script"] as string | undefined)
+    (args.command as string | undefined) ??
+    (args.cmd as string | undefined) ??
+    (args.script as string | undefined)
   );
 }
 
-// ---------------------------------------------------------------------------
-// Plugin
-// ---------------------------------------------------------------------------
-
-const secretGuardPlugin: Plugin = async ({}) => {
+const secretGuardPlugin: Plugin = async (_ctx) => {
   return {
-    "tool.execute.before": async (input, _output) => {
+    "tool.execute.before": async (input, output) => {
       const toolName = (input.tool as string | undefined) ?? "";
-      const args = (input.args ?? {}) as Record<string, unknown>;
+      const args = (output.args ?? {}) as Record<string, unknown>;
 
-      // ── 1. Block reads of sensitive files ──────────────────────────────
       if (READ_TOOLS.has(toolName)) {
         const filePath = extractFilePath(args);
         if (filePath) {
           const { blocked, reason } = isBlockedPath(filePath);
           if (blocked) {
             throw new Error(
-              `[SecretGuard] READ BLOCKED — ${reason}` +
-                pathRemediationHint(filePath),
+              `[SecretGuard] READ BLOCKED — ${reason}${pathRemediationHint(filePath)}`,
             );
           }
         }
       }
 
-      // ── 2. Block writes/edits of sensitive files and scan content ──────
       if (WRITE_TOOLS.has(toolName)) {
         const filePath = extractFilePath(args);
 
@@ -437,34 +401,29 @@ const secretGuardPlugin: Plugin = async ({}) => {
           const { blocked, reason } = isBlockedPath(filePath);
           if (blocked) {
             throw new Error(
-              `[SecretGuard] WRITE BLOCKED — ${reason}` +
-                pathRemediationHint(filePath),
+              `[SecretGuard] WRITE BLOCKED — ${reason}${pathRemediationHint(filePath)}`,
             );
           }
         }
 
-        // Scan content for embedded secrets regardless of filename
         const content = extractContent(args);
         if (content) {
           const { found, description } = scanContentForSecrets(content);
           if (found) {
             throw new Error(
-              `[SecretGuard] CONTENT BLOCKED — Potential hardcoded secret detected in write content.` +
-                contentRemediationHint(description),
+              `[SecretGuard] CONTENT BLOCKED — Potential hardcoded secret detected in write content.${contentRemediationHint(description)}`,
             );
           }
         }
       }
 
-      // ── 3. Scan bash commands ──────────────────────────────────────────
       if (BASH_TOOLS.has(toolName)) {
         const command = extractCommand(args);
         if (command) {
           const { blocked, reason } = checkBashCommand(command);
           if (blocked) {
             throw new Error(
-              `[SecretGuard] BASH BLOCKED — Command may expose secret values.` +
-                bashRemediationHint(reason),
+              `[SecretGuard] BASH BLOCKED — Command may expose secret values.${bashRemediationHint(reason)}`,
             );
           }
         }

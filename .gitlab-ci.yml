@@ -32,6 +32,8 @@ validate:commit-messages:
 validate:branch-name:
   stage: validate
   image: alpine:3.20
+  variables:
+    GIT_STRATEGY: none
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   script:
@@ -79,7 +81,7 @@ security:sast:
   stage: security
   image: python:3.12-slim
   script:
-    - pip install --quiet semgrep
+    - pip install --quiet semgrep==1.166.0
     - semgrep --config auto --error --json --exclude semgrep-report.json . | tee semgrep-report.json
   artifacts:
     when: always

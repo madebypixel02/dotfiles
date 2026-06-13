@@ -1,185 +1,226 @@
 # Release Workflow
 
-Use this workflow to prepare, validate, and execute a production release.
+Prepare and execute a versioned production release. Follow this workflow precisely. Do not skip steps. Releasing broken or incorrectly versioned software is a serious operational risk.
 
 ---
 
-## Input
+## Phase 1 — Pre-Release Validation
 
-[RELEASE DESCRIPTION] — specify: the version number (or the versioning scheme in use), the branch or commit to be released, the list of changes included (or a reference to the changelog), and any special deployment considerations (migrations, feature flags, third-party coordination).
+Before computing the version, validate that the repository is in a releasable state:
 
----
+### 1a. Clean Working Tree
 
-## Release Philosophy
+The working tree MUST be clean. If `git status` shows uncommitted changes, STOP and report the issue. A release cannot be cut from a dirty tree.
 
-A release is a trust exercise. Users trust that the software they receive works as described and does not lose their data. Every step in this workflow exists to protect that trust. Do not skip steps under time pressure — if time pressure is acute, delay the release rather than skip validation.
+### 1b. Branch Verification
 
-Releases should be boring. A boring release is one where every step goes exactly as planned, the monitoring shows normal behaviour, and nothing requires a hotfix. The way to achieve boring releases is rigorous preparation.
+Confirm the release is being cut from the correct branch:
 
----
+- Releases should originate from `main` or a dedicated `release/*` branch.
+- If on a feature or hotfix branch, warn and ask for confirmation.
 
-## Phase 1 — Pre-Release Verification
+### 1c. CI Status
 
-**Confirm the release branch is correct.**
-Run `git log --oneline -20` on the release branch. Confirm the commits are exactly what is intended — no stray commits, no missing commits.
+Remind the operator to confirm CI is passing on this commit before tagging. The release manager cannot verify this directly, but this is a mandatory gate.
 
-**Confirm CI passes.**
-Every commit included in the release must have passed the full CI pipeline. Verify this before proceeding. Do not release code with failing tests.
+### 1d. Changelog Exists
 
-**Run a full local build and test.**
-Even if CI is green, run the build and test suite locally on the release commit to confirm the artefact is clean.
-
-**Review the diff from the previous release.**
-Run `git diff <previous-tag>...HEAD --stat` to see the scope of changes. Read `git diff <previous-tag>...HEAD` for a thorough check. Confirm:
-
-- No unintended files are included
-- No debug code or temporary changes are present
-- No secrets or credentials are present
-- The diff matches the expected scope
+Check if `CHANGELOG.md` exists. If not, it will be created. If it exists, it will be prepended.
 
 ---
 
-## Phase 2 — Changelog and Versioning
+## Phase 2 — Version Calculation
 
-**Determine the version number.**
-Follow the versioning scheme used by the project. For semantic versioning:
+### 2a. Parse Conventional Commits
 
-- **Major** (X.0.0) — breaking changes to public APIs or behaviour
-- **Minor** (x.Y.0) — new features that are backwards compatible
-- **Patch** (x.y.Z) — bug fixes and security patches
+Analyse the commits since the last tag using the **Conventional Commits** specification (https://www.conventionalcommits.org/):
 
-**Write or review the changelog.**
-The changelog entry should include:
+| Commit Type                                                                         | Triggers       |
+| ----------------------------------------------------------------------------------- | -------------- |
+| `feat!:` or `BREAKING CHANGE:` footer                                               | **major** bump |
+| `feat:`                                                                             | **minor** bump |
+| `fix:`, `perf:`, `refactor:`, `docs:`, `chore:`, `style:`, `test:`, `ci:`, `build:` | **patch** bump |
 
-- All user-visible changes (new features, changed behaviour, removed features)
-- All bug fixes, with issue references
-- All security fixes — describe the class of vulnerability fixed (not the exploit path)
-- Migration instructions for any breaking changes
-- Credits for external contributors
+### 2b. Determine New Version
 
-**Update version references in the codebase.**
-Find every file that embeds the version string (package manifests, constants files, documentation). Update them all consistently. Commit this change.
+If the requested bump type is `auto`, use the Conventional Commits analysis to determine the appropriate bump.
+If the requested bump type is `major`, `minor`, or `patch`, use that explicitly.
 
----
+Calculate and state the new version using semver (https://semver.org/):
 
-## Phase 3 — Database Migrations
+- Parse the current version into `MAJOR.MINOR.PATCH`
+- Apply the bump
+- Format the new version as `vMAJOR.MINOR.PATCH` (with `v` prefix for git tags) and `MAJOR.MINOR.PATCH` (without prefix for package manifests)
 
-If the release includes database schema changes:
+**State clearly:** `Current version: X.Y.Z -> New version: X'.Y'.Z'`
 
-**Review each migration for safety.**
+If the bump type is `major`, output a prominent warning:
 
-- Is the migration reversible? Can `down` be run safely?
-- Does the migration lock any table that will block production traffic? (Adding a non-nullable column without a default, rebuilding an index without `CONCURRENTLY`)
-- Does the migration modify a column type in a way that requires a backfill?
-- Is the migration idempotent? (Safe to run twice if a deployment is retried)
-
-**Confirm the migration order.**
-If the release includes both a migration and application code that depends on it, the migration must be deployable before the new application code, with the old application code still running against the new schema. Design migrations to be backward compatible with the previous application version.
-
-**Test the migration against a copy of production data.**
-Run the migration against a database populated with production-shaped data (anonymised or synthetic). Measure the execution time. If the migration locks a large table for more than a few seconds, redesign it.
+> **MAJOR VERSION BUMP**: This release contains breaking changes. Ensure all breaking changes are documented in the release notes.
 
 ---
 
-## Phase 4 — Release Preparation
+## Phase 3 — Generate CHANGELOG
 
-**Tag the release.**
-Create an annotated git tag on the release commit. The tag message should include the version number and a brief description: `git tag -a v2.4.1 -m "v2.4.1 — fix race condition in payment processor"`.
+Generate the CHANGELOG entry for this release. Group commits by type:
 
-**Build the release artefact.**
-Run the production build. Confirm the artefact is produced without errors or warnings. Record the artefact hash.
+```markdown
+## [X.Y.Z] - YYYY-MM-DD
 
-**Prepare the deployment configuration.**
-Confirm all environment variables required by the new version are present in the target environment. If new environment variables were introduced in this release, add them to the target environment before deploying.
+### Breaking Changes
 
-**Prepare the rollback plan.**
-Document exactly how to revert this release if it causes problems:
+- [List all commits with ! suffix or BREAKING CHANGE footer]
 
-- The tag of the previous release
-- Whether a database rollback is required and how to execute it
-- Any other state that needs to be restored
-- How long the rollback window is (after migrations run, the window may close)
+### Features
 
----
+- [List all feat: commits]
 
-## Phase 5 — Staged Deployment
+### Bug Fixes
 
-**Deploy to staging.**
-Deploy the release artefact to the staging environment. Run the smoke test suite against staging. Confirm the application starts, serves traffic, and passes functional checks.
+- [List all fix: commits]
 
-**Run database migrations on staging.**
-If migrations are included, run them on the staging database first. Confirm they complete successfully and within acceptable time.
+### Performance Improvements
 
-**Soak in staging.**
-Allow the release to run in staging for an appropriate period before promoting to production. For high-risk releases, this may be hours or a day. For routine patches, minutes may suffice.
+- [List all perf: commits]
 
-**Promote to production.**
-Deploy the same artefact (same hash) that was validated in staging. Do not build a new artefact for production.
+### Refactoring
 
-**Run migrations on production.**
-If the deployment strategy requires running migrations before the application upgrade (to maintain compatibility with the running version), do so. Follow the plan established in Phase 3.
+- [List all refactor: commits]
 
-**Confirm the rollout.**
-For rolling deployments: monitor as instances upgrade. For blue/green or canary: validate the new version before shifting traffic fully.
+### Documentation
 
----
+- [List all docs: commits]
 
-## Phase 6 — Post-Deployment Monitoring
+### Other Changes
 
-Immediately after deployment, watch for 15–30 minutes:
+- [List build:, ci:, chore:, style:, test: commits]
+```
 
-**Error rates.**
-The error rate on all endpoints should remain at or below pre-deployment baseline. A spike immediately after deployment indicates the release introduced a regression.
+Format each entry as:
 
-**Latency.**
-Response time percentiles (p50, p95, p99) should remain within normal bounds.
+```
+- <description> ([<short-sha>](compare-url)) <author>
+```
 
-**Application logs.**
-Look for new error patterns, unexpected warnings, or stack traces that did not exist before.
+Prepend this entry to `CHANGELOG.md`. If `CHANGELOG.md` does not exist, create it with a standard header:
 
-**Resource utilisation.**
-CPU, memory, and database connection pool utilisation should be normal. An unusual spike suggests a performance regression.
+```markdown
+# Changelog
 
-**Business metrics.**
-If the release includes changes to a revenue-generating or user-facing flow, watch the relevant conversion or completion rates.
+All notable changes to this project will be documented in this file.
 
-**If any metric degrades:**
-Initiate the rollback plan immediately. Do not wait to see if it recovers — act decisively and investigate after the rollback.
+This file adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
+
+[new entry goes here]
+```
 
 ---
 
-## Phase 7 — Release Communication
+## Phase 4 — Release Notes
 
-**Internal announcement.**
-Notify the team that the release is complete. Include: version number, what changed (link to changelog), deployment time, and whether any action is required from other teams.
+Generate human-readable release notes (distinct from the raw CHANGELOG). Release notes are written for end users and external stakeholders — not for developers:
 
-**External release notes (if applicable).**
-Publish the changelog entry to users through the appropriate channel: release page, email, in-app notification.
+```markdown
+# Release v[NEW_VERSION]
 
-**Update status page.**
-If the service has a public status page, update it to reflect the completed deployment.
+**Released:** !`date +"%Y-%m-%d"`
+
+## What's New
+
+[Describe new features in user-facing language. No commit hashes. No jargon. Answer: "What can I do now that I couldn't do before?"]
+
+## Improvements
+
+[Describe improvements to existing functionality in user-facing language.]
+
+## Bug Fixes
+
+[Describe fixed bugs in user-facing language. "Fixed an issue where X would Y under Z conditions."]
+
+## Breaking Changes
+
+[If none, omit this section. If present, describe exactly what changed and provide a migration guide.]
+
+### Migration Guide
+
+[Step-by-step instructions for users upgrading from the previous version.]
+
+## Full Changelog
+
+[Link to the full diff, e.g., https://github.com/org/repo/compare/vPREV...vNEW]
+
+## Upgrading
+
+[How to upgrade: e.g., `npm update package-name` / `pip install --upgrade package-name`]
+```
+
+Save release notes to `docs/releases/v[NEW_VERSION].md`.
 
 ---
 
-## Release Checklist
+## Phase 5 — Version Manifest Updates
 
-- [ ] Release branch confirmed correct
-- [ ] CI pipeline passing on all release commits
-- [ ] Full build and test run locally
-- [ ] Diff reviewed from previous release tag
-- [ ] Version number determined per versioning scheme
-- [ ] Changelog written and accurate
-- [ ] Version references updated in codebase
-- [ ] Database migrations reviewed for safety and compatibility
-- [ ] Migrations tested against production-shaped data
-- [ ] Release artefact built and hash recorded
-- [ ] Environment variables for new version present in target environments
-- [ ] Rollback plan documented
-- [ ] Deployed to staging and smoke tested
-- [ ] Soak period completed in staging
-- [ ] Deployed to production (same artefact as staging)
-- [ ] Migrations run on production (if applicable)
-- [ ] Post-deployment monitoring completed for 15–30 minutes
-- [ ] No error rate, latency, or business metric regression
-- [ ] Internal release announcement sent
-- [ ] External release notes published (if applicable)
+Identify all files that contain the version number and list the exact changes needed:
+
+| File             | Field         | Old Value | New Value    |
+| ---------------- | ------------- | --------- | ------------ |
+| `package.json`   | `"version"`   | `"X.Y.Z"` | `"X'.Y'.Z'"` |
+| `pyproject.toml` | `version = `  | `"X.Y.Z"` | `"X'.Y'.Z'"` |
+| `Cargo.toml`     | `version = `  | `"X.Y.Z"` | `"X'.Y'.Z'"` |
+| `version.txt`    | (entire file) | `X.Y.Z`   | `X'.Y'.Z'`   |
+
+Apply all version manifest updates now.
+
+---
+
+## Phase 6 — Release Commit and Tag Instructions
+
+Provide the exact git commands to complete the release (do not run them — present them for operator review and execution):
+
+```bash
+git add CHANGELOG.md docs/releases/ package.json
+
+git commit -m "chore(release): v[NEW_VERSION]
+
+[One-line summary of the release]"
+
+git tag -a "v[NEW_VERSION]" -m "Release v[NEW_VERSION]
+
+[Brief release description]"
+
+git push origin main
+git push origin "v[NEW_VERSION]"
+```
+
+---
+
+## Phase 7 — Release Checklist
+
+Present the operator with a final pre-release checklist:
+
+- [ ] Working tree is clean
+- [ ] On the correct release branch (main/release/\*)
+- [ ] CI is passing on this commit (verified manually)
+- [ ] Version bumped correctly in all manifest files
+- [ ] CHANGELOG.md updated and prepended
+- [ ] Release notes written to `docs/releases/v[NEW_VERSION].md`
+- [ ] Breaking changes documented with migration guide (if applicable)
+- [ ] Release commit created with message `chore(release): v[NEW_VERSION]`
+- [ ] Annotated git tag created
+- [ ] Commit and tag pushed to remote
+- [ ] GitHub/GitLab release created from the tag (manual step)
+- [ ] Package registry publish triggered (npm publish / pip publish / etc. — manual step)
+- [ ] Communication sent to stakeholders (release notes link)
+
+---
+
+## Release Summary
+
+```
+Release:  v[NEW_VERSION]
+Bump:     [major/minor/patch] ([auto-detected or explicit])
+Date:     !`date +"%Y-%m-%d"`
+Commits:  [n] commits since v[PREV_VERSION]
+Breaking: [yes/no]
+Tag:      v[NEW_VERSION]
+```

@@ -224,3 +224,9 @@ Re-walk the corrected execution. Confirm:
 5. Provide one concrete fix per blocking issue — not a list of options.
 6. Do not repeat findings — note a pattern once if it recurs.
 7. Do not soften findings. A blocking issue is blocking.
+
+---
+
+## Communication Mode
+
+Caveman mode (full) is permanently active. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed.

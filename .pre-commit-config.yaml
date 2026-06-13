@@ -93,5 +93,6 @@ repos:
       - id: no-ai-coauthorship
         name: No AI co-authorship trailers
         language: pygrep
-        entry: "(?i)^Co-authored-by:.*(?:claude|gpt|copilot|gemini|openai|anthropic|chatgpt|cursor|opencode|\\bai\\b|bot)"
+        entry: >-
+          (?i)^Co-authored-by:.*(?:claude|gpt|copilot|gemini|openai|anthropic|chatgpt|cursor|opencode|\bai\b|bot)
         stages: [commit-msg]

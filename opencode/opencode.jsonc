@@ -26,6 +26,28 @@
   // ─── Agent defaults ───────────────────────────────────────────────────────
   "default_agent": "orchestrator",
 
+  // ─── Agent overrides ────────────────────────────────────────────────────
+  // Hide built-in Plan and Build agents; custom Planner and Builder replace them
+  "agent": {
+    "plan": { "hidden": true },
+    "build": { "hidden": true },
+    "builder": {
+      "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
+    },
+    "debugger": {
+      "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
+    },
+    "reviewer": {
+      "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
+    },
+    "rubber-duck": {
+      "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
+    },
+    "test-architect": {
+      "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
+    }
+  },
+
   // ─── Sharing & updates ────────────────────────────────────────────────────
   "share": "disabled",
   "autoupdate": "notify",
@@ -97,8 +119,6 @@
       "diff *":                     "allow",
       "which *":                    "allow",
       "type *":                     "allow",
-      "env":                        "allow",
-      "printenv *":                 "allow",
 
       // Git read operations (allow)
       // Use trailing-space + wildcard to match both bare and flag-bearing variants.
@@ -435,5 +455,6 @@
   // Loaded as system context for every session
   "instructions": [
     "~/.config/opencode/AGENTS.md"
-  ]
+  ],
+  "shell": "/bin/zsh"
 }

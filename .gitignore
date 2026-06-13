@@ -11,3 +11,6 @@ auth.json
 Thumbs.db
 dist/
 .turbo/
+.opencode/
+opencode/plans/
+package-lock.json

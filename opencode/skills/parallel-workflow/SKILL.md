@@ -5,26 +5,25 @@ description: Orchestrate parallel multi-agent workflows for enterprise developme
 
 # Parallel Workflow Orchestration for Enterprise Development
 
-This skill describes how to decompose large enterprise development tasks into parallel workstreams, spawn subagents efficiently, synthesize their results, handle partial failures, and track progress — all while optimising for cost and speed.
+This skill describes how to decompose large enterprise development tasks into parallel workstreams, spawn subagents efficiently, synthesise their results, handle partial failures, and track progress — all while optimising for cost and speed.
+
+> **Orchestration policy is defined in `opencode/agents/orchestrator.md`.** That file is the authoritative source for when parallelism is mandatory, hard rules, and the full UNDERSTAND → PLAN → DELEGATE → INTEGRATE → VERIFY → DELIVER workflow. This skill covers the practical mechanics of decomposition, spawning, synthesis, failure handling, and cost optimisation.
 
 ---
 
 ## Core Principle: True Parallelism Requires ONE Message
 
-**The single most important rule:**
-
-> All independent `Task` (subagent) calls MUST be issued in a **single message** to run in parallel.
-> Issuing them sequentially — one at a time — wastes time and defeats the purpose of parallelisation.
+All independent `Task` (subagent) calls must be issued in a **single message** to run in parallel. Issuing them one at a time wastes time and defeats the purpose of parallelisation.
 
 ```
-// ✅ TRUE PARALLELISM — all tasks start simultaneously
+[CORRECT — all tasks start simultaneously]
 [Single message]:
   Task("analyse auth module")
   Task("analyse payments module")
   Task("analyse API layer")
   Task("run security audit")
 
-// ❌ SEQUENTIAL — each waits for the previous to finish
+[INCORRECT — each waits for the previous to finish]
 Message 1: Task("analyse auth module") → wait for result
 Message 2: Task("analyse payments module") → wait for result
 Message 3: Task("analyse API layer") → wait for result
@@ -158,7 +157,7 @@ Task 2: "[Specific, bounded description]"
 - **Success criteria** — "The task is complete when X is true."
 
 ```
-// ✅ Good Task prompt
+[CORRECT — good task prompt]
 "Analyse src/payments/ for N+1 query patterns.
  Read all .ts files in that directory.
  Do NOT modify any files.
@@ -166,7 +165,7 @@ Task 2: "[Specific, bounded description]"
    { file: string, line: number, description: string, severity: 'high'|'medium'|'low' }
  The task is complete when every .ts file has been inspected."
 
-// ❌ Bad Task prompt
+[INCORRECT — bad task prompt]
 "Look at the payments code and find problems."
 ```
 
@@ -188,7 +187,6 @@ Not all subagents need the same model. Use cheaper/faster models for simpler sub
 | PR description writing       | Small model                                   | Summarisation task               |
 
 ```typescript
-// In opencode.json — define purpose-built agents at different model tiers
 {
   "agent": {
     "code-auditor": {
@@ -313,7 +311,7 @@ Subagent N failed. Was its output required for other subagents?
 ### Failure Communication Template
 
 ```
-⚠️ Partial completion: [N-1] of [N] subagents completed successfully.
+[WARNING] Partial completion: [N-1] of [N] subagents completed successfully.
 
 Failed: [Task Name]
 Reason: [Brief explanation]
