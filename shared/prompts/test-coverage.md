@@ -1,172 +1,288 @@
 # Test Coverage Workflow
 
-Use this workflow to systematically improve test coverage for a codebase, module, or feature.
+Assess the current state of testing in this codebase, identify the most impactful gaps, and write high-quality tests to fill them.
+
+Good tests are an investment. Bad tests are technical debt. Write tests that will still be valuable in two years.
 
 ---
 
-## Input
+## Phase 1 — Coverage Assessment
 
-[COVERAGE TARGET] — specify the module, service, or file set to improve coverage for. Include: the current coverage percentage (if known), the target coverage percentage or the specific gap to address, and any coverage tools already configured.
+### 1a. Test Inventory
 
----
+Catalogue what currently exists:
 
-## Coverage Philosophy
+| Category          | Count | Framework          | Location |
+| ----------------- | ----- | ------------------ | -------- |
+| Unit tests        | [n]   | [jest/pytest/etc.] | [path]   |
+| Integration tests | [n]   | [framework]        | [path]   |
+| End-to-end tests  | [n]   | [framework]        | [path]   |
+| Performance tests | [n]   | [framework]        | [path]   |
+| Contract tests    | [n]   | [framework]        | [path]   |
 
-Coverage is a diagnostic tool, not a goal. The objective is not to reach a percentage — it is to ensure that the code's important behaviours are verified by tests. Use coverage reports to find untested paths, then ask: "Does it matter if this path is wrong?" If yes, write a test. If no, leave it uncovered and move on.
+### 1b. Source Code Inventory
 
-100% line coverage with trivial assertions proves nothing. 70% branch coverage that verifies every significant decision point in the business logic is far more valuable.
+List all source modules/files that should have tests. For each, assess:
 
----
+| Module / File | Complexity   | Business Criticality | Has Tests?     | Coverage Est. |
+| ------------- | ------------ | -------------------- | -------------- | ------------- |
+| [file]        | High/Med/Low | High/Med/Low         | Yes/No/Partial | [%]           |
 
-## Phase 1 — Measure Baseline
+**Complexity Assessment:**
 
-**Run the existing test suite with coverage.**
+- High: Multiple code paths, stateful, external calls, complex algorithms
+- Medium: Clear business logic, some branching
+- Low: Simple transformations, utility functions
 
-For common tools:
+**Business Criticality:**
 
-- JavaScript/TypeScript: `npx jest --coverage` or `npx vitest run --coverage`
-- Python: `pytest --cov=<module> --cov-report=term-missing`
-- Go: `go test ./... -coverprofile=coverage.out && go tool cover -html=coverage.out`
-- Ruby: `COVERAGE=true bundle exec rspec`
-- Java: use JaCoCo via `mvn test` or `gradle test jacocoTestReport`
+- High: Authentication, payment processing, data persistence, core business rules
+- Medium: Important features, data transformation
+- Low: UI helpers, formatters, configuration parsing
 
-**Record the baseline.**
-Note the overall line coverage percentage, branch coverage percentage (if reported), and the files or functions with the lowest coverage.
+### 1c. Coverage Gap Analysis
 
-**Generate an HTML or detailed report.**
-Most tools produce an HTML report that highlights uncovered lines in red. Open it and read it — a visual scan reveals patterns that aggregate percentages hide.
+Identify the most significant coverage gaps, ordered by risk:
 
----
+| Gap           | Risk                  | Reason Untested      | Priority |
+| ------------- | --------------------- | -------------------- | -------- |
+| [description] | Critical/High/Med/Low | [why it lacks tests] | [1-n]    |
 
-## Phase 2 — Triage the Gaps
+### 1d. Test Quality Assessment
 
-Not all coverage gaps are equal. Before writing a single test, categorise the uncovered code:
+Evaluate the quality of existing tests (not just quantity):
 
-**High priority — write tests:**
-
-- Business logic (calculations, validations, state transitions, pricing rules)
-- Error handling paths (what happens when a database query fails, a service times out, a file is missing)
-- Security-relevant code (authorisation checks, input validation, authentication flows)
-- Data transformation and serialisation
-- Branch conditions involving user-supplied data
-
-**Medium priority — write tests if time allows:**
-
-- Utility functions used in multiple places
-- Configuration parsing
-- Retry and backoff logic
-
-**Low priority — may skip:**
-
-- Simple getters and setters with no logic
-- Generated code
-- Framework glue code (route registration, dependency wiring) that is covered by integration tests
-- Dead code (if confirmed dead, delete it rather than covering it)
+- **Testing behaviour or implementation?** Tests should test what, not how.
+- **Appropriate mocking level?** Over-mocking hides real integration issues.
+- **Deterministic?** No time-dependent or order-dependent tests.
+- **Clear test names?** `it("returns 404 when user not found")` not `it("works correctly")`.
+- **AAA structure?** Arrange / Act / Assert clearly separated.
+- **Test data management?** Hardcoded values vs. factories vs. fixtures.
 
 ---
 
-## Phase 3 — Understand the Uncovered Code
+## Phase 2 — Prioritisation
 
-Before writing a test for uncovered code, read it.
+Rank test gaps using this priority matrix:
 
-**For each uncovered function or branch:**
+**P1 — Critical (write immediately)**
 
-1. What is the expected behaviour? Read the function signature, its documentation (if any), and how it is called.
-2. What state does it depend on? What inputs cause it to take each branch?
-3. What does it produce? What side effects does it have?
-4. Are there any constraints or invariants the caller is expected to maintain?
+- High complexity + High business criticality + No tests
+- Any code handling authentication, authorisation, payments, or data integrity
+- Any code recently changed (regression risk)
+- Any code that has had bugs in the past
 
-If you do not understand what a function is supposed to do, do not guess — find out before writing the test. A test that asserts the wrong thing is worse than no test.
+**P2 — Important (write in this session)**
 
----
+- High complexity + Medium criticality + No/partial tests
+- Error handling paths (the most common untested area)
+- Edge cases for critical code
 
-## Phase 4 — Write the Tests
+**P3 — Nice to Have (document for future)**
 
-Follow the testing rules in `shared/rules/testing.md`. Key reminders:
-
-**Name tests descriptively.**
-`test_discount_applies_when_user_has_premium_subscription` not `test_discount_2`.
-
-**Use Arrange-Act-Assert.**
-Set up the test state, perform the action, assert the outcome. Keep the sections visually distinct.
-
-**Test one thing per test.**
-Each test should have a single clear reason to fail.
-
-**Cover the failure paths.**
-For every code path that handles an error, write a test that triggers the error and verifies the correct error response. These paths are frequently the most important and the most commonly uncovered.
-
-**Test boundary conditions.**
-Empty string, empty list, zero, negative number, maximum allowed value, exactly-at-limit, one-over-limit.
-
-**For branch coverage specifically:**
-Each `if`, `switch case`, `||`, and `&&` that affects business logic needs at least one test that exercises each branch. A branch-coverage report shows exactly which branches remain untested.
+- Low complexity code
+- Code with low change frequency
+- Simple configuration code
 
 ---
 
-## Phase 5 — Avoid Coverage Anti-Patterns
+## Phase 3 — Write Tests
 
-**Do not assert the implementation, assert the behaviour.**
-A test that verifies a private method was called with specific internal arguments is fragile and couples the test to the implementation. Assert what the function returns or what state change it produces.
+For each P1 and P2 gap, write complete, production-quality tests.
 
-**Do not add assertions solely to satisfy coverage tools.**
-A test that calls a function without any assertions records that the function does not throw, nothing more. It provides false confidence.
+### Test Writing Standards
 
-**Do not mock everything.**
-Excessive mocking tests that your mocks interact correctly, not that your code is correct. Use real implementations (or lightweight fakes) where practical.
+**Structure every test file like this:**
 
-**Do not delete tests to fix coverage gaps.**
-If coverage is low because tests were deleted, the answer is to restore or replace them, not to write weaker new tests.
+```javascript
+describe("[Module/Component Name]", () => {
+  let dependencies;
 
-**Do not write tests for trivial code to inflate numbers.**
-A function that returns a constant or delegates directly to a well-tested dependency does not need a test. Write tests where they provide value.
+  beforeEach(() => {
+  });
+
+  afterEach(() => {
+  });
+
+  describe("[method/function/behaviour]", () => {
+    it("[describes expected outcome when given specific condition]", () => {
+      const input = ...;
+
+      const result = ...;
+
+      expect(result).toEqual(...);
+    });
+
+    it("throws [ErrorType] when [condition]", () => {
+    });
+  });
+});
+```
+
+```python
+class TestModuleName:
+    @pytest.fixture
+    def subject(self):
+        ...
+
+    def test_returns_expected_output_given_valid_input(self, subject):
+        input_data = ...
+
+        result = subject.method(input_data)
+
+        assert result == expected
+
+    def test_raises_value_error_when_input_is_empty(self, subject):
+        with pytest.raises(ValueError, match="specific error message"):
+            subject.method(input_data=[])
+```
+
+### Test Coverage Targets
+
+Write tests covering:
+
+**For every function/method:**
+
+- [ ] Happy path (valid inputs to expected output)
+- [ ] Empty/null/zero input
+- [ ] Boundary values (min, max, off-by-one)
+- [ ] Invalid input (wrong type, out of range)
+- [ ] Each distinct error case (one test per `throw` / `raise`)
+
+**For API endpoints:**
+
+- [ ] Successful response (200/201) with correct body shape
+- [ ] Validation errors (400) for each required field
+- [ ] Authentication required (401)
+- [ ] Authorisation denied (403)
+- [ ] Not found (404) when resource doesn't exist
+- [ ] Conflict (409) where applicable
+- [ ] Server error handling
+
+**For async code:**
+
+- [ ] Resolved promise with expected value
+- [ ] Rejected promise with expected error
+- [ ] Timeout behaviour (if applicable)
+- [ ] Concurrent execution (if race conditions are possible)
+
+**For stateful code:**
+
+- [ ] Initial state
+- [ ] State after valid transition
+- [ ] Rejection of invalid state transitions
+- [ ] State after error recovery
+
+### Mocking Guidelines
+
+- **Mock at the boundary.** Mock external services (HTTP calls, DB, message queues), not internal functions.
+- **Do not mock what you own.** If you own the code, test the real thing (or use an in-memory substitute).
+- **Verify mock calls.** If a mock should be called with specific args, assert it was.
+- **Name mocks clearly.** `mockUserRepository` not `mock` or `stub`.
 
 ---
 
-## Phase 6 — Verify and Commit
+## Phase 4 — Test Infrastructure (if gaps exist)
 
-**Re-run coverage after adding tests.**
-Confirm the new tests actually increase coverage in the intended files. It is common to write a test that exercises a code path that was already covered by another test — the new test adds value only if it tests a genuinely new path.
+If the project lacks key testing infrastructure, recommend and implement:
 
-**Confirm no regressions.**
-All previously passing tests must still pass.
+### Test Factories / Fixtures
 
-**Review the new tests.**
-Apply the same code review standard to tests as to production code. Tests that are unclear, fragile, or testing the wrong thing should be improved before committing.
+Create reusable factories for generating test data:
 
-**Commit tests separately from production code changes.**
-If writing tests for existing code, keep the test commits separate from any production code changes discovered along the way. Mix-and-match commits are harder to review and harder to bisect.
+```javascript
+export const createUser = (overrides = {}) => ({
+  id: "user-123",
+  email: "test@example.com",
+  role: "user",
+  createdAt: new Date("2024-01-01"),
+  ...overrides,
+});
+```
+
+### Test Database Setup (if applicable)
+
+For integration tests requiring a database:
+
+- Recommend an in-memory or containerised test database.
+- Create setup/teardown patterns that leave the database clean between tests.
+- Document the test database configuration.
+
+### Test Environment Configuration
+
+Verify a `.env.test` or test configuration exists with:
+
+- Test-safe values (no real external service credentials)
+- Clearly different from production/staging values
+- Documented in the onboarding guide
 
 ---
 
-## Phase 7 — Configure Enforcement (if not already done)
+## Phase 5 — Report
 
-Once a meaningful coverage level is achieved, configure the CI pipeline to enforce it:
+Produce a comprehensive test coverage report:
 
-- Set a minimum coverage threshold that fails the build if coverage drops below it
-- Configure per-file or per-module thresholds for critical paths
-- Report coverage as a PR check so reviewers can see if a PR reduces coverage
+```markdown
+# Test Coverage Report
 
-Common configurations:
-
-- Jest: `coverageThreshold` in `jest.config.js`
-- pytest-cov: `--cov-fail-under=80`
-- Go: a coverage check script in the CI pipeline
-- JaCoCo: `minimumBranchCoverage` in the Gradle/Maven configuration
+**Date:** !`date +"%Y-%m-%d"`
+**Project:** !`basename $(pwd) 2>/dev/null || echo "Unknown"`
 
 ---
 
-## Test Coverage Checklist
+## Summary
 
-- [ ] Baseline coverage measured and recorded
-- [ ] Coverage report read (not just the summary percentage)
-- [ ] Uncovered code triaged by priority
-- [ ] Uncovered code read and understood before writing tests
-- [ ] Tests written for high-priority gaps
-- [ ] Error paths covered
-- [ ] Boundary conditions covered
-- [ ] Tests are meaningful (not just coverage-padding)
-- [ ] Coverage re-measured after adding tests
-- [ ] No regressions in existing tests
-- [ ] New tests reviewed for quality
-- [ ] Coverage enforcement configured in CI (if applicable)
+| Metric                  | Before      | After       | Change |
+| ----------------------- | ----------- | ----------- | ------ |
+| Test files              | [n]         | [n]         | +[n]   |
+| Total test cases        | [n]         | [n]         | +[n]   |
+| Estimated line coverage | [%]         | [%]         | +[%]pp |
+| Critical paths covered  | [n]/[total] | [n]/[total] | +[n]   |
+
+---
+
+## Tests Written This Session
+
+| File        | Tests Added | Coverage Area         |
+| ----------- | ----------- | --------------------- |
+| [test file] | [n]         | [what is now covered] |
+
+---
+
+## Remaining Gaps (P3 — deferred)
+
+| Module | Reason Deferred | Suggested Test Count |
+| ------ | --------------- | -------------------- |
+| [file] | [reason]        | [n]                  |
+
+---
+
+## Recommendations
+
+### Immediate
+
+- [ ] [action item]
+
+### Short-term
+
+- [ ] [action item]
+
+### Process Changes
+
+- [ ] [recommendation for preventing future coverage gaps]
+```
+
+---
+
+## Quality Checklist
+
+Before finalising, verify all written tests meet these standards:
+
+- [ ] Each test has a single, clear assertion focus
+- [ ] Test names describe behaviour, not implementation
+- [ ] No `console.log` / `print` debug statements left in tests
+- [ ] No hardcoded credentials or PII in test data
+- [ ] Mocks are reset between tests (`beforeEach` / `afterEach`)
+- [ ] Tests pass in isolation (no inter-test dependencies)
+- [ ] Slow tests are marked or skipped in CI configuration
+- [ ] Tests are co-located with source or in a clearly documented location

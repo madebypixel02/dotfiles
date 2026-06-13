@@ -30,17 +30,32 @@ No exploration or implementation begins until the ambiguity is resolved or expli
 
 ## Step 3 — Plan
 
-The orchestrator uses `plan_enter` to switch to the built-in plan agent. The plan agent is structurally read-only (file edits denied at the permission level) and saves its plan to `.opencode/plans/`. The user reviews the plan and exits plan mode to return control to the orchestrator.
+The orchestrator delegates to `@planner` via a `Task` call. `@planner` reads the codebase, writes a structured plan file to `~/.config/opencode/plans/<timestamp>-<slug>.md`, and returns the absolute file path.
 
-Example plan output:
+The orchestrator reads the plan file frontmatter and presents to the user: the absolute path, the plan ID, the status, and the one-sentence Goal. The orchestrator does not relay the plan body — the plan file is the authoritative record and the user reads it directly at the given path.
+
+The user reviews the plan file content and confirms approval. The orchestrator blocks on any implementation delegation until explicit approval is received.
+
+Plan structure:
 
 ```
+## Plan
+
 Goal: Add per-IP rate limiting middleware to the Express API.
 
 Scope:
   Files affected: src/middleware/, src/config/, tests/middleware/
-  Agents needed: implementer, test-architect (parallel), reviewer, security-auditor (parallel)
+  Agents needed: builder, test-architect (parallel), reviewer, security-auditor (parallel)
   Sequential dependency: review and security audit run after implementation
+
+High-level approach:
+  Introduce an Express middleware using the existing middleware registration pattern.
+  Apply the rate-limit configuration through the project's config module.
+
+Low-level implementation detail:
+  - Add rateLimitMiddleware(options: RateLimitOptions): RequestHandler in src/middleware/rate-limit.ts
+  - Register in src/app.ts after the auth middleware
+  - Add RATE_LIMIT_WINDOW_MS and RATE_LIMIT_MAX_REQUESTS to src/config/index.ts
 
 Risks:
   - Redis dependency may not be available in all environments
@@ -53,7 +68,7 @@ Risks:
 
 The orchestrator spawns two agents in one message (parallel):
 
-- `implementer` writes the middleware, adds docstrings to all public functions, runs lint and typecheck.
+- `builder` writes the middleware, adds docstrings to all public functions, runs lint and typecheck.
 - `test-architect` designs the test plan: unit tests for the middleware logic, integration tests for the full request lifecycle.
 
 Both complete independently. Neither waits for the other.
@@ -68,7 +83,7 @@ Once implementation is complete, the orchestrator spawns three agents in one mes
 - `security-auditor` checks for rate limit bypass vectors, missing auth checks, and header injection risks.
 - `test-architect` writes the tests designed in Step 4.
 
-Results are synthesised. Any blocking finding goes back to `implementer` for revision before proceeding.
+Results are synthesised. Any blocking finding goes back to `builder` for revision before proceeding.
 
 ---
 
@@ -154,8 +169,6 @@ After approval:
 - All conversations resolved
 - Quality Gate is green
 - Human clicks merge (no self-merge)
-
-The `notification-hub` plugin fires `session.idle` on the next OpenCode session and sends a completion notification to the configured webhook.
 
 ---
 

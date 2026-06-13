@@ -26,16 +26,16 @@ are saved to ~/.claude/MEMORY.md automatically. Check `/memory` to review and ed
 ### Subagents
 
 Invoke specialist roles by describing the task. The Claude Code agent roster
-(implementer, reviewer, security-auditor, rubber-duck) is smaller than the opencode
+(builder, reviewer, security-auditor, rubber-duck) is smaller than the opencode
 roster. Tasks that opencode routes to `@test-architect` or `@docs-writer` go to
-`implementer` here. The Claude Code implementer has no test coverage targets or
+`builder` here. The Claude Code builder has no test coverage targets or
 structured test plan format -- for rigorous test strategy work, prefer opencode where
 `@test-architect` enforces an 80%/60% coverage contract.
 
 - "Review this for security issues" → security-auditor role
 - "Review this code for quality" → reviewer role
-- "Write tests for this" → implementer role
-- "Refactor this without changing behavior" → implementer role
+- "Write tests for this" → builder role
+- "Refactor this without changing behavior" → builder role
 - "Second opinion on this plan" → rubber-duck role
 
 ### Permission Enforcement

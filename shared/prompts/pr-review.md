@@ -22,154 +22,187 @@ Assume good intent. The author made decisions for reasons. Ask before correcting
 
 ---
 
-## Phase 1 — Context
+## Parallel Review Workstreams
 
-**Read the PR description first.**
-Understand what the change is supposed to do, why it is being made, and how the author says it can be tested. If the description is missing or insufficient, ask the author to provide it before reviewing the code.
-
-**Read the linked issue or ticket.**
-Confirm the PR addresses the stated requirement. A PR that is technically correct but solves the wrong problem should not merge.
-
-**Check the scope.**
-Run `git diff main...HEAD --stat` (or equivalent) to see which files changed and by how much. A PR that modifies hundreds of files across unrelated areas is a scope problem — flag it.
-
-**Review recent history on affected files.**
-Run `git log --oneline -10 -- <affected-file>` to understand who has been working in this area and whether there are likely conflicts or interactions with in-flight work.
+Execute the following three reviews in parallel. Do not wait for one to finish before starting the others. Clearly label each section.
 
 ---
 
-## Phase 2 — Correctness
+### Workstream A — Security Audit
 
-Read the diff carefully. For each logical change ask:
+Review every changed file through a security lens.
 
-**Does this code do what the description says it does?**
-Trace the execution path. Does the logic match the requirement?
+**Input validation and sanitisation**
 
-**What happens on error paths?**
-For every function call that can fail, confirm the error is handled — not swallowed, not panicked, not assumed away.
+- Is all user-supplied input validated before use?
+- Are there any SQL, command, LDAP, or XPath injection risks?
+- Is output properly encoded before rendering (XSS)?
 
-**What are the edge cases?**
-Empty collections, zero values, nil pointers, maximum sizes, concurrent calls, out-of-order events. Does the code handle them safely?
+**Authentication and authorisation**
 
-**Is the data model correct?**
-Check field types, nullability, default values, and constraints. A nullable field that should not be nullable, or a missing unique constraint, is a bug that is expensive to fix post-launch.
+- Do new endpoints or functions enforce authentication?
+- Are authorisation checks present at the correct layer (not just UI)?
+- Are there any insecure direct object reference risks?
 
-**Are there race conditions?**
-Identify any shared mutable state accessed by concurrent code. Confirm locks, atomics, or immutability are applied correctly.
+**Secrets and sensitive data**
 
-**Is there accidental data loss or mutation?**
-Confirm updates do not clobber fields that were not intended to change. Check for missing optimistic-lock checks where they are required.
+- Are there hardcoded secrets, tokens, or credentials?
+- Is sensitive data logged or included in error messages?
+- Are PII fields handled per data classification policy?
 
----
+**Dependency surface**
 
-## Phase 3 — Security
+- Are any new dependencies introduced? If so, are they well-maintained?
+- Do any changes relax CORS, CSP, or other security headers?
 
-Apply the security lens to every change that touches:
+**Cryptography**
 
-- Input handling (HTTP, file, queue, IPC)
-- Authentication or session management
-- Authorisation checks
-- Database queries
-- Cryptography or secrets
-- Logging
+- Is any custom cryptography implemented (this is a red flag)?
+- Are secure, modern algorithms used where cryptography is needed?
 
-Key questions (see `shared/rules/security.md` for the full checklist):
+See `shared/rules/security.md` for the full security checklist.
 
-- Are user-supplied values validated before use?
-- Are SQL queries parameterised?
-- Are authorisation checks applied at the right layer?
-- Are secrets read from the environment, not hardcoded?
-- Are sensitive values absent from log statements?
-
-Flag any security issue as a blocking concern.
+**Output:** Severity-tagged findings (CRITICAL / HIGH / MEDIUM / LOW / INFO).
 
 ---
 
-## Phase 4 — Tests
+### Workstream B — Code Review
 
-**Are there tests?**
-A PR that adds or changes behaviour without adding or updating tests requires tests before merge, unless the change is trivially covered by existing tests (verify this).
+Review for correctness, quality, and maintainability.
 
-**Do the tests test the right thing?**
-Read each test. Does it verify the behaviour described in the acceptance criteria? Does it cover the edge cases the code handles?
+**Correctness**
 
-**Are the tests reliable?**
-Look for: time-dependent assertions, random values without seeding, shared mutable state, sleep calls, and real network calls in unit tests. Flag flaky patterns.
+- Does the code implement the stated intent?
+- Are there logic errors, off-by-one mistakes, or incorrect conditionals?
+- Are async operations properly awaited and handled?
+- What happens on error paths? Are errors propagated with sufficient context?
+- Are resources (connections, file handles, locks) released in error paths?
 
-**Is the coverage meaningful?**
-High line count does not mean high value. Tests that assert nothing, or that only test the happy path, leave gaps.
+**Edge cases**
 
----
+- Empty collections, zero values, nil pointers, maximum sizes, concurrent calls, out-of-order events — does the code handle them safely?
+- Are there race conditions in any shared mutable state?
 
-## Phase 5 — Design and Maintainability
+**Code quality**
 
-**Is the abstraction level appropriate?**
-Is the code at the right level of detail? Is it pulling in concerns that belong elsewhere? Is it duplicating logic that already exists in a different module?
+- Does the code follow existing project patterns and conventions?
+- Are functions and methods at an appropriate level of abstraction?
+- Is there duplicated code that should be extracted?
+- Are variable and function names clear and unambiguous?
 
-**Are names clear?**
-Function names, variable names, and type names should communicate intent. Flag names that are misleading, too generic (`data`, `result`, `temp`), or inconsistent with the surrounding codebase.
+**Performance**
 
-**Is there unnecessary complexity?**
-Code that is more complicated than the problem requires is a maintenance liability. Suggest simplifications where they improve clarity without sacrificing correctness.
+- Are there N+1 query patterns?
+- Are there unbounded operations on potentially large datasets?
+- Are expensive operations appropriately cached or deferred?
 
-**Will this scale?**
-Consider the data volumes and request rates this code will face in production. Look for: N+1 queries, missing pagination, unbounded in-memory collections, and synchronous calls on hot paths that should be async.
+**Maintainability**
 
-**Are deprecations or breaking changes handled?**
-If an existing API, type, or behaviour is changed, confirm that callers are updated and that any deprecation period required by the project's conventions is observed.
+- Is complex logic documented with a docstring explaining why the approach was chosen?
+- Are magic numbers and strings replaced with named constants?
+- Is the change backwards-compatible? If not, is the breaking change documented?
+- No inline code comments present (only docstrings and JSDoc for public APIs)
 
----
-
-## Phase 6 — Operational Readiness
-
-**Logging.**
-Are significant actions, decisions, and errors logged? Do log lines include enough context (IDs, operation name) to investigate incidents? Are sensitive values absent?
-
-**Metrics.**
-Are metrics emitted for the new code path? Can an on-call engineer tell from dashboards if this feature is working?
-
-**Migrations.**
-If a database migration is included: is it reversible? Does it avoid locking large tables? Is it safe to run against a live database?
-
-**Configuration.**
-Are new configuration values documented? Do they have sensible defaults? Are they validated at startup?
-
-**Rollback.**
-Is it safe to revert this PR if it causes problems? Are there data migrations that would break the previous version?
+**Output:** Categorised feedback with file and line references where possible.
 
 ---
 
-## Phase 7 — Formulating Feedback
+### Workstream C — Test Architecture
 
-Categorise each comment before posting:
+Review the test coverage and quality.
 
-**Blocking (must fix before merge)**
+**Coverage assessment**
 
-- Correctness bugs that would cause wrong behaviour
-- Security vulnerabilities
-- Data loss or corruption risks
-- Missing tests for new behaviour
-- Breaking changes without migration path
+- What percentage of the changed code paths have test coverage?
+- Which error paths are untested?
+- Are there critical business logic branches without tests?
 
-**Non-blocking improvement (should address, author's judgement)**
+**Test quality**
 
-- Naming improvements
-- Simplification opportunities
-- Additional test cases for robustness
-- Documentation gaps
+- Are tests testing behaviour or implementation details?
+- Are tests deterministic (no flaky time or order dependencies)?
+- Are test descriptions clear and specific?
+- Are mocks and stubs used appropriately (not hiding real integration issues)?
 
-**Nit (optional, low priority)**
+**Missing test scenarios**
 
-- Style preferences where no project convention exists
-- Minor clarity improvements
+- List specific test cases that should be added
+- Identify integration test gaps
+- Note any regression tests that should be added based on the changes
 
-Prefix each comment with its category: `Blocking:`, `Improvement:`, or `Nit:`.
+**Output:** Coverage gap analysis with specific suggested test cases.
 
-Post a summary comment at the top of the review stating:
+---
 
-- Overall assessment (approve / request changes / needs discussion)
-- Count of blocking issues, if any
-- Any questions about intent that must be resolved before you can fully assess the change
+## Synthesis
+
+After all three workstreams complete, produce the final PR review comment in this format (ready to post verbatim):
+
+```
+PR Review
+
+Branch: [branch name]
+Date: [YYYY-MM-DD]
+Files changed: [count] | Lines added: [count] | Lines removed: [count]
+
+---
+
+Summary
+
+[2-3 sentence overall assessment. State whether the PR is:
+Approved / Approved with suggestions / Changes requested / Blocked]
+
+---
+
+Security Findings
+
+| Severity | Finding | File / Location | Recommendation |
+| [CRITICAL/HIGH/MEDIUM/LOW/INFO] | [description] | [file:line] | [action] |
+
+[If none: "No security issues identified."]
+
+---
+
+Code Review
+
+Must Fix (blocking):
+- [ ] [issue] — [file:line] — [explanation]
+
+Should Fix (non-blocking):
+- [ ] [issue] — [file:line] — [explanation]
+
+Suggestions (optional):
+- [ ] [suggestion] — [file:line] — [explanation]
+
+---
+
+Test Coverage
+
+Coverage assessment: [Good / Adequate / Insufficient]
+
+Missing test cases:
+- [ ] [describe what scenario needs a test]
+- [ ] [describe what scenario needs a test]
+
+---
+
+What Was Done Well:
+- [positive observation]
+- [positive observation]
+
+---
+
+Decision:
+- [ ] Approved — ready to merge
+- [ ] Approved with suggestions — merge after addressing non-blocking items
+- [ ] Changes requested — blocking issues must be resolved before merge
+```
+
+---
+
+## Review Complete
+
+Confirm all three workstreams have contributed findings to the final comment. If any workstream found no issues, explicitly state "No issues found in this area."
 
 ---
 

@@ -10,6 +10,12 @@ Use this workflow when improving the internal structure of existing code without
 
 ---
 
+## Core Constraint
+
+The external behaviour of the system must not change. Any consumer of the refactored code — whether a human, a test, or another service — must not be able to tell a refactor occurred. If behaviour must change, that is a feature, not a refactor, and this workflow is the wrong tool.
+
+---
+
 ## Refactoring Principles
 
 **Behaviour must not change.** The only valid measure of a successful refactoring is that all tests pass before and all tests pass after, with no changes to the tests themselves (except where the tests were also poorly structured and are part of the refactoring scope).
@@ -18,126 +24,186 @@ Use this workflow when improving the internal structure of existing code without
 
 **Small steps.** Each step should leave the code in a working state. Run the test suite after every meaningful transformation, not just at the end.
 
-**Understand before changing.** Refactoring code you do not understand is rewriting it. Read the code thoroughly before touching it.
+**Understand before changing.** Refactoring code you do not understand is rewriting it. Read the code completely before touching it.
 
 ---
 
-## Phase 1 — Understand the Current Code
+## Phase 1 — Assess
 
-**Read the target code completely.**
-Do not start refactoring until you have read every line. Note what the code does, what invariants it maintains, what its dependencies are, and what its callers expect.
+Before touching any code, fully understand what you are working with.
 
-**Run `git log --oneline -- <file>` to see the history.**
-Understand why the code looks the way it does. Some apparent problems are intentional solutions to non-obvious constraints.
+### Scope Inventory
 
-**Map the callers.**
-Identify every place the target code is called. A refactoring that changes a function signature or behaviour contract must update all callers.
+Identify and list:
 
-**Identify the test coverage.**
-Run the test suite with coverage on the target files. If coverage is low, write tests before refactoring — you need tests to confirm you have not changed behaviour.
+- All files and functions that are in scope for this refactor
+- All callers of those functions (who depends on this code)
+- All callees — what does this code depend on?
+- Any shared state, globals, or module-level side effects
+- Configuration, environment variables, or feature flags involved
 
-**Name the problem.**
-Be specific about what structural problem you are solving: duplication, poor naming, excessive complexity, wrong abstraction level, missing abstraction, unclear responsibilities, performance pathology. A named problem leads to a targeted solution.
+Run `git log --oneline -- <file>` to see the history. Understand why the code looks the way it does — some apparent problems are intentional solutions to non-obvious constraints.
 
----
+### Smell Catalogue
 
-## Phase 2 — Add Tests (if coverage is insufficient)
+Document the specific code smells or structural issues that motivate this refactor. Use recognised names where applicable:
 
-If the existing tests do not cover the behaviour of the target code adequately:
+| Issue | Location | Impact | Priority |
+| --- | --- | --- | --- |
+| [Long Method / God Class / Duplicate Code / etc.] | [file:line] | [High/Med/Low] | [1-n] |
 
-1. Write characterisation tests: tests that capture the current behaviour exactly, including any quirks
-2. Do not add tests that specify a different behaviour than the code currently has — that is a bug fix, not a refactoring prerequisite
-3. Run the tests and confirm they pass on the unmodified code
+### Refactor Strategy
 
-These tests are your safety net. They will catch any unintended behaviour changes during the refactoring.
+Choose the refactoring techniques to apply. Be specific — use canonical refactoring names:
 
----
+- Extract Method / Extract Class
+- Rename Variable / Rename Method
+- Move Method / Move Field
+- Replace Conditional with Polymorphism
+- Introduce Parameter Object
+- Decompose Conditional
+- Inline Temp
+- Replace Magic Number with Named Constant
 
-## Phase 3 — Plan the Transformation
-
-List the refactoring steps in order. Each step should be independently verifiable:
-
-- **Rename** — rename a variable, function, or type for clarity
-- **Extract function** — pull a coherent block into a named function
-- **Extract module/class** — move a cohesive set of functions into a dedicated module
-- **Inline** — remove an abstraction that no longer earns its complexity
-- **Replace conditional with polymorphism** — convert a type-switching conditional to a strategy or visitor
-- **Introduce parameter object** — replace a long parameter list with a single structured type
-- **Move function** — relocate a function to the module that owns the data it operates on
-- **Decompose conditional** — extract complex condition logic into named predicates
-
-For each step, identify: what changes, what stays the same, what tests cover the change.
+**Output:** Scoped inventory + smell catalogue + named strategy.
 
 ---
 
-## Phase 4 — Execute
+## Phase 2 — Baseline Tests
 
-Work through the planned steps one at a time.
+This phase is non-negotiable. You must have passing tests that cover the current behaviour before any code changes.
 
-After each step:
+### Audit Existing Coverage
 
-1. Confirm the code compiles (or interprets without errors)
-2. Run the full test suite — all tests must pass
-3. Commit the step with a message that names the refactoring: `refactor: extract UserValidator from RegistrationService`
+Examine the current test suite for the scope identified in Phase 1:
 
-Do not accumulate multiple steps before committing. Small, named commits make the refactoring legible in history and make it easy to revert a single step if it causes problems.
+- Which code paths are covered?
+- Which are not?
+- Are the existing tests testing behaviour (via public API) or implementation details (via internals)?
 
-**If a test fails:**
-Stop. Do not proceed to the next step. Either:
+### Write Missing Characterisation Tests
 
-- The refactoring introduced a behaviour change (revert the step and try again more carefully), or
-- The test is fragile and tests implementation rather than behaviour (assess whether the test should be updated — but do this explicitly and record the reason)
+For any behaviour that is not covered by existing tests, write characterisation tests — tests that document the current behaviour, even if that behaviour is surprising or imperfect.
+
+Rules for characterisation tests:
+
+- Test through the public interface only, never internal implementation
+- Include edge cases and boundary conditions
+- If current behaviour is a bug, mark it explicitly: `KNOWN BUG: [description] — tracked in #<issue>`
+
+### Establish Baseline
+
+Confirm all tests pass before proceeding. Record the baseline:
+
+```
+Tests: [X passing, 0 failing, Y skipped]
+Coverage: [X% statements, Y% branches]
+```
+
+Do not proceed to Phase 3 until the baseline is confirmed passing.
 
 ---
 
-## Phase 5 — Code Quality Checks
+## Phase 3 — Refactor
 
-After all steps are complete:
+Apply the refactoring strategy from Phase 1 using small, atomic steps. Each step must:
 
-**Run the linter.** Fix any warnings introduced by the refactoring.
+1. Leave all existing tests green
+2. Represent a single, named refactoring operation
+3. Be committable independently
 
-**Run the type checker.** Fix any type errors.
+### Atomic Step Protocol
 
-**Read the diff.**
-Run `git diff main...HEAD` and read every changed line. Confirm:
+For each refactoring step:
 
-- No unintended logic changes
-- No debug statements left in
-- No commented-out old code
-- Naming is consistent throughout the changed files
+- Name the operation (for example: "Extract Method: parseUserInput")
+- Describe what changes
+- Confirm tests still pass after the change
+- Note any intermediate states that look wrong but will be cleaned up in the next step
+
+**If a test fails:** Stop. Do not proceed to the next step. Either the refactoring introduced a behaviour change (revert the step and try again more carefully), or the test is fragile and tests implementation rather than behaviour (assess whether the test should be updated and record the reason explicitly).
+
+### Behaviour-Preservation Rules
+
+- [ ] No changes to function signatures visible to external callers without deprecation handling
+- [ ] No changes to return types or shapes
+- [ ] No changes to error types thrown
+- [ ] No changes to side effects (events emitted, database writes, external calls)
+- [ ] No changes to module exports
+- [ ] No changes to configuration keys or environment variable names
+- [ ] Performance characteristics must remain within 10% (no accidentally quadratic replacements)
+
+---
+
+## Phase 4 — Verify
+
+Run the full verification suite after all refactoring steps are complete.
+
+**Test verification.**
+All tests must pass — not just the characterisation tests, but the full suite.
+
+**Behavioural equivalence check.**
+For each item in the Scope Inventory from Phase 1, verify:
+
+- [ ] Public function signatures unchanged (or backwards-compatible wrappers added)
+- [ ] Return values are identical for identical inputs
+- [ ] Error cases produce identical errors
+- [ ] Side effects occur in the same order with the same payloads
+
+**Static analysis.**
+Run the project's linter and type checker. Fix any regressions introduced by the refactor.
+
+**Diff review.**
+Review the full diff to catch any unintended changes. Flag any of the following as potential behaviour changes requiring review:
+
+- Changes to conditional logic
+- Changes to loop bounds
+- Additions or removals of function calls
+- Changes to error handling paths
+
+---
+
+## Phase 5 — Document
+
+**Update inline documentation.**
+Update docstrings and JSDoc to reflect the new structure. Remove any comments that described the old complexity. Add docstrings explaining why design decisions were made.
 
 **Check for dead code.**
 Did the refactoring leave any functions, types, or imports that are no longer used? Remove them.
 
----
+**Write refactor summary (for the PR description):**
 
-## Phase 6 — Review
+```
+Refactor: [TARGET]
 
-Before submitting the refactoring for review, answer these questions:
+Motivation:
+[Why this refactor was necessary]
 
-**Is the code easier to understand?**
-If a new engineer reads the refactored code, will it take them less time to understand it than before?
+What Changed:
+[Structural changes: what was extracted, renamed, moved, or reorganised]
 
-**Is the code easier to change?**
-Does the refactoring make the likely next changes simpler to make?
+What Did NOT Change:
+[Public interfaces, behaviour, performance characteristics]
 
-**Is the abstraction level appropriate?**
-Has the refactoring introduced abstractions that earn their complexity, or has it added layers that obscure what the code does?
+Techniques Applied:
+[List the named refactoring operations used]
 
-**Are the names better?**
-Do all names communicate intent? Are they consistent with the conventions of the surrounding codebase?
+Testing:
+- Characterisation tests added: [list]
+- Existing tests: [X passing — no regressions]
+- Coverage change: [before] -> [after]
 
----
+Follow-up Work:
+[Any tech debt discovered during refactor that was intentionally deferred]
+```
 
-## Pull Request for a Refactoring
+**CHANGELOG entry:**
 
-A refactoring PR description should include:
+```
+[refactor] - [YYYY-MM-DD]
 
-- **The problem** — what structural issue was being addressed
-- **The approach** — which refactoring techniques were applied
-- **Evidence of safety** — the test suite passes before and after; ideally, a before/after comparison that shows the structure improved
-- **What was explicitly not changed** — confirm that no behaviour changes are included
-- **Any follow-up** — bugs or improvements discovered during the refactoring that are tracked separately
+Refactored: [TARGET] — no behaviour changes, improved [maintainability/readability/testability].
+```
 
 ---
 

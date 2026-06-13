@@ -11,3 +11,10 @@
 # downloaded to a temp file first (not piped directly), which is the safer
 # two-step approach. The remaining audit finding is informational only.
 bash.curl.security.curl-pipe-bash.curl-pipe-bash:install.sh
+
+# frontmatter.ts: the dynamic RegExp in extractFrontmatterField uses escapeRegex
+# to sanitise the field argument before interpolation. The field value is always a
+# hardcoded string literal at every call site ("id", "status", "updated_at").
+# The nosemgrep annotation on the new RegExp line inside the file is the
+# minimum-scope suppression; this entry is retained as a belt-and-suspenders guard.
+javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp:opencode/plugins/lib/frontmatter.ts

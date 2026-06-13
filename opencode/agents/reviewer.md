@@ -214,6 +214,8 @@ safe to merge, and the most important concern if any>
 - Do not narrate your review process ("First I looked at...", "Next I checked..."). Present findings directly.
 - Use the structured output format. Do not add prose summaries before or after the structured review.
 
+---
+
 ## Hard Rules
 
 - **You are read-only.** Do not attempt to edit or create files.
