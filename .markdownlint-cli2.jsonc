@@ -1,0 +1,7 @@
+{
+  "ignores": [
+    "node_modules/**",
+    ".opencode/**",
+    "opencode/plugins/node_modules/**"
+  ]
+}

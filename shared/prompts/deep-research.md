@@ -1,6 +1,6 @@
 # Deep Research Workflow
 
-Use this workflow when a task requires thorough investigation before a conclusion or recommendation can be made responsibly.
+Use this workflow when a task requires thorough investigation before a conclusion or recommendation can be made responsibly. Apply the same rigour that a staff engineer would apply when evaluating a major architectural decision.
 
 ---
 
@@ -23,6 +23,8 @@ Use this workflow when:
 
 Do not use this workflow for questions with clear, well-known answers. Reserve it for genuine uncertainty.
 
+Acknowledge that as a language model you have a training cutoff and cannot access real-time data. Flag any findings that may be temporally sensitive and recommend verification against current sources.
+
 ---
 
 ## Phase 1 — Frame the Question
@@ -30,7 +32,7 @@ Do not use this workflow for questions with clear, well-known answers. Reserve i
 Before researching, sharpen the question.
 
 **State the decision to be made.**
-What will be different after this research is complete? A good research question ends in a concrete decision or action. "What are microservices?" is not a research question. "Should we decompose the payment module into a separate service given our current team size and deployment infrastructure?" is.
+What will be different after this research is complete? A good research question ends in a concrete decision or action.
 
 **Define success criteria.**
 What would a good answer look like? List the properties a satisfactory solution must have (must-haves) and the properties that would make one option preferable to another (nice-to-haves).
@@ -43,131 +45,282 @@ Summarise current knowledge. This surfaces assumptions that need to be tested an
 
 ---
 
-## Phase 2 — Systematic Investigation
+## Phase 2 — Parallel Investigation Workstreams
 
-**Explore primary sources first.**
-For code questions: read the source code and official documentation before reading blog posts or Stack Overflow. For technology choices: read the official documentation, release notes, and known limitations before reading opinions.
-
-**For codebase research:**
-
-- Run `git log --oneline --all` to understand the history
-- Read the architecture documentation, if it exists
-- Trace the data flow for the relevant operation end-to-end
-- Identify the decision points and their rationale (look in commit messages, ADRs, and PR descriptions)
-
-**For technology evaluation:**
-
-- Read the official documentation for each candidate
-- Identify the design philosophy and primary use cases
-- Research known limitations, failure modes, and scaling characteristics
-- Check the maintenance health: release frequency, open issues, contributor activity, corporate backing
-- Find production case studies from organisations with similar scale and requirements
-
-**For bug or performance investigation:**
-
-- Reproduce the problem in isolation before theorising about the cause
-- Form a hypothesis and design a test that would disprove it
-- Eliminate alternative causes systematically
-- Do not stop at the first plausible explanation — confirm it
-
-**Triangulate across sources.**
-A claim supported by the official documentation, a production case study, and independent benchmarks is more reliable than one supported by a single blog post.
-
-**Note conflicting information.**
-When sources disagree, record the disagreement and assess the reliability and recency of each source. Do not silently pick the conclusion you prefer.
+Conduct research using five parallel workstreams, then synthesise their findings using critical cross-validation. Each workstream approaches the research question from a different angle. Run all five simultaneously.
 
 ---
 
-## Phase 3 — Analysis
+### Workstream 1 — Foundational Theory
 
-**Apply the success criteria.**
-For each candidate or finding, score it against the must-haves and nice-to-haves defined in Phase 1. A candidate that fails a must-have is eliminated.
+Establish the theoretical and conceptual bedrock.
 
-**Identify risks.**
-For each viable option, enumerate the risks: technical risk (will it work at our scale?), operational risk (can we run it?), adoption risk (can the team learn it?), vendor risk (is the supplier stable?).
+Answer:
 
-**Consider second-order effects.**
-What else changes if we choose this option? What does it make easier? What does it make harder? What does it foreclose?
+1. What is the precise technical definition of the concept(s) in the research question?
+2. What are the foundational principles and invariants that govern this domain?
+3. What is the mathematical or formal basis (if applicable)?
+4. What are the key properties, guarantees, and constraints?
+5. What does the academic or research literature say about this topic?
+6. What are the seminal papers, books, or RFC/spec documents?
 
-**Stress-test your conclusion.**
-Argue against your preferred answer. What would have to be true for the alternative to be correct? Are those conditions present?
+**Output:** Conceptual foundation section with precise definitions and theoretical grounding.
+
+---
+
+### Workstream 2 — Industry Practice Survey
+
+Understand how this is actually done in production systems.
+
+Answer:
+
+1. How do large-scale, production systems approach this?
+2. What are the dominant industry patterns and their trade-offs?
+3. What have companies published in engineering blogs about this topic?
+4. What does the ecosystem of tools and libraries reveal about common approaches?
+5. Where does industry practice diverge from theoretical best practice, and why?
+6. What patterns have been adopted and then abandoned?
+
+**Output:** Industry practice survey with concrete examples and trade-off analysis.
+
+---
+
+### Workstream 3 — Comparative Analysis
+
+Evaluate the specific options or approaches relevant to the research question.
+
+1. Identify all viable approaches, tools, or solutions relevant to the question.
+2. For each option, evaluate across these criteria:
+
+| Criterion | Option A | Option B | Option C |
+| --- | --- | --- | --- |
+| Performance | | | |
+| Scalability | | | |
+| Operational complexity | | | |
+| Learning curve | | | |
+| Ecosystem maturity | | | |
+| Community/support | | | |
+| Cost implications | | | |
+| Vendor lock-in risk | | | |
+| Maintenance burden | | | |
+| Security posture | | | |
+
+1. Identify the decision factors that most strongly differentiate the options.
+2. Provide a decision guide: "Choose A when X; choose B when Y; choose C when Z."
+
+**Output:** Comparative analysis matrix with decision guide.
+
+---
+
+### Workstream 4 — Failure Mode Analysis
+
+Understand what goes wrong and why.
+
+Answer:
+
+1. What are the most common failure modes and mistakes in this domain?
+2. What are the well-known pitfalls and anti-patterns?
+3. What does post-mortem analysis from public incidents reveal?
+4. What edge cases are commonly overlooked?
+5. What does the system fail like at scale (if relevant)?
+6. What are the security failure modes (if applicable)?
+7. What do experienced practitioners universally warn against?
+
+**Output:** Failure mode catalogue with concrete examples and prevention strategies.
+
+---
+
+### Workstream 5 — Implementation and Operationalisation
+
+Translate research into actionable guidance.
+
+Answer:
+
+1. What does a minimal, correct implementation look like?
+2. What does a production-grade implementation add beyond the minimum?
+3. What are the key configuration decisions and their implications?
+4. How should this be monitored and observed in production?
+5. What are the testing strategies for this domain?
+6. How does this affect the development workflow?
+7. What are the migration paths from alternative approaches?
+
+**Output:** Actionable implementation guide with concrete code patterns where applicable.
+
+---
+
+## Phase 3 — Cross-Validation
+
+After all five workstreams complete, perform critical cross-validation.
+
+**Consistency check.**
+Do the findings from different workstreams agree? Where do they diverge, and why? Are any conclusions from one workstream contradicted by another?
+
+**Confidence assessment.**
+For each major finding, assess confidence:
+
+| Finding | Confidence | Basis | Caveats |
+| --- | --- | --- | --- |
+| [finding] | High/Medium/Low | [why confident] | [limitations] |
+
+Confidence levels:
+
+- **High:** Supported by multiple independent sources, well-established in industry, unlikely to change.
+- **Medium:** Generally accepted but with known nuances or evolving consensus.
+- **Low:** Limited evidence, highly context-dependent, or rapidly evolving area.
+
+**Temporal sensitivity.**
+Flag findings that may become outdated: specific version numbers, benchmark figures, market adoption statistics, or tool recommendations where the ecosystem evolves rapidly.
+
+**Motivated reasoning check.**
+Did you search for evidence that confirms a prior conclusion rather than evidence that tests it? Have you given fair treatment to options you personally disfavour?
 
 ---
 
 ## Phase 4 — Synthesis
 
-**Write a structured summary.**
+Produce the final research report using this structure:
 
-Include:
+```
+Technical Research Report: [RESEARCH QUESTION]
 
-1. **Question restated** — confirm you answered the right question
-2. **Method** — briefly describe how you investigated (what sources, what tests, what analysis)
-3. **Findings** — the key facts discovered, with citations or references
-4. **Options considered** — for each option evaluated, a brief description and its key trade-offs
-5. **Recommendation** — a clear, specific recommendation with the reasoning
-6. **Risks and mitigations** — the risks in the recommended approach and how to manage them
-7. **Open questions** — what remains uncertain and what would be needed to resolve it
-8. **Next steps** — the concrete actions that follow from the recommendation
-
-**Be explicit about confidence level.**
-State when you are certain (based on direct evidence) versus when you are reasoning under uncertainty. Do not present inference as fact.
-
-**Separate facts from opinions.**
-Label each claim as: observed fact, documented behaviour, expert consensus, reasoned inference, or personal judgement.
+Date: [YYYY-MM-DD]
+Overall Confidence: [High/Medium/Low]
 
 ---
 
-## Phase 5 — Review
+Executive Summary
 
-Before delivering the research output:
-
-**Check for motivated reasoning.**
-Did you search for evidence that confirms a prior conclusion rather than evidence that tests it? Have you given fair treatment to options you personally disfavour?
-
-**Check completeness.**
-Does the output answer the question as framed? Does it address all the constraints? Does it include enough information for a decision-maker to act without needing to do additional research themselves?
-
-**Check actionability.**
-Is the recommendation specific enough to act on? If someone read only the recommendation and next steps, would they know what to do?
+[3-5 paragraph summary suitable for a technical executive or staff engineer.
+Must include: the core finding, the key trade-offs, the primary recommendation,
+and the most important caveats.]
 
 ---
 
-## Output Template
+Research Question
 
+[Question restated verbatim]
+
+Scope and Constraints:
+- [What is in scope]
+- [What is explicitly out of scope]
+- [Key assumptions made]
+
+---
+
+Foundational Concepts
+
+Definitions:
+[Key Term 1]: [Precise definition]
+[Key Term 2]: [Precise definition]
+
+Core Principles:
+[2-4 paragraphs establishing the theoretical foundation]
+
+---
+
+Industry Practice
+
+[Survey from Workstream 2 with concrete examples]
+
+---
+
+Comparative Analysis
+
+Options Evaluated:
+[Detailed comparison from Workstream 3]
+
+Decision Guide:
+| If your situation is... | Then consider... | Because... |
+| [context] | [option] | [rationale] |
+
+---
+
+Common Failures and Anti-Patterns
+
+[Failure mode catalogue from Workstream 4]
+
+| Anti-Pattern | Why It Fails | Correct Approach |
+| [anti-pattern] | [failure mode] | [alternative] |
+
+---
+
+Implementation Guide
+
+Minimal Correct Implementation:
+[Code examples or patterns for a basic correct implementation]
+
+Production Considerations:
+[What a production-grade implementation adds]
+
+Testing Strategy:
+[How to test this effectively]
+
+Observability:
+[How to monitor and alert on this in production]
+
+---
+
+Findings and Confidence
+
+| # | Finding | Confidence | Notes |
+| 1 | [key finding] | High | |
+| 2 | [key finding] | Medium | Verify against current tooling |
+| 3 | [key finding] | Low | Rapidly evolving area |
+
+---
+
+Recommendations
+
+Primary Recommendation:
+[The clearest, most direct answer to the research question]
+
+Secondary Recommendations:
+1. [recommendation]
+2. [recommendation]
+
+When NOT to Apply These Recommendations:
+[Explicitly state the conditions under which these recommendations do not apply]
+
+---
+
+Open Questions
+
+[Questions that this research raised but could not definitively answer]
+
+1. [open question]
+2. [open question]
+
+---
+
+References and Further Reading
+
+Foundational:
+- [Paper/Book/RFC title] — [author/organisation] — [why relevant]
+
+Practical:
+- [Blog post/documentation title] — [author/organisation] — [why relevant]
+
+Tools and Projects:
+- [Tool name] — [what it does]
+
+---
+
+Note: Validate time-sensitive findings (version numbers, benchmarks, market adoption)
+against current sources before making major decisions.
 ```
-## Research: [QUESTION]
 
-### Method
-[How the investigation was conducted]
+---
 
-### Key Findings
-- [Finding 1]
-- [Finding 2]
-- ...
+## Research Quality Gate
 
-### Options Evaluated
+Before delivering the report, verify:
 
-**Option A: [Name]**
-- Description: ...
-- Pros: ...
-- Cons: ...
-- Risk: ...
-
-**Option B: [Name]**
-- ...
-
-### Recommendation
-[Clear, specific recommendation and primary rationale]
-
-### Risks and Mitigations
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| ... | ... | ... | ... |
-
-### Open Questions
-- [What remains uncertain]
-
-### Next Steps
-1. [First action]
-2. [Second action]
-```
+- [ ] Research question is directly answered in the Executive Summary
+- [ ] All five workstreams contributed findings
+- [ ] Conflicting findings between workstreams are explicitly addressed
+- [ ] Confidence levels are assigned to all major findings
+- [ ] Temporal sensitivities are flagged
+- [ ] Concrete, actionable recommendations are provided
+- [ ] Open questions are documented
+- [ ] The report is written for a technical audience — precise, not vague
+- [ ] Completeness: the output contains enough information for a decision-maker to act without additional research

@@ -10,7 +10,7 @@ Eleven non-negotiable rules. They apply to every task, every file, and every out
 
 Before starting any non-trivial task, identify and resolve ambiguities. Do not guess at requirements or make assumptions that a one-sentence question could resolve.
 
-Enforced by: `orchestrator.md` hard rule 8, `implementer.md` step 1, `feature.md` Phase 0.
+Enforced by: `orchestrator.md` hard rule 8, `builder.md` step 1, `feature.md` Phase 0.
 
 ### No emojis
 
@@ -21,6 +21,8 @@ Enforced by: `reviewer.md` CRITICAL criteria, `orchestrator.md` hard rule 9, `pr
 ### No inline code comments
 
 Inline comments (`// ...`, `# ...`) are forbidden. Use docstrings or JSDoc to document public APIs. Code should be self-explanatory through naming and structure.
+
+The only permitted exception is scanner suppression directives of the form `// nosemgrep: rule-id`. These must appear on the same line as the code they suppress and must name the specific rule being suppressed.
 
 Enforced by: `reviewer.md` CRITICAL criteria, `orchestrator.md` VERIFY step, `pre-commit` `no-commented-code` hook, `biome.json`.
 
@@ -79,7 +81,7 @@ Enforced by: `.pre-commit-config.yaml` (ten hook groups), `pre-commit` job in bo
 
 Every public function, class, type, and API endpoint requires a docstring or JSDoc block.
 
-Enforced by: `reviewer.md` checklist, `implementer.md` hard rules, `feature.md` Phase 3 and Phase 7 checklists.
+Enforced by: `reviewer.md` checklist, `builder.md` hard rules, `feature.md` Phase 3 and Phase 7 checklists.
 
 ### CI must be green before merge
 
@@ -99,14 +101,14 @@ Enforced by: `pre-commit` `no-ai-coauthorship` hook (commit-msg stage), `commitl
 
 | Standard                 | Agent layer                                      | Tooling layer                                |
 | ------------------------ | ------------------------------------------------ | -------------------------------------------- |
-| Ask clarifying questions | `orchestrator`, `implementer`, `feature` command | Phase 0 gate in workflow                     |
+| Ask clarifying questions | `orchestrator`, `builder`, `feature` command     | Phase 0 gate in workflow                     |
 | No emojis                | `reviewer` CRITICAL, `orchestrator` rule 9       | `no-emoji-in-source` hook, `biome`           |
 | No inline comments       | `reviewer` CRITICAL, `orchestrator` VERIFY       | `no-commented-code` hook                     |
 | No shortcuts             | `rubber-duck` blocking, `orchestrator` rule 10   | `reviewer` Must Fix                          |
 | Conventional commits     | `caveman-commit` skill, `release-manager`        | `commitlint`, CI commitlint job              |
 | Feature branches         | `workflow.md`                                    | `no-commit-to-branch`, CI branch-name job    |
 | PRs require review       | `orchestrator` rule 5                            | `CODEOWNERS`, branch protection              |
-| Pre-commit must pass     | `implementer` hard rules                         | `.pre-commit-config.yaml`, CI pre-commit job |
-| Docstrings               | `reviewer` checklist, `implementer` rules        | `feature` Phase 7 checklist                  |
+| Pre-commit must pass     | `builder` hard rules                             | `.pre-commit-config.yaml`, CI pre-commit job |
+| Docstrings               | `reviewer` checklist, `builder` rules            | `feature` Phase 7 checklist                  |
 | CI must be green         | `shared/rules/testing.md`                        | `quality-gate` job, GitLab all stages        |
 | No AI co-authorship      | `shared/AGENTS.md`, `orchestrator`               | `no-ai-coauthorship` hook, commitlint plugin |

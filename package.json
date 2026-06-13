@@ -14,11 +14,16 @@
     "lint:yaml": "yamllint .",
     "lint:shell": "shellcheck install.sh",
     "lint": "npm run lint:md && npm run lint:biome && npm run lint:yaml && npm run lint:shell",
-    "format": "biome format --write opencode/plugins/"
+    "format": "biome format --write opencode/plugins/",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
     "@commitlint/cli": "^19.0.0",
-    "@commitlint/config-conventional": "^19.0.0"
+    "@commitlint/config-conventional": "^19.0.0",
+    "@types/bun": "latest",
+    "@types/node": "^22.19.21",
+    "markdownlint-cli2": "^0.22.1",
+    "typescript": "^5.9.3"
   }
 }

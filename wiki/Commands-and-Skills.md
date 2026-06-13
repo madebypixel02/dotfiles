@@ -2,7 +2,7 @@
 
 ## Slash Commands — 16 workflows
 
-Available in OpenCode as `/command-name` and in Claude Code as `/skill-name`. Each command body lives once in `shared/prompts/` and is referenced by both tool adapters.
+Available in OpenCode as `/command-name`. Each command is a thin wrapper `.md` file in `opencode/commands/` that includes its prompt body via `@../../shared/prompts/...`; the shared prompt files are the canonical content.
 
 ### Feature development
 
@@ -65,7 +65,7 @@ Skills are loaded on demand when the agent judges them relevant, or when explici
 | `caveman`              | 105   | Lite, full, and ultra intensity levels with worked examples. Auto-clarity exception rules.                                                                           |
 | `caveman-commit`       | 97    | Conventional commit format rules, type table, good/bad examples, git context injection.                                                                              |
 | `enterprise-standards` | 500   | Naming, error handling, logging, API design, security, testing, documentation, git, PR standards. Ends with a 22-item completion checklist.                          |
-| `parallel-workflow`    | 403   | The one-message rule for parallel execution, decomposition patterns, model cost table, failure handling, nine antipatterns.                                          |
+| `parallel-workflow`    | 401   | The one-message rule for parallel execution, decomposition patterns, model cost table, failure handling, nine antipatterns.                                          |
 | `incident-response`    | 339   | P0–P3 severity matrix, triage workflow, log analysis commands, rollback decision tree, stakeholder communication templates, postmortem structure.                    |
 | `api-versioning`       | 387   | URL vs header vs date-based versioning, backward compatibility rules, deprecation lifecycle with `Deprecation` and `Sunset` headers, migration guide template.       |
 | `database-patterns`    | 525   | Migration up/down contracts, zero-downtime deploy strategies, index design, N+1 detection and fix, transaction rules, connection pool sizing, data retention policy. |
@@ -74,10 +74,8 @@ Skills are loaded on demand when the agent judges them relevant, or when explici
 
 ## Adding a New Skill
 
-1. Write the skill body in `shared/prompts/my-skill.md`.
-2. Create `opencode/skills/my-skill/SKILL.md` with the required YAML frontmatter and the body inline.
-3. Create `claude/skills/my-skill.md` with Claude Code frontmatter and `@../../shared/prompts/my-skill.md`.
-4. Commit on a `feat/` branch and open a PR.
+1. Write the skill body directly in `opencode/skills/my-skill/SKILL.md` with the required YAML frontmatter.
+2. Commit on a `feat/` branch and open a PR.
 
 Required SKILL.md frontmatter:
 

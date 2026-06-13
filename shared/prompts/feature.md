@@ -1,4 +1,4 @@
-# Feature Implementation Workflow
+# Feature Development Workflow
 
 Use this workflow when implementing a new feature from a specification, ticket, or verbal description.
 
@@ -10,77 +10,108 @@ Use this workflow when implementing a new feature from a specification, ticket, 
 
 ---
 
-## Phase 1 — Understand Before Acting
+## Phase 0 — Clarify
 
-Before writing any code, build a complete picture of the change required.
+Before any exploration or implementation, review the feature specification. If any aspect is ambiguous in a way that would cause materially different architecture or scope decisions, ask one specific clarifying question. Do not proceed until the ambiguity is resolved or the risk of proceeding is explicitly accepted.
 
-**Read the specification.**
-Parse the acceptance criteria carefully. Identify what the feature must do, what it must not do, and what is explicitly out of scope. Flag any ambiguity before proceeding.
+---
 
-**Explore the existing codebase.**
-Run `git log --oneline -10` to see recent activity. Read the module or service most likely to own this feature. Understand the data model, the API surface, and the existing test patterns. Do not start implementing until you can answer: where does this code live, and how does it fit with what already exists?
+## Phase 1 — Explore (Understand the Codebase)
 
-**Identify dependencies.**
-List every internal service, external API, database table, queue, or configuration value the feature will touch. Note which of these already exist and which must be created.
+Before writing a single line of code, deeply understand the relevant parts of the existing system.
 
-**Clarify before building.**
-If the specification is ambiguous on a decision that would be hard to reverse (data model shape, API contract, authorisation model), raise the question before writing code.
+**Identify the relevant modules.**
+Find all files, modules, and packages related to the feature domain. Run `git log --oneline -10` to see recent activity. Read the module or service most likely to own this feature.
+
+**Map the data flow.**
+Where does data enter, transform, and exit the system? Understand the data model, the API surface, and the existing test patterns.
+
+**Identify existing patterns.**
+Note naming conventions, error handling approach, logging style, and testing patterns in the surrounding code. List any existing abstractions or utilities the feature should reuse.
+
+**Surface constraints.**
+Identify any tech debt, known issues, or architectural constraints in the area. List every internal service, external API, database table, queue, or configuration value the feature will touch.
+
+**Output:** A concise Exploration Summary that captures: affected modules, existing patterns to follow, reuse opportunities, and constraints.
 
 ---
 
 ## Phase 2 — Design
 
-Produce a brief design before writing implementation code.
+Using the Exploration Summary, produce a technical design before writing implementation code.
 
-**Data model.**
-Define any new entities, fields, or relationships. Consider: nullable vs. required, index requirements, foreign key constraints, migration strategy.
+### Data Model
 
-**API contract.**
+Define any new entities, fields, or relationships. Consider: nullable vs. required, index requirements, foreign key constraints, and migration strategy.
+
+### API Contract
+
 If the feature exposes or consumes an API, define the endpoint paths, HTTP methods, request schemas, response schemas, and error codes. Follow the conventions in the existing API.
 
-**Authorisation model.**
+### Authorisation Model
+
 Define who can perform each action and under what conditions. Map this to the existing roles or permission system.
 
-**Edge cases.**
+### Edge Cases
+
 List the non-obvious scenarios: empty states, concurrent writes, large payloads, missing optional fields, downstream service unavailability.
 
-**Sequencing.**
-If the feature requires multiple steps (e.g., database migration, then backend, then frontend), define the order and confirm each step can be deployed independently.
+### Lightweight ADR
+
+Document the key decisions made during design:
+
+```
+ADR: [Feature Name] Implementation Approach
+Status: Proposed
+Context: [Why this decision is needed]
+Decision: [What was decided]
+Alternatives Considered: [Other options evaluated]
+Consequences: [Trade-offs accepted]
+```
+
+**Output:** Technical design document + ADR stub.
 
 ---
 
-## Phase 3 — Test-First Implementation
+## Phase 3 — Implement
 
-**Write failing tests first.**
-Before implementing each unit of behaviour, write a test that describes the expected outcome. Confirm the test fails for the right reason (the behaviour does not exist yet, not a test setup error).
+Implement the feature following the design exactly. Apply all existing project conventions discovered in Phase 1.
 
-**Implement the minimum code to pass the tests.**
-Work in small increments. After each increment, run the full test suite to confirm nothing is broken.
+Implement in this order:
 
-**Add integration tests.**
-Cover the critical path through the feature end-to-end: from the API handler through the service layer to the database (or equivalent boundary).
+1. Data models, types, and schemas
+2. Core business logic
+3. Integration layer (API routes, event handlers, data access layer)
+4. Configuration and environment variables
 
-**Add edge case tests.**
-Test the scenarios identified in Phase 2: empty inputs, missing fields, concurrent access, downstream failure simulation.
+Rules:
+
+- Write code in the smallest reviewable increments.
+- Every public function must have a docstring, JSDoc block, or type annotation.
+- No inline code comments. Public functions, types, and API endpoints require docstrings or JSDoc.
+- Handle all error paths explicitly — no silent failures.
+- Log at appropriate levels: debug for trace, info for key actions, warn and error for failures.
+- Do not introduce new dependencies without noting them in the design.
 
 ---
 
-## Phase 4 — Implementation Quality
+## Phase 4 — Test
 
-**Follow project conventions.**
-Match the code style, naming patterns, error handling approach, and logging style of the surrounding code. Run the project's formatter and linter.
+Write a comprehensive test suite. This phase can proceed in parallel with Phase 5 once implementation is complete.
 
-**Handle errors explicitly.**
-Every error from a dependency (database, HTTP client, queue) must be handled: logged with context, returned to the caller with an appropriate error type, or explicitly discarded with a comment explaining why.
+**Unit tests** — test each function in isolation with mocked dependencies.
 
-**Add structured logging.**
-Log at meaningful points: when a significant action is taken, when an error occurs, when a decision branches on runtime data. Include relevant identifiers (request ID, user ID, entity ID) in every log line.
+**Integration tests** — test the feature end-to-end within the process boundary, covering the critical path from the API handler through the service layer to the data access boundary.
 
-**Add metrics.**
-Emit a counter or histogram for each significant operation (requests received, items processed, errors by type). Follow the naming convention used by existing metrics in the project.
+**Edge case tests** — empty inputs, boundary values, concurrent access, failure injection for the scenarios identified in Phase 2.
 
-**Document the public interface.**
-Add doc comments to every public function, type, and API endpoint introduced by this feature. Include: what it does, what its parameters mean, what it returns, and what errors it can produce.
+Test quality checklist:
+
+- [ ] Happy path covered
+- [ ] Each error path has a corresponding test
+- [ ] Boundary conditions tested
+- [ ] Tests are deterministic (no time-dependent or order-dependent behaviour)
+- [ ] Test names are descriptive and state the expected outcome
 
 ---
 
@@ -91,9 +122,10 @@ Apply the full security checklist from `shared/rules/security.md` to any code pa
 Key questions:
 
 - Is every user-supplied value validated before use?
-- Are authorisation checks applied at every action?
+- Are authorisation checks applied at every action, not just in the UI layer?
 - Are secrets read from the environment, not hardcoded?
-- Are sensitive values absent from logs?
+- Are sensitive values absent from log statements?
+- Are SQL queries parameterised?
 
 ---
 
@@ -108,7 +140,18 @@ Before committing, run each of the following and fix all failures:
 5. Integration tests: confirm all pass
 6. Manual smoke test: exercise the feature by hand in a local environment
 
-Run `git diff --stat` to confirm only the intended files are staged. Run `git diff --cached` to read every line of the diff and confirm there are no debug statements, hardcoded values, or commented-out code.
+Review the full diff to confirm only the intended files are staged and that there are no debug statements, hardcoded values, or commented-out code.
+
+Run through this checklist:
+
+- [ ] All tests pass
+- [ ] No new linting errors introduced
+- [ ] Feature matches the original requirement
+- [ ] ADR is saved to `docs/decisions/` (create the directory if it does not exist)
+- [ ] No inline code comments added
+- [ ] All new public functions have docstrings
+- [ ] Pre-commit hooks pass locally
+- [ ] Branch name follows the pattern: `feat/description` or `fix/description`
 
 ---
 
@@ -127,14 +170,40 @@ Assign reviewers who have context on the affected code area.
 
 ---
 
+## Final Output
+
+Produce a structured summary:
+
+```
+Feature Complete: [Feature Name]
+
+What was built:
+[2-3 sentences]
+
+Files changed:
+[List of files created or modified]
+
+Tests added:
+[List of test files and coverage areas]
+
+Known limitations:
+[Any intentional scope cuts or follow-up work needed]
+
+PR Description (ready to paste):
+Title: feat: [description]
+Summary: [what and why]
+Testing: [how to verify]
+```
+
+---
+
 ## Completion Checklist
 
 - [ ] Acceptance criteria from the specification all addressed
-- [ ] Tests written before implementation (or at minimum, alongside)
+- [ ] Tests written before or alongside implementation
 - [ ] All edge cases identified in Phase 2 have tests
 - [ ] Security checklist applied to relevant code paths
 - [ ] Structured logging added at key operations
-- [ ] Metrics emitted for significant operations
 - [ ] Public interfaces documented
 - [ ] Build, lint, typecheck, and full test suite pass
 - [ ] Diff reviewed line by line before commit

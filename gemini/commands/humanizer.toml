@@ -1,0 +1,160 @@
+description = "Remove AI-generated writing patterns from prose — audits against 33 patterns then delivers a clean rewrite"
+
+prompt = """
+# Humanizer
+
+Remove AI-generated writing patterns from the text below. Detect and fix all instances of the 33 patterns. Deliver the audit and the final rewrite.
+
+## Input
+
+{{args}}
+
+---
+
+## Process
+
+1. Read the input text in full.
+2. Identify every instance of the 33 patterns below. Note each by pattern number and location.
+3. Draft a rewrite that resolves all flagged instances.
+4. Self-audit: ask "what still sounds AI-generated?" and list any remaining signals.
+5. Final rewrite: apply the self-audit corrections.
+6. Deliver: show (a) the audit bullets listing what was found and fixed, then (b) the final text.
+
+---
+
+## Hard Constraints
+
+- Zero em dashes (--) and en dashes (-) in output. Replace with a period, comma, colon, or parentheses.
+- Zero curly/smart quotes. Use straight quotes (" ').
+- Zero emojis unless the original human text contained them.
+- Never add content not present in the original. Only remove, rephrase, or restructure.
+- Never add a summary, explanation, or preamble to the output. Deliver the rewritten text directly.
+
+---
+
+## The 33 Patterns
+
+### Content Patterns (1-6)
+
+**1. Significance Inflation**
+Assigning outsized historical or evolutionary importance to ordinary things.
+
+**2. Notability Name-Dropping**
+Citing publications or authorities without a real reference to add credibility.
+
+**3. Superficial -ing Analyses**
+Stacking present-participle phrases that claim to interpret something without saying anything concrete.
+
+**4. Promotional Language**
+Travel-brochure adjectives applied to products, places, or features.
+
+**5. Vague Attributions**
+Crediting unnamed experts, studies, or consensus to lend authority.
+
+**6. Formulaic Challenges Sections**
+Boilerplate adversity-and-triumph narrative with no specifics.
+
+### Language Patterns (7-13)
+
+**7. AI Vocabulary**
+Words statistically overrepresented in LLM output: delve, tapestry, testament, vibrant, pivotal, underscore, landscape, fostering, garner, intricate, elevate, holistic.
+
+**8. Copula Avoidance**
+Using elaborate verbs where "is" or "has" would be direct.
+
+**9. Negative Parallelisms and Tailing Negations**
+"It's not just X, it's Y" frames or sentences that end with a negation for rhetorical effect.
+
+**10. Rule of Three**
+Triplet lists chosen for rhythm rather than completeness.
+
+**11. Synonym Cycling**
+Using multiple words for the same referent within a passage.
+
+**12. False Ranges**
+"From X to Y" constructions where X and Y are so far apart the range communicates nothing.
+
+**13. Passive Voice / Subjectless Fragments**
+Removing the actor to sound authoritative or neutral.
+
+### Style Patterns (14-22)
+
+**14. Em Dashes and En Dashes**
+Both -- and - must be eliminated.
+
+**15. Boldface Overuse**
+Bold used on every key noun rather than reserved for the one genuinely critical term per section.
+
+**16. Inline-Header Lists**
+A bold label followed immediately by the label restated as prose.
+
+**17. Title Case Headings**
+Capitalizing every word in a heading.
+
+**18. Emojis**
+Remove all emojis unless they were present in the original human-authored text.
+
+**19. Curly Quotes**
+Replace all curly/smart quotes with straight ASCII equivalents.
+
+**20. Chatbot Artifacts**
+Pleasantry closings, offers of further help, sign-offs.
+
+**21. Knowledge-Cutoff Disclaimers**
+Boilerplate hedges about training data dates.
+
+**22. Sycophantic Tone**
+Complimenting the question or validating the asker before responding.
+
+### Filler and Hedging (23-25)
+
+**23. Filler Phrases**
+Wordy constructions: "In order to", "Due to the fact that", "At this point in time", "In the event that", "It is important to note that".
+
+**24. Excessive Hedging**
+Stacking multiple hedges that cancel each other out.
+
+**25. Generic Positive Conclusions**
+Vague optimistic endings that carry no information.
+
+### More Patterns (26-33)
+
+**26. Hyphenated Predicate Overuse**
+Stacking compound adjectives as if they are accomplishments: "data-driven, cross-functional, impact-focused."
+
+**27. Persuasive Authority Tropes**
+Meta-commentary claiming to reveal what "really" matters.
+
+**28. Signposting Announcements**
+Telling the reader you are about to begin instead of beginning.
+
+**29. Fragmented Headers**
+A heading followed by one sentence that restates the heading before the real content begins.
+
+**30. Diff-Anchored Writing**
+Describing current behavior by comparing it to a previous version the reader may not know.
+
+**31. Manufactured Punchlines**
+Staccato fragments arranged for dramatic effect rather than clarity.
+
+**32. Aphorism Formulas**
+Abstract symmetry statements offered as insight.
+
+**33. Conversational Rhetorical Openers**
+Performative hedges that delay the actual answer: "Honestly? It depends."
+
+---
+
+## Delivery Format
+
+```
+### Audit
+
+- [Pattern #N] Description of instance found and what was changed.
+- [Pattern #N] ...
+
+### Result
+
+[Final rewritten text here, with no preamble.]
+```
+"""

@@ -10,6 +10,7 @@ permission:
   grep: "allow"
   list: "allow"
   edit: "allow"
+  task: "deny"
   bash:
     "*": "deny"
     "git log*": "allow"
@@ -95,18 +96,18 @@ You parse commits following the [Conventional Commits 1.0.0](https://www.convent
 
 | Commit type                       | CHANGELOG section           | Version impact              |
 | --------------------------------- | --------------------------- | --------------------------- |
-| `feat`                            | ✨ Features                 | MINOR                       |
-| `fix`                             | 🐛 Bug Fixes                | PATCH                       |
-| `perf`                            | ⚡ Performance Improvements | PATCH                       |
-| `refactor`                        | ♻️ Refactoring              | PATCH (internal)            |
-| `docs`                            | 📚 Documentation            | PATCH (docs only)           |
-| `test`                            | 🧪 Tests                    | PATCH (internal)            |
-| `build`                           | 🏗️ Build System             | PATCH (internal)            |
-| `ci`                              | 👷 CI/CD                    | PATCH (internal)            |
-| `chore`                           | 🔧 Chores                   | PATCH (internal)            |
-| `style`                           | 💄 Style                    | omit from user-facing notes |
-| Any with `BREAKING CHANGE` footer | 💥 Breaking Changes         | **MAJOR**                   |
-| Any with `!` after type           | 💥 Breaking Changes         | **MAJOR**                   |
+| `feat`                            | Features                    | MINOR                       |
+| `fix`                             | Bug Fixes                   | PATCH                       |
+| `perf`                            | Performance Improvements    | PATCH                       |
+| `refactor`                        | Refactoring                 | PATCH (internal)            |
+| `docs`                            | Documentation               | PATCH (docs only)           |
+| `test`                            | Tests                       | PATCH (internal)            |
+| `build`                           | Build System                | PATCH (internal)            |
+| `ci`                              | CI/CD                       | PATCH (internal)            |
+| `chore`                           | Chores                      | PATCH (internal)            |
+| `style`                           | Style                       | omit from user-facing notes |
+| Any with `BREAKING CHANGE` footer | Breaking Changes            | **MAJOR**                   |
+| Any with `!` after type           | Breaking Changes            | **MAJOR**                   |
 
 ### Parsing Examples
 
@@ -172,28 +173,28 @@ Produce the new CHANGELOG section in [Keep a Changelog](https://keepachangelog.c
 ```markdown
 ## [2.4.0] - 2026-06-11
 
-### 💥 Breaking Changes
+### Breaking Changes
 
 - **auth:** remove deprecated `password` field from login response — migrate
   to the `token` field introduced in v2.1.0 ([#892](https://github.com/org/repo/pull/892))
 
-### ✨ Features
+### Features
 
 - **billing:** add subscription tiers with usage-based pricing ([#901](https://github.com/org/repo/pull/901))
 - **api:** add cursor-based pagination to all list endpoints ([#887](https://github.com/org/repo/pull/887))
 - **notifications:** add Slack webhook integration ([#879](https://github.com/org/repo/pull/879))
 
-### 🐛 Bug Fixes
+### Bug Fixes
 
 - **auth:** prevent session fixation after role change ([#903](https://github.com/org/repo/pull/903))
 - **api:** return 404 instead of 500 when resource is not found ([#898](https://github.com/org/repo/pull/898))
 - **billing:** fix invoice date calculation for leap years ([#895](https://github.com/org/repo/pull/895))
 
-### ⚡ Performance Improvements
+### Performance Improvements
 
 - **database:** add composite index on `(user_id, created_at)` for timeline queries ([#891](https://github.com/org/repo/pull/891))
 
-### 📚 Documentation
+### Documentation
 
 - **api:** complete OpenAPI spec for billing endpoints ([#889](https://github.com/org/repo/pull/889))
 ```

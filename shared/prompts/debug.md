@@ -1,182 +1,297 @@
 # Debug Workflow
 
-Use this workflow when investigating a bug, unexpected behaviour, or system failure.
+Systematic 7-step debugging: Reproduce, Isolate, Diagnose, Fix, Verify, Document, Prevent.
+
+Work through all seven steps in order. Never skip a step, even if the answer seems obvious — the "obvious" cause is wrong more often than it is right.
 
 ---
 
-## Input
+## Step 1 — Reproduce
 
-[BUG DESCRIPTION] — provide: what the observed behaviour is, what the expected behaviour is, when the issue was first observed, how to reproduce it (steps, inputs, environment), any error messages or stack traces, and what has already been tried.
+**Goal:** Establish a minimal, reliable reproduction of the bug.
 
----
+A bug you cannot reproduce reliably cannot be fixed reliably.
 
-## Debugging Principles
+### 1a. Reproduce the Exact Failure
 
-**Do not guess. Observe.**
-Every debug action should be designed to gather information, not to try things randomly. A fix applied without understanding the cause may mask the symptom while leaving the root cause in place.
+From the issue description, identify:
 
-**One variable at a time.**
-When investigating, change one thing at a time and observe the effect. Changing multiple things simultaneously makes it impossible to know which change mattered.
+- The exact input or action that triggers the bug.
+- The expected outcome.
+- The actual outcome (error message, wrong output, crash, hang, etc.).
+- The frequency: always / intermittent / under specific conditions only.
 
-**Reproduce before fixing.**
-If you cannot reproduce the bug, you cannot confirm it is fixed. Invest in reproduction before writing any fix.
+### 1b. Minimal Reproduction Case
 
-**Follow the data.**
-Trace the data from the point it enters the system to the point where it produces the wrong output. The bug is usually the first place where the data takes an unexpected value.
+Reduce the reproduction to the smallest possible case:
 
----
+- Strip away unrelated code, configuration, and data.
+- Identify the minimum set of conditions required to trigger the bug.
+- If the bug is intermittent, identify what variables affect the frequency (concurrency, timing, data size, specific inputs).
 
-## Phase 1 — Understand the Report
+### 1c. Establish Reproduction Criteria
 
-**Clarify the expected vs. actual behaviour.**
-State precisely: what should happen, what actually happens, and how you know (error message, wrong output value, performance measurement, user complaint).
-
-**Assess reproducibility.**
-Is the bug deterministic (happens every time with the same input) or non-deterministic (intermittent)? Deterministic bugs are easier to investigate. Non-deterministic bugs usually involve concurrency, timing, external state, or randomness.
-
-**Identify the scope.**
-Does the bug affect all users or a subset? All environments or one? A recent regression, or a long-standing issue? The answers narrow the search space before you read a line of code.
-
-**Reproduce the bug.**
-Follow the reproduction steps. Confirm you can see the wrong behaviour. If you cannot reproduce, investigate why: environment differences, missing preconditions, non-determinism. Do not proceed past this step without a reliable reproduction.
-
----
-
-## Phase 2 — Gather Evidence
-
-**Read the error message and stack trace.**
-Read them completely — not just the first line. The most useful information is often in the middle or at the cause chain. Note: the file name, function name, and line number of every frame in the call stack.
-
-**Read the logs.**
-Find the log output surrounding the time of the failure. Look for: the last successful operation before the failure, any warnings or errors preceding the failure, and context values (user ID, request ID, input data) that were in scope.
-
-**Check recent changes.**
-Run `git log --oneline -20` to see what changed recently. If this is a regression, compare the current behaviour against the last known-good commit: `git bisect` can find the introducing commit in O(log N) steps.
-
-**Identify the data at the failure point.**
-What values are in scope when the failure occurs? Add logging or use a debugger to observe the actual runtime values. Compare them against the expected values.
-
----
-
-## Phase 3 — Localise the Bug
-
-**Narrow the failing scope.**
-Start at the outermost entry point (API handler, queue consumer, CLI entry) and work inward. At each layer, determine: does this layer receive correct input and produce incorrect output (bug is here), or does it receive incorrect input (bug is upstream)?
-
-**Form hypotheses.**
-Based on the evidence, form a specific hypothesis: "The bug is in function X, because it assumes input Y is always non-null, but in this case it is null because Z."
-
-**Design a test to disprove the hypothesis.**
-Write a test or add logging that would prove the hypothesis wrong. Run it. If it disproves the hypothesis, revise and try again. If it confirms the hypothesis, you have located the bug.
-
-**For non-deterministic bugs:**
-
-- Add comprehensive logging around the suspected code path
-- Look for shared mutable state accessed without locks
-- Look for race conditions between goroutines, threads, or async operations
-- Check for operations that depend on wall-clock time or external service timing
-- Use a race detector if the language provides one (`go test -race`, ThreadSanitizer)
-- Reproduce under load to increase the frequency of the failure
-
-**Use bisect for regressions.**
-If you know which commit introduced the bug, use `git bisect start`, mark the bad and good commits, and let git find the introducing commit automatically. Read that commit carefully.
-
----
-
-## Phase 4 — Understand the Root Cause
-
-Do not stop at the first explanation. Ask "why?" recursively until you reach a root cause that, if addressed, would prevent the bug (and bugs like it) from recurring:
-
-- Why did the null pointer dereference occur?
-  → Because the cache miss path returned nil without checking
-- Why did the cache miss path return nil?
-  → Because the fallback fetch function was never implemented
-- Why was it never implemented?
-  → Because the unit test only covered the cache hit path
-
-The root cause is "insufficient test coverage of the cache miss path", not "nil pointer dereference". The fix addresses the root cause (add the test and the implementation), not just the symptom (add a nil check before the dereference).
-
----
-
-## Phase 5 — Write a Reproduction Test
-
-Before writing the fix, write a test that:
-
-1. Reproduces the bug (the test fails on the current code)
-2. Verifies the bug is fixed (the test will pass after the fix)
-3. Is at the lowest appropriate level of the test pyramid (unit if possible, integration if necessary)
-
-This test is your most important deliverable. It:
-
-- Proves you understand the bug
-- Confirms your fix is correct
-- Prevents regression
-
----
-
-## Phase 6 — Fix
-
-**Write the minimum fix.**
-Address the root cause, not just the symptom. The fix should be the smallest change that makes the reproduction test pass and leaves the rest of the tests green.
-
-**Check for related instances.**
-Search the codebase for other places with the same pattern as the bug. Fix them, or note them as follow-up tasks if they are out of scope.
-
-**Run the full test suite.**
-All tests must pass after the fix. If any test fails that was not already failing, the fix has introduced a regression.
-
-**Review the fix.**
-Read the diff of your fix. Confirm:
-
-- The logic is correct
-- No edge cases are missed
-- Error handling is present
-- Naming is clear
-- No debug code is left in
-
----
-
-## Phase 7 — Verify and Document
-
-**Verify the fix in the reproduction environment.**
-Deploy the fix to a local or staging environment and reproduce the original bug report. Confirm the bug is gone.
-
-**Write a commit message that explains the cause.**
-The commit message should include: what the bug was, why it occurred, and how the fix addresses the root cause. Reference the issue number.
-
-Example:
+Write a clear, unambiguous "bug is present" criterion:
 
 ```
-fix: handle nil return from cache miss in user loader
-
-When the user cache missed and the database returned no rows,
-fetchUserFromDB returned nil without error. The caller assumed
-a non-nil value and dereferenced the pointer, causing a panic.
-
-Fix by returning ErrNotFound when the database returns no rows,
-and handle ErrNotFound in the caller by returning a 404 response.
-
-Fixes #4821
+Given: [preconditions / initial state]
+When:  [action or input]
+Then:  [observable failure — be specific about error messages, values, or behaviour]
 ```
 
-**Add a postmortem note for high-severity bugs.**
-For bugs that caused a production incident or significant data integrity concern, create a postmortem. See the hotfix workflow for the postmortem structure.
+This criterion will be used in Step 5 (Verify) to confirm the fix.
+
+**Checkpoint:** Do not proceed until you can reproduce the bug consistently (or have fully characterised its intermittency).
 
 ---
 
-## Debug Checklist
+## Step 2 — Isolate
 
-- [ ] Expected vs. actual behaviour clearly stated
-- [ ] Bug reproduced reliably before investigating
-- [ ] Error message and stack trace read in full
-- [ ] Logs examined around the time of failure
-- [ ] Recent changes reviewed for regression
-- [ ] Hypothesis formed and tested
-- [ ] Root cause identified (not just the symptom)
-- [ ] Reproduction test written (failing before fix)
-- [ ] Fix implements the minimum change to address root cause
-- [ ] Reproduction test passes after fix
-- [ ] Full test suite passes after fix
-- [ ] Related code paths checked for same pattern
-- [ ] Commit message explains cause and fix
-- [ ] Fix verified in reproduction environment
+**Goal:** Narrow the fault to a specific location in the code.
+
+### 2a. Identify the Fault Domain
+
+Start with the observable failure and work backwards:
+
+- What component/module/service is producing the incorrect output?
+- What is the call stack at the point of failure?
+- What is the data state at the point of failure?
+
+### 2b. Binary Search the Codebase
+
+Systematically narrow the fault location:
+
+1. Draw the execution path from entry point to failure point.
+2. Identify the midpoint of that path.
+3. Add an observation point (log, assertion, breakpoint) at the midpoint.
+4. Determine: is the data correct before the midpoint, or is it already wrong?
+5. Repeat, focusing on the half containing the fault.
+
+### 2c. Identify the Fault Boundary
+
+Establish the exact function/line range where:
+
+- Data/state is **correct** (before the fault)
+- Data/state is **incorrect** (after the fault)
+
+```
+Correct state observed at: [function/file:line]
+Incorrect state first seen at: [function/file:line]
+```
+
+**Checkpoint:** The fault is isolated to a specific code range before proceeding.
+
+---
+
+## Step 3 — Diagnose
+
+**Goal:** Understand the root cause — not the symptom.
+
+### 3a. Form Hypotheses
+
+Based on the isolated fault location, list all plausible root causes (be exhaustive):
+
+| #   | Hypothesis   | Likelihood   | How to Test   |
+| --- | ------------ | ------------ | ------------- |
+| 1   | [hypothesis] | High/Med/Low | [test method] |
+| 2   | [hypothesis] | High/Med/Low | [test method] |
+
+### 3b. Test Each Hypothesis
+
+Test hypotheses from most to least likely. For each:
+
+- State the prediction: "If this hypothesis is correct, then [observable X] will happen."
+- Perform the test.
+- Record the result: confirmed / refuted.
+- Update the remaining hypotheses based on findings.
+
+### 3c. Identify Root Cause
+
+The root cause is the deepest, most fundamental explanation — not a symptom.
+
+**Symptom example:** "The API returns a 500 error."
+**Root cause example:** "The database query throws a null pointer exception when the `userId` field is missing from the request, because the validation middleware does not run on this route."
+
+Ask "why?" at least five times (Five Whys technique) to reach root cause.
+
+### 3d. Classify the Bug
+
+| Class               | Description                                        |
+| ------------------- | -------------------------------------------------- |
+| Off-by-one          | Boundary/index error                               |
+| Race condition      | Timing/concurrency issue                           |
+| Null/undefined      | Missing null check or uninitialised state          |
+| Type error          | Wrong type assumption                              |
+| Logic error         | Incorrect conditional or algorithm                 |
+| Integration error   | Mismatched contract between components             |
+| Configuration error | Wrong env var, config value, or deployment config  |
+| Regression          | Previously working code broken by a recent change  |
+| Data corruption     | Invalid data in storage causing downstream failure |
+
+**Checkpoint:** Root cause is identified and classified before proceeding.
+
+---
+
+## Step 4 — Fix
+
+**Goal:** Implement the minimal, correct fix for the diagnosed root cause.
+
+### 4a. Fix Principles
+
+- Fix the **root cause**, not the symptom.
+- The fix should be the smallest change that fully addresses the root cause.
+- Do not refactor unrelated code during a bug fix.
+- Do not add features during a bug fix.
+- If the correct fix is large (> ~50 lines), consider whether a targeted workaround is more appropriate for now, with a tracked follow-up for the proper fix.
+
+### 4b. Implement the Fix
+
+Apply the fix now.
+
+### 4c. Fix Review
+
+Before verifying, review the fix for:
+
+- [ ] Does it address the root cause (not just a symptom)?
+- [ ] Are there other code paths with the same root cause (look for the same bug elsewhere)?
+- [ ] Does the fix introduce any new risks (especially around error handling and edge cases)?
+- [ ] Is the fix backwards-compatible?
+- [ ] If the bug was a security vulnerability, is the fix complete (no partial mitigations)?
+
+---
+
+## Step 5 — Verify
+
+**Goal:** Prove the bug is fixed and nothing else is broken.
+
+### 5a. Reproduce the Original Failure (Pre-Fix Confirmation)
+
+If possible, demonstrate that the bug exists before the fix is applied (use git stash or describe the state). Verify the exact reproduction criterion from Step 1 would fail.
+
+### 5b. Verify the Fix
+
+With the fix applied, verify the exact reproduction criterion from Step 1 now passes:
+
+```
+Given: [same preconditions from Step 1]
+When:  [same action from Step 1]
+Then:  [expected outcome — confirm this now occurs]
+```
+
+### 5c. Regression Testing
+
+Run the full test suite. No existing tests should be newly failing:
+
+```
+!`echo "Run your test command here, e.g.: npm test / pytest / go test ./... / cargo test"`
+```
+
+### 5d. Edge Case Verification
+
+For the root cause identified in Step 3, test adjacent cases:
+
+- What happens with empty/null/zero input?
+- What happens at boundary conditions?
+- What happens under concurrent access (if applicable)?
+- What happens when the system is under load (if applicable)?
+
+**Checkpoint:** Original bug is confirmed fixed. No regressions. Adjacent edge cases pass.
+
+---
+
+## Step 6 — Document
+
+**Goal:** Record everything future engineers need to understand this bug.
+
+### 6a. Write the Bug-Fix Commit Message
+
+```
+fix: <concise description of what was wrong and what was fixed>
+
+**Root cause:** <one sentence — the fundamental reason the bug existed>
+
+**Symptom:** <what the user/system observed>
+
+**Fix:** <what change was made and why it resolves the root cause>
+
+**Testing:** <how the fix was verified>
+
+Closes #<issue number if applicable>
+```
+
+### 6b. Add a Regression Test
+
+If a regression test was not already written, write one now. Mark it clearly:
+
+```
+// REGRESSION TEST: Prevents recurrence of [brief description]
+// Bug was introduced in [commit hash or PR] and fixed in [this commit]
+```
+
+The test name should describe the bug scenario, not the implementation:
+
+- Good: `it("returns 422 when userId is missing from the request body")`
+- Bad: `it("handles null userId")`
+
+### 6c. Update Documentation (if applicable)
+
+If the bug reveals a gap in documentation (a "gotcha" that should be documented), update the relevant docs now.
+
+---
+
+## Step 7 — Prevent
+
+**Goal:** Learn from this bug to prevent similar bugs in the future.
+
+### 7a. Systemic Analysis
+
+Answer these questions:
+
+1. **Why did this bug exist?** (missing test, unclear API contract, wrong assumption, etc.)
+2. **Why did it reach production?** (gap in code review, missing test coverage, unclear requirements, etc.)
+3. **Are there similar bugs elsewhere?** Scan the codebase for the same pattern.
+
+### 7b. Prevention Recommendations
+
+Produce a list of prevention measures:
+
+| Recommendation                        | Type          | Priority | Effort |
+| ------------------------------------- | ------------- | -------- | ------ |
+| [Add input validation at X]           | Guard clause  | High     | Small  |
+| [Add test coverage for Y]             | Test coverage | Medium   | Medium |
+| [Update API documentation for Z]      | Documentation | Low      | Small  |
+| [Add linting rule to catch pattern W] | Tooling       | High     | Medium |
+
+### 7c. Similar Pattern Search
+
+Search the codebase for instances of the same root cause pattern:
+
+```
+!`grep -rn "[pattern related to root cause]" --include="*.js" --include="*.ts" --include="*.py" --include="*.go" . 2>/dev/null | grep -v "test\|spec\|node_modules" | head -30 || echo "(search pattern not specified — perform manually based on root cause)"`
+```
+
+List any additional files that may contain the same bug and create tracking issues for each.
+
+---
+
+## Debug Complete — Summary
+
+```
+## Bug Report
+
+**Issue:** [issue description]
+
+**Root Cause:** [one sentence]
+
+**Root Cause Classification:** [from Step 3d table]
+
+**Fix Applied:** [what changed, file:line]
+
+**Verification:** [how confirmed fixed]
+
+**Regression Test:** [file:test-name]
+
+**Prevention:** [top 1-2 recommendations]
+
+**Broader Impact:** [any other locations with same pattern, or "none found"]
+```

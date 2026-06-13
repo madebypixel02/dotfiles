@@ -1,0 +1,103 @@
+{
+  "context": {
+    "fileName": ["GEMINI.md", "AGENTS.md"]
+  },
+  "mcpServers": {
+    "context7": {
+      "httpUrl": "https://mcp.context7.com/mcp",
+      "trust": false
+    },
+    "semgrep": {
+      "httpUrl": "https://mcp.semgrep.ai/mcp",
+      "trust": false
+    },
+    "github": {
+      "httpUrl": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer $GITHUB_PERSONAL_ACCESS_TOKEN"
+      },
+      "trust": false
+    },
+    "sentry": {
+      "httpUrl": "https://mcp.sentry.dev/mcp",
+      "trust": false
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--headless"],
+      "trust": false,
+      "timeout": 30000
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres", "$DB_DSN"],
+      "trust": false
+    },
+    "grafana": {
+      "command": "uvx",
+      "args": ["mcp-grafana"],
+      "env": {
+        "GRAFANA_URL": "$GRAFANA_URL",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "$GRAFANA_TOKEN"
+      },
+      "trust": false
+    },
+    "linear": {
+      "httpUrl": "https://mcp.linear.app/mcp",
+      "trust": false
+    },
+    "exa": {
+      "httpUrl": "https://mcp.exa.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer $EXA_API_KEY"
+      },
+      "trust": false
+    },
+    "kubernetes": {
+      "command": "npx",
+      "args": ["mcp-server-kubernetes"],
+      "env": {
+        "ALLOW_ONLY_NON_DESTRUCTIVE_TOOLS": "true"
+      },
+      "trust": false
+    },
+    "cloudflare-observability": {
+      "httpUrl": "https://observability.mcp.cloudflare.com/mcp",
+      "headers": {
+        "Authorization": "Bearer $CLOUDFLARE_API_TOKEN"
+      },
+      "trust": false
+    },
+    "cloudflare-builds": {
+      "httpUrl": "https://builds.mcp.cloudflare.com/mcp",
+      "headers": {
+        "Authorization": "Bearer $CLOUDFLARE_API_TOKEN"
+      },
+      "trust": false
+    },
+    "figma": {
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp"],
+      "env": {
+        "FIGMA_API_KEY": "$FIGMA_API_KEY"
+      },
+      "trust": false
+    },
+    "slack": {
+      "command": "npx",
+      "args": ["-y", "@zencoderai/slack-mcp-server"],
+      "env": {
+        "SLACK_BOT_TOKEN": "$SLACK_BOT_TOKEN",
+        "SLACK_TEAM_ID": "$SLACK_TEAM_ID"
+      },
+      "trust": false
+    },
+    "internal-tools": {
+      "httpUrl": "https://mcp.internal.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer $INTERNAL_MCP_TOKEN"
+      },
+      "trust": false
+    }
+  }
+}

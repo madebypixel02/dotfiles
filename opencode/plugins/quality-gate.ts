@@ -25,56 +25,39 @@
  *     still surface them by watching that file.
  */
 
+import { appendFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import type { Plugin } from "@opencode-ai/plugin";
-import { join } from "path";
 
-// ---------------------------------------------------------------------------
-// Configuration
-// ---------------------------------------------------------------------------
-
-const TEST_SUGGESTION_THRESHOLD = 3; // edits before suggesting test run
-const IDLE_TEST_WARNING_THRESHOLD = 5; // files modified before idle warning
-const COOLDOWN_MS = 2 * 60 * 1_000; // 2-minute cooldown between suggestions
+const TEST_SUGGESTION_THRESHOLD = 3;
+const IDLE_TEST_WARNING_THRESHOLD = 5;
+const COOLDOWN_MS = 2 * 60 * 1_000;
 
 /** Log file path relative to project root. Created on first write. */
 const LOG_FILENAME = join(".opencode", "quality-gate.log");
 
-// ---------------------------------------------------------------------------
-// Session state
-// ---------------------------------------------------------------------------
-
-let editCount = 0;
-let lastSuggestedTestRunAt = 0;
-let filesEditedThisSession: Set<string> = new Set();
-let testFilesTouchedThisSession = false;
-let projectRoot = process.cwd();
-
-// ---------------------------------------------------------------------------
-// Log helper — writes to console AND to .opencode/quality-gate.log
-// ---------------------------------------------------------------------------
-
-/**
- * Appends a timestamped message to .opencode/quality-gate.log and logs to
- * console. The file is created (including parent directory) if it does not
- * exist. Failures are silently swallowed — logging must never block the agent.
- */
-async function emit(message: string): Promise<void> {
-  const line = `[${new Date().toISOString()}] ${message.trim()}\n`;
-  console.log("\n" + message.trim() + "\n");
-  try {
-    const logPath = join(projectRoot, LOG_FILENAME);
-    const dir = join(projectRoot, ".opencode");
-    // Ensure directory exists
-    await Bun.$`mkdir -p ${dir}`.quiet();
-    await Bun.write(logPath, line, { flag: "a" });
-  } catch {
-    // swallow — never block the agent
-  }
+interface QualityGateSessionState {
+  editCount: number;
+  lastSuggestedTestRunAt: number;
+  filesEditedThisSession: Set<string>;
+  testFilesTouchedThisSession: boolean;
 }
 
-// ---------------------------------------------------------------------------
-// File-system helpers
-// ---------------------------------------------------------------------------
+const sessionStateMap = new Map<string, QualityGateSessionState>();
+
+function getSessionState(sessionId: string): QualityGateSessionState {
+  let entry = sessionStateMap.get(sessionId);
+  if (!entry) {
+    entry = {
+      editCount: 0,
+      lastSuggestedTestRunAt: 0,
+      filesEditedThisSession: new Set(),
+      testFilesTouchedThisSession: false,
+    };
+    sessionStateMap.set(sessionId, entry);
+  }
+  return entry;
+}
 
 /**
  * Returns true if the given file path exists on disk (using Bun.file).
@@ -87,10 +70,6 @@ async function fileExists(path: string): Promise<boolean> {
     return false;
   }
 }
-
-// ---------------------------------------------------------------------------
-// Test file detection heuristics
-// ---------------------------------------------------------------------------
 
 /**
  * Common test file suffixes and directories.
@@ -108,49 +87,32 @@ async function fileExists(path: string): Promise<boolean> {
  *
  * Returns the first candidate that exists on disk, or null.
  */
-async function findCorrespondingTestFile(
-  filePath: string,
-): Promise<string | null> {
-  // Normalise to forward slashes
+async function findCorrespondingTestFile(filePath: string): Promise<string | null> {
   const normalised = filePath.replace(/\\/g, "/");
 
-  // Extract components
   const lastSlash = normalised.lastIndexOf("/");
   const dir = lastSlash >= 0 ? normalised.slice(0, lastSlash) : ".";
-  const filename =
-    lastSlash >= 0 ? normalised.slice(lastSlash + 1) : normalised;
+  const filename = lastSlash >= 0 ? normalised.slice(lastSlash + 1) : normalised;
 
-  // Strip extension
   const dotIdx = filename.lastIndexOf(".");
   const base = dotIdx >= 0 ? filename.slice(0, dotIdx) : filename;
   const ext = dotIdx >= 0 ? filename.slice(dotIdx) : ".ts";
 
-  // Bail early if this IS a test file
   if (/\.(test|spec)/.test(base)) return filePath;
 
-  // Identify the source root segment (src/, lib/, app/, etc.)
   const srcRoots = ["src", "lib", "app", "source", "packages"];
   const testRoots = ["tests", "test", "__tests__", "spec"];
   const testSuffixes = [".test", ".spec"];
 
   const candidates: string[] = [];
 
-  // 1. Replace src root with test root
   for (const srcRoot of srcRoots) {
-    if (
-      normalised.startsWith(`${srcRoot}/`) ||
-      normalised.includes(`/${srcRoot}/`)
-    ) {
+    if (normalised.startsWith(`${srcRoot}/`) || normalised.includes(`/${srcRoot}/`)) {
       const relativePart = normalised.includes(`/${srcRoot}/`)
-        ? normalised.slice(
-            normalised.indexOf(`/${srcRoot}/`) + srcRoot.length + 2,
-          )
+        ? normalised.slice(normalised.indexOf(`/${srcRoot}/`) + srcRoot.length + 2)
         : normalised.slice(srcRoot.length + 1);
 
-      const relativeDir = relativePart.slice(
-        0,
-        relativePart.lastIndexOf("/") + 1,
-      );
+      const relativeDir = relativePart.slice(0, relativePart.lastIndexOf("/") + 1);
 
       for (const testRoot of testRoots) {
         for (const suffix of testSuffixes) {
@@ -160,31 +122,25 @@ async function findCorrespondingTestFile(
     }
   }
 
-  // 2. __tests__ sibling directory
   for (const suffix of testSuffixes) {
     candidates.push(`${dir}/__tests__/${base}${suffix}${ext}`);
   }
 
-  // 3. Same directory co-located test
   for (const suffix of testSuffixes) {
     candidates.push(`${dir}/${base}${suffix}${ext}`);
   }
 
-  // 4. Generic test roots at project root level
   for (const testRoot of testRoots) {
     for (const suffix of testSuffixes) {
       candidates.push(`${testRoot}/${base}${suffix}${ext}`);
     }
   }
 
-  // Check existence for each candidate
-  for (const candidate of candidates) {
-    if (await fileExists(candidate)) {
-      return candidate;
-    }
-  }
-
-  return null;
+  const results = await Promise.all(
+    candidates.map((c) => fileExists(c).then((exists) => ({ exists, c }))),
+  );
+  const found = results.find((r) => r.exists);
+  return found ? found.c : null;
 }
 
 /**
@@ -212,38 +168,6 @@ function isSourceFile(filePath: string): boolean {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Warning emitters (all non-blocking)
-// ---------------------------------------------------------------------------
-
-async function emitTestRunSuggestion(): Promise<void> {
-  const now = Date.now();
-  if (now - lastSuggestedTestRunAt < COOLDOWN_MS) return;
-  lastSuggestedTestRunAt = now;
-  await emit(
-    `[quality-gate] ${editCount} file edits this session. Consider running your test suite:\n` +
-    `  npm test  |  bun test  |  pnpm test  |  yarn test`,
-  );
-}
-
-async function emitNoTestsWarning(): Promise<void> {
-  await emit(
-    `[quality-gate] Warning: ${filesEditedThisSession.size} files modified this session but no test files were touched.\n` +
-    `Consider adding or updating tests to cover your changes.`,
-  );
-}
-
-async function emitMissingTestHint(sourceFile: string): Promise<void> {
-  await emit(
-    `[quality-gate] No test file found for: ${sourceFile}\n` +
-    `  Consider creating a corresponding test file to maintain coverage.`,
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Tool name helpers
-// ---------------------------------------------------------------------------
-
 const WRITE_EDIT_TOOLS = new Set([
   "write",
   "Write",
@@ -257,68 +181,129 @@ const WRITE_EDIT_TOOLS = new Set([
 
 function extractFilePath(args: Record<string, unknown>): string | undefined {
   return (
-    (args["filePath"] as string | undefined) ??
-    (args["path"] as string | undefined) ??
-    (args["file"] as string | undefined)
+    (args.filePath as string | undefined) ??
+    (args.path as string | undefined) ??
+    (args.file as string | undefined)
   );
 }
 
-// ---------------------------------------------------------------------------
-// Plugin
-// ---------------------------------------------------------------------------
-
 const qualityGatePlugin: Plugin = async ({ directory, project }) => {
-  projectRoot = directory ?? project?.path ?? process.cwd();
+  const projectRoot = directory ?? project?.worktree ?? process.cwd();
+
+  async function emit(message: string): Promise<void> {
+    const line = `[${new Date().toISOString()}] ${message.trim()}\n`;
+    console.log(`\n${message.trim()}\n`);
+    try {
+      const logPath = join(projectRoot, LOG_FILENAME);
+      const dir = join(projectRoot, ".opencode");
+      await mkdir(dir, { recursive: true });
+      await appendFile(logPath, line);
+    } catch {
+      return;
+    }
+  }
+
+  async function emitTestRunSuggestion(sessionState: QualityGateSessionState): Promise<void> {
+    const now = Date.now();
+    if (now - sessionState.lastSuggestedTestRunAt < COOLDOWN_MS) return;
+    sessionState.lastSuggestedTestRunAt = now;
+    await emit(
+      `[quality-gate] ${sessionState.editCount} file edits this session. Consider running your test suite:\n` +
+        `  npm test  |  bun test  |  pnpm test  |  yarn test`,
+    );
+  }
+
+  async function emitNoTestsWarning(sessionState: QualityGateSessionState): Promise<void> {
+    await emit(
+      `[quality-gate] Warning: ${sessionState.filesEditedThisSession.size} files modified this session but no test files were touched.\n` +
+        `Consider adding or updating tests to cover your changes.`,
+    );
+  }
+
+  async function emitMissingTestHint(sourceFile: string): Promise<void> {
+    await emit(
+      `[quality-gate] No test file found for: ${sourceFile}\n` +
+        `  Consider creating a corresponding test file to maintain coverage.`,
+    );
+  }
 
   return {
-    // ------------------------------------------------------------------
-    // Reset state on new session
-    // ------------------------------------------------------------------
     event: async (input) => {
-      const ev = input as Record<string, unknown>;
-      const type = ev["type"] as string | undefined;
+      const ev = input.event as Record<string, unknown>;
+      if (!ev || typeof ev !== "object") return;
+      const type = ev.type as string | undefined;
       if (!type) return;
 
       if (type === "session.created") {
-        editCount = 0;
-        lastSuggestedTestRunAt = 0;
-        filesEditedThisSession = new Set();
-        testFilesTouchedThisSession = false;
+        const properties = (ev.properties ?? {}) as Record<string, unknown>;
+        const info = (properties.info ?? {}) as Record<string, unknown>;
+        const sessionId =
+          (info.id as string | undefined) ??
+          (properties.sessionID as string | undefined) ??
+          (properties.id as string | undefined);
+        if (!sessionId) return;
+        sessionStateMap.set(sessionId, {
+          editCount: 0,
+          lastSuggestedTestRunAt: 0,
+          filesEditedThisSession: new Set(),
+          testFilesTouchedThisSession: false,
+        });
         return;
       }
 
       if (type === "session.idle") {
+        const properties = (ev.properties ?? {}) as Record<string, unknown>;
+        const info = (properties.info ?? {}) as Record<string, unknown>;
+        const sessionId =
+          (info.id as string | undefined) ??
+          (properties.sessionID as string | undefined) ??
+          (properties.id as string | undefined);
+        if (!sessionId) return;
+        const sessionState = sessionStateMap.get(sessionId);
+        if (!sessionState) return;
         if (
-          filesEditedThisSession.size > IDLE_TEST_WARNING_THRESHOLD &&
-          !testFilesTouchedThisSession
+          sessionState.filesEditedThisSession.size > IDLE_TEST_WARNING_THRESHOLD &&
+          !sessionState.testFilesTouchedThisSession
         ) {
-          await emitNoTestsWarning();
+          await emitNoTestsWarning(sessionState);
         }
+        return;
+      }
+
+      if (type === "session.deleted" || type === "session.end") {
+        const properties = (ev.properties ?? {}) as Record<string, unknown>;
+        const info = (properties.info ?? {}) as Record<string, unknown>;
+        const sessionId =
+          (info.id as string | undefined) ??
+          (properties.sessionID as string | undefined) ??
+          (properties.id as string | undefined);
+        if (sessionId) sessionStateMap.delete(sessionId);
         return;
       }
     },
 
-    // ------------------------------------------------------------------
-    // After each write/edit: increment counter, check test coverage
-    // ------------------------------------------------------------------
     "tool.execute.after": async (input, _output) => {
       try {
-        const toolName = (input.tool as string | undefined) ?? "";
+        const toolName = input.tool ?? "";
         if (!WRITE_EDIT_TOOLS.has(toolName)) return;
 
         const args = (input.args ?? {}) as Record<string, unknown>;
         const filePath = extractFilePath(args);
         if (!filePath) return;
 
-        filesEditedThisSession.add(filePath);
-        editCount++;
+        const sessionId = input.sessionID;
+        if (!sessionId) return;
+        const sessionState = getSessionState(sessionId);
+
+        sessionState.filesEditedThisSession.add(filePath);
+        sessionState.editCount++;
 
         if (isTestFile(filePath)) {
-          testFilesTouchedThisSession = true;
+          sessionState.testFilesTouchedThisSession = true;
         }
 
-        if (editCount >= TEST_SUGGESTION_THRESHOLD) {
-          await emitTestRunSuggestion();
+        if (sessionState.editCount >= TEST_SUGGESTION_THRESHOLD) {
+          await emitTestRunSuggestion(sessionState);
         }
 
         if (isSourceFile(filePath)) {
@@ -329,12 +314,12 @@ const qualityGatePlugin: Plugin = async ({ directory, project }) => {
                 await emitMissingTestHint(filePath);
               }
             } catch {
-              // swallow
+              return;
             }
           })();
         }
       } catch {
-        // swallow — quality gate must never interrupt workflow
+        return;
       }
     },
   };

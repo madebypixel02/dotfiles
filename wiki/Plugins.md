@@ -12,7 +12,7 @@ Writes a JSONL audit entry for every tool call.
 
 | Event                 | Action                                                                                                                |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `tool.execute.before` | Stamps start timestamp into args                                                                                      |
+| `tool.execute.before` | Records start timestamp in a `WeakMap` keyed on the input reference                                                   |
 | `tool.execute.after`  | Computes duration, sanitises sensitive field values, writes entry to `~/.local/share/opencode/audit/YYYY-MM-DD.jsonl` |
 | `session.idle`        | Logs total token usage and estimated cost for the session                                                             |
 
@@ -36,11 +36,11 @@ Three-layer protection against secrets exposure. Throws a descriptive error with
 
 Preserves critical context across session compaction.
 
-| Event                             | Action                                                                                                                          |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `session.created`                 | Reads `AGENTS.md` and injects a summary into context                                                                            |
-| `file.edited`                     | Accumulates the set of modified files for the session                                                                           |
-| `experimental.session.compacting` | Appends git branch, last five commits, active todos, session elapsed time, and all modified files to `output.additionalContext` |
+| Event                             | Action                                                                                                                                                                |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `session.created`                 | Reads `AGENTS.md` and injects a summary into context; injects metadata (id, status, path, updated_at) for the most recent plan file under `~/.config/opencode/plans/` |
+| `file.edited`                     | Accumulates the set of modified files for the session                                                                                                                 |
+| `experimental.session.compacting` | Appends git branch, last five commits, active todos, session elapsed time, and all modified files to `output.context` (a string array) |
 
 This ensures the agent does not lose track of its branch, recent history, or open tasks when the context window is compacted.
 
