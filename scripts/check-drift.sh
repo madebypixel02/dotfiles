@@ -11,12 +11,7 @@ GEMINI_TEMPLATES_DIR="${DOTFILES_DIR}/gemini/templates"
 DRIFT_DETECTED=false
 TMPDIR_WORK=""
 
-cleanup() {
-    if [[ -n "${TMPDIR_WORK}" && -d "${TMPDIR_WORK}" ]]; then
-        rm -rf "${TMPDIR_WORK}"
-    fi
-}
-trap cleanup EXIT
+trap '[[ -n "${TMPDIR_WORK}" && -d "${TMPDIR_WORK}" ]] && rm -rf "${TMPDIR_WORK}"' EXIT
 
 COPILOT_RULE_MAPPINGS=(
     "security.md:security.instructions.md:**/auth/**/*.ts,**/middleware/**/*.ts,**/routes/**/*.ts,**/handlers/**/*.ts"
@@ -64,7 +59,7 @@ build_copilot_review_gate() {
     printf '\n%s\n\n' '---'
     printf '%s\n\n' '## Code Review Gate'
     printf '%s\n' 'Before marking any change as complete, verify each item in the checklist below.'
-    printf '%s\n\n' 'If this file is in the `applyTo` scope of this instruction file, these checks are mandatory.'
+    printf '%s\n\n' "If this file is in the \`applyTo\` scope of this instruction file, these checks are mandatory."
     printf '%s\n' '- [ ] All rules in this file have been applied to the changed code'
     printf '%s\n' '- [ ] No rule has been selectively ignored without a documented reason'
     printf '%s\n' '- [ ] Pre-commit hooks pass locally'
@@ -108,7 +103,6 @@ check_copilot_instructions() {
             printf '\n'
             printf '%s' "${source_content}"
             build_copilot_review_gate
-            printf '\n'
         } > "${temp_path}"
 
         if ! diff -q "${temp_path}" "${target_path}" > /dev/null 2>&1; then
