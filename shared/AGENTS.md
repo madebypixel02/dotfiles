@@ -277,6 +277,43 @@ For tasks that require true parallel specialist reviews, a structured planner ap
 
 ---
 
+## Coding SDLC
+
+Every coding task — regardless of scope, tool, or agent — follows this sequence in full. No step may be skipped. There is no simplicity threshold that waives any step.
+
+| Step | Name                | opencode mechanism                                                                                                                                                                              | Single-agent mechanism                                                                                                                                                      |
+| ---- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | **Clarify**         | `question` tool; one question max; wait for answer                                                                                                                                              | Same; ask before any exploration                                                                                                                                            |
+| 2    | **Explore**         | Delegate to `@explore`                                                                                                                                                                          | Direct `Read`, `Glob`, `Grep`                                                                                                                                               |
+| 3    | **Plan**            | Delegate to `@planner`; present path+Goal; `question` tool for approval; wait                                                                                                                   | Inline phased plan; explicit user approval ("proceed") before continuing                                                                                                    |
+| 4    | **Branch**          | Delegate branch creation to `@builder`; confirm branch exists and working tree is clean before any implementation delegation                                                                    | Run `git checkout -b <type>/<slug>` from `main`; confirm with `git status` before writing any file                                                                          |
+| 5    | **Rubber Duck**     | `Task` call to `@rubber-duck` Mode A on the approved plan; block on verdict before delegating to `@builder`                                                                                     | Apply the Mode A checklist from `shared/prompts/rubber-duck.md` inline; record verdict before writing code                                                                  |
+| 6    | **Implement**       | Delegate to `@builder` with plan file path                                                                                                                                                      | Write code phase — all phases before this must be complete                                                                                                                  |
+| 7    | **Test + Docs**     | Run full test suite. Assess diff: if new behaviour was added, delegate to `@test-architect`; if public APIs changed, delegate to `@docs-writer`. Both assessments are mandatory — not optional. | Run full test suite. Assess diff: if new behaviour was added, write tests. If public APIs changed, update docstrings and relevant docs. Fix all failures before proceeding. |
+| 8    | **Review + Audit**  | Mandatory parallel `Task` calls: `@reviewer` + `@security-auditor`; both must complete before commit                                                                                            | Apply review checklist and security checklist from `shared/rules/security.md` inline; both complete before commit                                                           |
+| 9    | **Commit**          | Delegate to `@builder`; conventional commit; pre-commit hooks must pass                                                                                                                         | `git add -p`; conventional commit; pre-commit hooks must pass                                                                                                               |
+| 10   | **Push + Draft PR** | Delegate to `@builder`; push branch; open Draft PR immediately on first push                                                                                                                    | `git push -u origin <branch>`; open Draft PR; PR title is a valid conventional commit header                                                                                |
+| 11   | **Mark Ready**      | When all CI checks green and all review findings resolved, mark PR ready for review                                                                                                             | Same                                                                                                                                                                        |
+
+### Hard Gates
+
+These are non-negotiable blocking conditions. The SDLC does not advance past a gate until the condition is met.
+
+- **Gate after Step 4 (Branch):** The feature branch must exist and `git status` must show a clean working tree on that branch. No file may be written before this gate clears.
+- **Gate after Step 5 (Rubber Duck):** The rubber-duck verdict must be "No blocking issues found" or all blocking issues must be explicitly resolved. Implementation does not begin until this gate clears.
+- **Gate after Step 8 (Review + Audit):** Both reviewer and security-auditor outputs must be complete. All CRITICAL and HIGH findings must be resolved. No commit is made until this gate clears.
+- **Gate after Step 9 (Commit):** Pre-commit hooks must pass. A commit that fails hooks is not a valid commit.
+- **Gate after Step 10 (Push + Draft PR):** The Draft PR must be open before the task is considered delivered. A pushed branch without a Draft PR is an incomplete delivery.
+
+### PR Requirements
+
+- Title: valid conventional commit header (`type(scope): description`, subject under 72 characters)
+- Body must include: what changed, why it changed, how to test
+- Opened as Draft on first push — not when "done"
+- Marked ready only when CI is green and all review findings are resolved
+
+---
+
 ## Domain Rule Files
 
 The following shared rule files define non-negotiable standards. Read the relevant file before starting any work in that domain. Paths are relative to the dotfiles repository root (`~/dotfiles/`).

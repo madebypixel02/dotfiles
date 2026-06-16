@@ -1,4 +1,4 @@
-description = "Full feature development lifecycle — explore, design, implement, test, review, docs, verify"
+description = "Full feature development lifecycle — clarify, explore, design, branch, rubber-duck, implement, test, review, commit, docs, verify, push, PR"
 
 prompt = """
 # Feature Development: {{args}}
@@ -81,9 +81,62 @@ Document the key decisions made during design using this structure:
 
 ---
 
-## Phase 3 — Implement
+## Phase 3 — Branch
 
-Implement the feature following the design exactly. Apply all existing project conventions discovered in Phase 1. This phase ends when all code is written and the build passes — not before. Do not begin Phase 4 until the build is green.
+Before writing any code, create the feature branch.
+
+1. Run `git checkout main && git pull` to ensure you are starting from the current `main`.
+2. Derive the branch name from the feature description: `<type>/<slug>` where type is one of `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `perf`, `revert` and slug is a short kebab-case description.
+3. Run `git checkout -b <type>/<slug>`.
+4. Confirm with `git branch --show-current` and `git status`.
+
+**Gate:** Do not proceed to Phase 4 until the branch exists and `git status` shows a clean working tree on that branch.
+
+**Output:** Branch name (e.g., `feat/add-user-rate-limiting`).
+
+---
+
+## Phase 4 — Rubber Duck
+
+Before writing any code, apply a Mode A Plan Critique to the design produced in Phase 2. Work through each of the six interrogation questions defined in `shared/prompts/rubber-duck.md` under "Mode A — Plan Critique":
+
+1. **Edge case coverage:** What happens at boundaries, empty inputs, zero values, maximums, concurrent callers, missing dependencies, partial failures?
+2. **Simpler alternatives:** Are there simpler approaches that still satisfy the requirements?
+3. **Failure modes:** When this fails in production, is the failure loud or silent? Is recovery possible?
+4. **Hidden assumptions:** What does the design assume about external systems, input formats, timing, or ordering? Which assumptions could be wrong?
+5. **Unnecessary complexity:** Does the design introduce abstractions not required by the current problem?
+6. **Security implications:** Does the approach involve external input, authentication, file paths, network calls, or data storage? What are the security consequences?
+
+Produce a verdict in the standard format:
+
+```
+
+## Rubber Duck Review
+
+**Mode:** Plan Critique
+**Reviewed:** [feature description from Phase 2]
+
+### Blocking Issues
+
+- [issue] — [why it causes failure] — [concrete alternative]
+
+### Non-blocking Issues
+
+- [issue] — [why it matters] — [suggestion]
+
+### Verdict
+
+[No blocking issues found. / X blocking issue(s) require attention before proceeding.]
+
+```
+
+**Gate:** If blocking issues are found, resolve them by revising the Phase 2 design before proceeding. Do not begin implementation until the verdict is "No blocking issues found."
+
+---
+
+## Phase 5 — Implement
+
+Implement the feature following the design exactly. Apply all existing project conventions discovered in Phase 1. This phase ends when all code is written and the build passes — not before. Do not begin Phase 6 until the build is green.
 
 Rules:
 
@@ -105,9 +158,14 @@ Implement in this order:
 
 ---
 
-## Phase 4 — Test
+## Phase 6 — Test + Docs Assessment
 
-Write a comprehensive test suite. This phase begins only after Phase 3 is complete and the build is green.
+Write a comprehensive test suite. This phase begins only after Phase 5 is complete and the build is green.
+
+Before writing tests, assess the implementation diff:
+
+1. **Test coverage:** Did the implementation add new behaviour, error paths, or edge cases? Write tests for all of them.
+2. **Documentation:** Did the implementation change any public API signatures, add new public functions or classes, or modify endpoint contracts? If yes, update docstrings and any relevant documentation files (README, API docs, ADRs) as part of this phase — do not defer to Phase 8 (Docs).
 
 ### Test Levels Required:
 
@@ -125,9 +183,9 @@ Write a comprehensive test suite. This phase begins only after Phase 3 is comple
 
 ---
 
-## Phase 5 — Review
+## Phase 7 — Review
 
-Conduct a thorough self-review of the implementation. This phase begins only after Phase 4 is complete and all tests pass.
+Conduct a thorough self-review of the implementation. This phase begins only after Phase 6 is complete and all tests pass.
 
 ### Review Checklist:
 
@@ -143,7 +201,22 @@ Produce a list of any issues found and fix them before proceeding.
 
 ---
 
-## Phase 6 — Docs
+## Phase 7b — Commit
+
+After all review findings are resolved, commit the implementation.
+
+1. Run `git add -p` to stage only the files that are part of this logical change. Do not stage unrelated files.
+2. Write a conventional commit message: `type(scope): description` where the subject line is under 72 characters. Include a body paragraph explaining why the change was made, not what it does.
+3. Run `pre-commit run --staged`. If any hook fails, fix the failure and re-stage before committing.
+4. Run `git commit -m "<message>"`.
+
+**Gate:** Do not proceed to Phase 8 until the commit is clean and all hooks pass.
+
+**Output:** Commit hash and message.
+
+---
+
+## Phase 8 — Docs
 
 Produce documentation appropriate to the feature's scope:
 
@@ -154,7 +227,7 @@ Produce documentation appropriate to the feature's scope:
 
 ---
 
-## Phase 7 — Verify
+## Phase 9 — Verify
 
 Final verification before marking the feature complete:
 
@@ -168,6 +241,9 @@ Run through this checklist:
 - [ ] No new linting errors introduced
 - [ ] Feature matches the original requirement: **{{args}}**
 - [ ] ADR is saved to `docs/decisions/` (create the directory if it doesn't exist)
+- [ ] Commit is clean and pre-commit hooks passed (Phase 7b)
+- [ ] Branch was created before any code was written (Phase 3)
+- [ ] Rubber duck verdict was "No blocking issues found" or all blocking issues resolved (Phase 4)
 - [ ] PR description is drafted (title, summary, testing notes, screenshots if UI)
 - [ ] No inline code comments added
 - [ ] All new public functions have docstrings

@@ -39,6 +39,12 @@ have reviewed the plan and are satisfied, follow up with: "Proceed with the impl
 For complex architectural decisions, use `--model gemini-2.5-pro` to access extended thinking,
 which produces more thorough analysis before committing to an approach.
 
+### Coding SDLC
+
+The canonical 11-step SDLC is defined in `shared/AGENTS.md` under "Coding SDLC". Every coding task follows that sequence in full. For Gemini CLI, the `/feature` command is the primary enforcement mechanism: its phases map to SDLC steps and enforce hard gates between them. Running `/feature <task>` is the required entry point for any feature development task — do not begin implementation outside the `/feature` command structure.
+
+Steps not yet covered by `/feature` gates (branch creation, rubber duck, commit, push, PR) are documented as phases within the command. See `~/.gemini/commands/feature.toml` for the current phase list.
+
 ### MCP Servers
 
 All MCP servers in `settings.json` require explicit credentials and are available for use once
