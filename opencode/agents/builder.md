@@ -142,6 +142,19 @@ Also run linting and typechecking. Fix all errors and warnings before declaring 
 
 When instructed by the developer agent to commit, push, or create a PR:
 
+**Pre-flight: commit message validation.** Before running `git commit`, count the characters in the header of the provided message: type + optional `(scope)` + `: ` + description. If the count exceeds 72 characters, do not attempt the commit. Return a structured rejection to the developer agent:
+
+```
+## Commit Rejected: Header Too Long
+
+**Header:** <the full header string>
+**Length:** <actual character count>
+**Limit:** 72
+**Action required:** shorten the header and re-delegate
+```
+
+Do not truncate or modify the message. Hard Rule 1 applies: the message must be returned to the developer for correction.
+
 - Stage files with `git add -p`. Stage only the files that are part of the logical change.
 - Commit using the **exact message** provided by the developer agent. Do not modify it.
 - Run `pre-commit run --all-files`. If hooks fail, fix and retry the commit.
@@ -190,3 +203,4 @@ Return a structured summary to the developer agent:
 11. Pre-commit hooks must pass before declaring complete.
 12. Never suppress linter warnings with inline ignores unless there is no alternative. If suppression is unavoidable, document the reason in a docstring on the affected symbol.
 13. Task lists are required for multi-step work. For tasks with more than 3 distinct steps, initialise a task list using `todowrite` before starting Step 0. Update each item's status continuously as steps are started, completed, or blocked. Do not batch updates at the end.
+14. Before attempting `git commit`, count the commit message header characters. If the count exceeds 72, refuse and return a structured rejection to the developer agent. Never proceed with an over-length header.

@@ -97,6 +97,12 @@ repos:
           (?i)^Co-authored-by:.*(?:claude|gpt|copilot|gemini|openai|anthropic|chatgpt|cursor|opencode|\bai\b|bot)
         stages: [commit-msg]
 
+      - id: commitlint
+        name: commitlint
+        language: node
+        entry: node_modules/.bin/commitlint --edit
+        stages: [commit-msg]
+
       - id: check-dotfiles-drift
         name: Check dotfiles sync drift
         language: script
