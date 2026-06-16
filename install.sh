@@ -293,7 +293,34 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 5: Plugin dependencies
+# Step 5: Bun runtime
+# ---------------------------------------------------------------------------
+log_header "Bun runtime"
+
+if command -v bun &>/dev/null; then
+  log_info "bun already installed: $(command -v bun)"
+else
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log_info "[dry-run] would install bun via https://bun.sh/install"
+  else
+    log_info "Installing bun via official installer..."
+    if curl --proto '=https' --tlsv1.2 -fsSL https://bun.sh/install | bash >/dev/null 2>&1; then
+      export PATH="${HOME}/.bun/bin:${PATH}"
+      if command -v bun &>/dev/null; then
+        log_info "bun installed: $(command -v bun)"
+      else
+        echo -e "  ${YELLOW}⚠${RESET} bun installer exited 0 but bun not found on PATH"
+        COUNT_ERRORS=$((COUNT_ERRORS + 1))
+      fi
+    else
+      echo -e "  ${RED}✗${RESET} bun installation failed — install manually: https://bun.sh"
+      COUNT_ERRORS=$((COUNT_ERRORS + 1))
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Step 6: Plugin dependencies
 # ---------------------------------------------------------------------------
 log_header "Plugin dependencies"
 
@@ -305,9 +332,15 @@ if [[ -f "${PLUGIN_DIR}/package.json" ]]; then
     log_info "Installing plugin dependencies in ${PLUGIN_DIR}..."
     cd "$PLUGIN_DIR"
     if command -v bun &>/dev/null; then
-      bun install
+      if ! bun install; then
+        echo -e "  ${YELLOW}⚠${RESET} bun install failed in ${PLUGIN_DIR}"
+        COUNT_ERRORS=$((COUNT_ERRORS + 1))
+      fi
     elif command -v npm &>/dev/null; then
-      npm install
+      if ! npm install; then
+        echo -e "  ${YELLOW}⚠${RESET} npm install failed in ${PLUGIN_DIR}"
+        COUNT_ERRORS=$((COUNT_ERRORS + 1))
+      fi
     else
       echo -e "  ${YELLOW}⚠${RESET} Neither bun nor npm found — install dependencies manually in ${PLUGIN_DIR}"
     fi
@@ -318,7 +351,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 6: Sync generated files from shared sources
+# Step 7: Sync generated files from shared sources
 # ---------------------------------------------------------------------------
 log_header "Syncing generated files"
 
