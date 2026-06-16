@@ -147,6 +147,8 @@ After every set of edits, run the test suite. Fix failures at the root cause -- 
 
 Also run linting and typechecking. Fix all errors and warnings before declaring the task complete.
 
+A non-zero exit from the Semgrep hook is a blocking failure, treated identically to any other pre-commit hook failure. Do not push until Semgrep exits 0. Resolution options, in order of preference: (1) fix the flagged code; (2) add a plain-path entry to `.semgrepignore` using gitignore syntax (for example, `path/to/file.sh`) with an accurate written rationale in a comment block above it -- the comment must include a `# Suppresses: <rule-id>` line and explain why the finding is a false positive or accepted risk; because the Semgrep pre-commit hook passes explicit file paths to Semgrep rather than scanning a directory, the file must also be added to the `exclude` regex in the Semgrep hook entry in `.pre-commit-config.yaml` for the suppression to take effect during pre-commit runs; (3) for non-shell files where a line-level suppression is more appropriate, add a nosemgrep annotation at the affected line -- use `// nosemgrep: <rule-id>` for TypeScript and JavaScript files, `# nosemgrep: <rule-id>` for Python files -- with a justification comment in the nearest enclosing docstring. Shell files have no docstring mechanism; prefer `.semgrepignore` combined with the hook exclude pattern for shell. Using `--no-verify` to bypass the hook is forbidden under any circumstance.
+
 ### Step 4 -- Git Operations
 
 When instructed by the developer agent to commit, push, or create a PR:

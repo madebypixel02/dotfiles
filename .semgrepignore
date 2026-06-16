@@ -1,20 +1,18 @@
 # semgrep ignore rules for this repository.
 #
-# Each line below either excludes a path from scanning or suppresses a
-# specific rule on a specific file. Format:
+# Each line excludes a file or directory from all Semgrep scanning using
+# gitignore-style path patterns. For rule-specific suppression within a
+# file, use an inline nosemgrep annotation (// nosemgrep: rule-id for
+# TypeScript/JavaScript; # nosemgrep: rule-id for Python/shell). Add a
+# "# Suppresses:" line above each entry to document the targeted rule.
 #
-#   path/to/file                          # exclude entire file
-#   rule-id:path/to/file                  # suppress one rule on one file
+#   path/to/file                          # exclude entire file from scanning
 
-# install.sh: curl pipe to bash is the canonical OpenCode install invocation,
-# identical to the pattern published on opencode.ai/install. The script is
-# downloaded to a temp file first (not piped directly), which is the safer
-# two-step approach. The remaining audit finding is informational only.
-bash.curl.security.curl-pipe-bash.curl-pipe-bash:install.sh
-
-# frontmatter.ts: the dynamic RegExp in extractFrontmatterField uses escapeRegex
-# to sanitise the field argument before interpolation. The field value is always a
-# hardcoded string literal at every call site ("id", "status", "updated_at").
-# The nosemgrep annotation on the new RegExp line inside the file is the
-# minimum-scope suppression; this entry is retained as a belt-and-suspenders guard.
-javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp:opencode/plugins/lib/frontmatter.ts
+# install.sh: curl pipe to bash is the officially documented Bun installation
+# method. The invocation enforces --proto '=https' --tlsv1.2, which is the
+# maximum TLS control available at this call site. bun.sh does not publish a
+# SHA-256 checksum for the installer script, making download-then-verify
+# unavailable; a download-to-temp-file approach without checksum would be
+# functionally equivalent and is therefore not a meaningful mitigation.
+# Suppresses: bash.curl.security.curl-pipe-bash.curl-pipe-bash
+install.sh
