@@ -1,0 +1,294 @@
+description = "Full feature development lifecycle — clarify, explore, design, branch, rubber-duck, implement, test, review, commit, docs, verify, push+PR"
+
+prompt = """
+# Feature Development: {{args}}
+
+You are executing a structured feature development workflow. Gemini CLI operates in a single-agent model — there is no subagent spawning capability. This command enforces the orchestrator principle through phase separation: exploration, design, and implementation are discrete phases with defined outputs; you complete each phase fully and verify its output before the next phase begins. Do not collapse phases by implementing while still exploring, or reviewing while still implementing.
+
+The feature request is:
+
+> **{{args}}**
+
+Work through the following phases in order. Complete each phase fully before proceeding to the next. Where phases produce independent outputs, note them explicitly before moving on.
+
+---
+
+## Context Injection
+
+Current branch and recent history:
+
+```
+Branch: !{git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "(not a git repo)"}
+
+Recent commits:
+!{git log --oneline -10 2>/dev/null || echo "(no git history)"}
+
+Uncommitted changes:
+!{git status --short 2>/dev/null || echo "(no git status)"}
+
+Project structure (top two levels):
+!{find . -maxdepth 2 -not -path './.git/*' -not -path './node_modules/*' -not -path './.venv/*' -not -path './dist/*' -not -path './build/*' | sort 2>/dev/null | head -60}
+```
+
+---
+
+## Phase 0 — Clarify
+
+Before any exploration or implementation, review the feature specification. If any aspect is ambiguous in a way that would cause materially different architecture or scope decisions, ask one specific clarifying question. Do not proceed until the ambiguity is resolved or the risk of proceeding is explicitly accepted.
+
+---
+
+## Phase 1 — Explore (Understand the Codebase)
+
+Before writing a single line of code, deeply understand the relevant parts of the existing system:
+
+1. Identify all files, modules, and packages related to the feature domain.
+2. Map the data flow: where does data enter, transform, and exit the system?
+3. Identify existing patterns (naming conventions, error handling, logging, testing approach).
+4. List any existing abstractions or utilities that the feature should reuse.
+5. Surface any constraints, tech debt, or known issues in the area.
+
+**Output:** A concise "Exploration Summary" that captures: affected modules, existing patterns to follow, reuse opportunities, and constraints.
+
+---
+
+## Phase 2 — Design (Architecture & ADR)
+
+Using the Exploration Summary, produce:
+
+### 2a. Technical Design
+
+- Break the feature into discrete, independently testable units of work.
+- Define the public API / interface (function signatures, endpoint contracts, event shapes).
+- Identify all side effects (DB writes, external calls, cache invalidation, events emitted).
+- Specify the error cases and how each will be handled.
+- Note any performance considerations (N+1 queries, caching, pagination).
+
+### 2b. Lightweight ADR
+
+Document the key decisions made during design using this structure:
+
+```
+## ADR: [Feature Name] Implementation Approach
+**Status:** Proposed
+**Context:** [Why this decision is needed]
+**Decision:** [What was decided]
+**Alternatives Considered:** [Other options evaluated]
+**Consequences:** [Trade-offs accepted]
+```
+
+**Output:** Technical design document + ADR stub.
+
+---
+
+## Phase 3 — Branch
+
+Before writing any code, create the feature branch.
+
+1. Run `git checkout main && git pull` to ensure you are starting from the current `main`.
+2. Derive the branch name from the feature description: `<type>/<slug>` where type is one of `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `release`, `hotfix`, `perf`, `revert` and slug is a short kebab-case description.
+3. Run `git checkout -b <type>/<slug>`.
+4. Confirm with `git branch --show-current` and `git status`.
+
+**Gate:** Do not proceed to Phase 4 until the branch exists and `git status` shows a clean working tree on that branch.
+
+**Output:** Branch name (e.g., `feat/add-user-rate-limiting`).
+
+---
+
+## Phase 4 — Rubber Duck
+
+Before writing any code, apply a Mode A Plan Critique to the design produced in Phase 2. Work through each of the six interrogation questions defined in `shared/prompts/rubber-duck.md` under "Mode A — Plan Critique":
+
+1. **Edge case coverage:** What happens at boundaries, empty inputs, zero values, maximums, concurrent callers, missing dependencies, partial failures?
+2. **Simpler alternatives:** Are there simpler approaches that still satisfy the requirements?
+3. **Failure modes:** When this fails in production, is the failure loud or silent? Is recovery possible?
+4. **Hidden assumptions:** What does the design assume about external systems, input formats, timing, or ordering? Which assumptions could be wrong?
+5. **Unnecessary complexity:** Does the design introduce abstractions not required by the current problem?
+6. **Security implications:** Does the approach involve external input, authentication, file paths, network calls, or data storage? What are the security consequences?
+
+Produce a verdict in the standard format:
+
+```
+
+## Rubber Duck Review
+
+**Mode:** Plan Critique
+**Reviewed:** [feature description from Phase 2]
+
+### Blocking Issues
+
+- [issue] — [why it causes failure] — [concrete alternative]
+
+### Non-blocking Issues
+
+- [issue] — [why it matters] — [suggestion]
+
+### Verdict
+
+[No blocking issues found. / X blocking issue(s) require attention before proceeding.]
+
+```
+
+**Gate:** If blocking issues are found, resolve them by revising the Phase 2 design before proceeding. Do not begin implementation until the verdict is "No blocking issues found."
+
+---
+
+## Phase 5 — Implement
+
+Implement the feature following the design exactly. Apply all existing project conventions discovered in Phase 1. This phase ends when all code is written and the build passes — not before. Do not begin Phase 6 until the build is green.
+
+Rules:
+
+- Write code in the smallest reviewable increments.
+- Every public function must have a docstring / JSDoc / type annotation.
+- No inline code comments. Public functions, types, and API endpoints require docstrings or JSDoc.
+- Conventional commit messages for each logical unit of work.
+- Handle all error paths explicitly — no silent failures.
+- Log at appropriate levels (debug for trace, info for key actions, warn/error for failures).
+- Do not introduce new dependencies without noting them in the design.
+- Do not leave TODO comments without a paired issue reference.
+
+Implement in this order:
+
+1. Data models / types / schemas
+2. Core business logic
+3. Integration layer (API routes, event handlers, DB layer)
+4. Configuration & environment variables
+
+---
+
+## Phase 6 — Test + Docs Assessment
+
+Write a comprehensive test suite. This phase begins only after Phase 5 is complete and the build is green.
+
+Before writing tests, assess the implementation diff:
+
+1. **Test coverage:** Did the implementation add new behaviour, error paths, or edge cases? Write tests for all of them.
+2. **Documentation:** Did the implementation change any public API signatures, add new public functions or classes, or modify endpoint contracts? If yes, update docstrings and any relevant documentation files (README, API docs, ADRs) as part of this phase — do not defer to Phase 8 (Docs).
+
+### Test Levels Required:
+
+**Unit tests** — test each function in isolation with mocked dependencies.
+**Integration tests** — test the feature end-to-end within the process boundary.
+**Edge case tests** — empty inputs, boundary values, concurrent access, failure injection.
+
+### Test Quality Checklist:
+
+- [ ] Happy path covered
+- [ ] Each error path has a corresponding test
+- [ ] Boundary conditions tested
+- [ ] Tests are deterministic (no time-dependent or order-dependent behaviour)
+- [ ] Test names are descriptive: `it("returns 404 when user does not exist")`
+
+---
+
+## Phase 7 — Review
+
+Conduct a thorough self-review of the implementation. This phase begins only after Phase 6 is complete and all tests pass.
+
+### Review Checklist:
+
+- [ ] **Correctness:** Does the code do what the design specified?
+- [ ] **Security:** No injection vulnerabilities, no secrets in code, input is validated and sanitised.
+- [ ] **Performance:** No obvious N+1 queries, no unbounded loops on user-controlled input.
+- [ ] **Observability:** Key operations emit logs/metrics/traces.
+- [ ] **Error handling:** Every error path returns a meaningful message and appropriate status.
+- [ ] **Backwards compatibility:** No breaking changes to existing consumers (or explicitly noted).
+- [ ] **Code style:** Consistent with the patterns found in Phase 1.
+
+Produce a list of any issues found and fix them before proceeding.
+
+---
+
+## Phase 8 — Commit
+
+After all review findings are resolved, commit the implementation.
+
+1. Run `git add -p` to stage only the files that are part of this logical change. Do not stage unrelated files.
+2. Write a conventional commit message: `type(scope): description` where the subject line is under 72 characters. Include a body paragraph explaining why the change was made, not what it does.
+3. Run `pre-commit run --staged`. If any hook fails, fix the failure and re-stage before committing.
+4. Run `git commit -m "<message>"`.
+
+**Gate:** Do not proceed to Phase 9 until the commit is clean and all hooks pass.
+
+**Output:** Commit hash and message.
+
+---
+
+## Phase 9 — Docs
+
+Produce documentation appropriate to the feature's scope:
+
+1. **Inline docs** — ensure all public interfaces have accurate docstrings.
+2. **Usage example** — a minimal, copy-pasteable code example demonstrating the feature.
+3. **Changelog entry** — one-line summary formatted for CHANGELOG.md (conventional commit style).
+4. **README update** (if applicable) — update or create a section in the relevant README.
+
+---
+
+## Phase 10 — Verify
+
+Final verification before marking the feature complete:
+
+```
+!{git diff --stat HEAD 2>/dev/null || echo "(unable to diff)"}
+```
+
+Run through this checklist:
+
+- [ ] All tests pass (state which test command was used)
+- [ ] No new linting errors introduced
+- [ ] Feature matches the original requirement: **{{args}}**
+- [ ] ADR is saved to `docs/decisions/` (create the directory if it doesn't exist)
+- [ ] Commit is clean and pre-commit hooks passed (Phase 8)
+- [ ] Branch was created before any code was written (Phase 3)
+- [ ] Rubber duck verdict was "No blocking issues found" or all blocking issues resolved (Phase 4)
+- [ ] PR description is drafted (title, summary, testing notes, screenshots if UI)
+- [ ] No inline code comments added
+- [ ] All new public functions have docstrings
+- [ ] No emojis in code, commit messages, or PR description
+- [ ] Pre-commit hooks pass locally
+- [ ] Branch name follows pattern: `<type>/description` where type is one of `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `release`, `hotfix`, `perf`, `revert`
+
+---
+
+## Phase 11 — Push + Draft PR
+
+Push the branch and open a Draft PR.
+
+1. Run `git push -u origin <branch-name>`.
+2. Open a Draft PR: `gh pr create --draft --title "<type>(<scope>): <description>" --body "<what changed / why / how to test>"`.
+3. Confirm the PR URL.
+
+The Draft PR is opened on the first push. Subsequent pushes update the existing PR automatically.
+
+**Mark Ready:** When all CI checks are green and all findings from Phase 7 (Review) are resolved, run `gh pr ready <PR-URL>` to mark the PR ready for human review.
+
+---
+
+## Final Output
+
+Produce a structured summary:
+
+```
+## Feature Complete: [Feature Name]
+
+### What was built
+[2-3 sentences]
+
+### Files changed
+[List of files created/modified]
+
+### Tests added
+[List of test files and coverage areas]
+
+### Known limitations
+[Any intentional scope cuts or follow-up work needed]
+
+### PR Description (ready to paste)
+**Title:** feat: [description]
+**Summary:** [what and why]
+**Testing:** [how to verify]
+```
+"""

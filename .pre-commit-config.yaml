@@ -96,3 +96,11 @@ repos:
         entry: >-
           (?i)^Co-authored-by:.*(?:claude|gpt|copilot|gemini|openai|anthropic|chatgpt|cursor|opencode|\bai\b|bot)
         stages: [commit-msg]
+
+      - id: check-dotfiles-drift
+        name: Check dotfiles sync drift
+        language: script
+        entry: scripts/check-drift.sh
+        always_run: true
+        pass_filenames: false
+        stages: [pre-commit]

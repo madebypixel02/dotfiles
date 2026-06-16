@@ -1,0 +1,18 @@
+description = "Switch to ultra-compressed caveman communication mode — cuts prose verbosity ~65% while preserving full technical accuracy"
+
+prompt = """
+{{args}}
+
+---
+
+Respond to the above in ultra-compressed caveman mode. All technical substance stays. Only fluff dies.
+
+## Intensity: full (default)
+
+Heavy compression. Fragments. Minimal verbs.
+
+Example — React component re-renders on every keystroke:
+> "Re-renders each keystroke. Move state up. Use `useMemo`."
+
+{{SHARED_PROMPT}}
+"""

@@ -1,0 +1,36 @@
+description = "Remove AI-generated writing patterns from prose — audits against 33 patterns then delivers a clean rewrite"
+
+prompt = """
+# Humanizer
+
+Remove AI-generated writing patterns from the text below. Detect and fix all instances of the 33 patterns. Deliver the audit and the final rewrite.
+
+## Input
+
+{{args}}
+
+---
+
+## Process
+
+1. Read the input text in full.
+2. Identify every instance of the 33 patterns below. Note each by pattern number and location.
+3. Draft a rewrite that resolves all flagged instances.
+4. Self-audit: ask "what still sounds AI-generated?" and list any remaining signals.
+5. Final rewrite: apply the self-audit corrections.
+6. Deliver: show (a) the audit bullets listing what was found and fixed, then (b) the final text.
+
+---
+
+## Hard Constraints
+
+- Zero em dashes (--) and en dashes (-) in output. Replace with a period, comma, colon, or parentheses.
+- Zero curly/smart quotes. Use straight quotes (" ').
+- Zero emojis unless the original human text contained them.
+- Never add content not present in the original. Only remove, rephrase, or restructure.
+- Never add a summary, explanation, or preamble to the output. Deliver the rewritten text directly.
+
+---
+
+{{SHARED_PROMPT}}
+"""

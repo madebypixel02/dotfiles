@@ -14,7 +14,7 @@
  *     tracks whether that behaviour should be active.
  *
  * Behaviour:
- *   - On session.created: shows a TUI toast confirming caveman mode is OFF.
+ *   - On session.created: resets caveman_active and caveman_intensity to defaults.
  *   - Exposes caveman_toggle tool: on/off/lite/full/ultra.
  *
  * Design principles:
@@ -32,7 +32,7 @@ let caveman_active = false;
 /** Current intensity level when caveman mode is on. */
 let caveman_intensity: "lite" | "full" | "ultra" = "full";
 
-const cavemanGuardPlugin: Plugin = async ({ client }) => {
+const cavemanGuardPlugin: Plugin = async () => {
   return {
     event: async (input) => {
       try {
@@ -44,13 +44,6 @@ const cavemanGuardPlugin: Plugin = async ({ client }) => {
         if (type === "session.created") {
           caveman_active = false;
           caveman_intensity = "full";
-          void client.tui.showToast({
-            body: {
-              title: "Caveman Mode",
-              message: "OFF — activate with /caveman.",
-              variant: "info",
-            },
-          });
           return;
         }
       } catch {

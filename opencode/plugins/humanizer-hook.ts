@@ -17,9 +17,6 @@
  * rewritten with the most egregious patterns replaced, and a console note is
  * logged directing the user to run /humanizer for a full pass.
  *
- * At session idle, if any files were auto-corrected during the session, a summary
- * count is logged.
- *
  * Design principles:
  *   - Auto-corrects the written content in-place via Bun.write(), but only for
  *     paths whose bounded canonical target (the resolved absolute path) falls
@@ -78,18 +75,6 @@ const AUTO_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\btestament to\b/gi, "evidence of"],
   [/\bvibrant\b/gi, "active"],
 ];
-
-/** Per-session set of paths auto-corrected during the session, keyed by session ID. */
-const correctedFilesMap = new Map<string, Set<string>>();
-
-function getCorrectedFiles(sessionId: string): Set<string> {
-  let entry = correctedFilesMap.get(sessionId);
-  if (!entry) {
-    entry = new Set();
-    correctedFilesMap.set(sessionId, entry);
-  }
-  return entry;
-}
 
 /**
  * Returns the number of distinct AI signals found in the given content.
@@ -159,65 +144,9 @@ export function resolveCanonicalPath(
   return absoluteTarget;
 }
 
-const humanizerHookPlugin: Plugin = async ({ directory, client }) => {
+const humanizerHookPlugin: Plugin = async ({ directory }) => {
   const projectRoot: string = directory ?? process.cwd();
   return {
-    event: async (input) => {
-      try {
-        const ev = input.event as Record<string, unknown>;
-        if (!ev || typeof ev !== "object") return;
-        const type = ev.type as string | undefined;
-        if (!type) return;
-
-        if (type === "session.created") {
-          const properties = (ev.properties ?? {}) as Record<string, unknown>;
-          const info = (properties.info ?? {}) as Record<string, unknown>;
-          const sessionId =
-            (info.id as string | undefined) ??
-            (properties.sessionID as string | undefined) ??
-            (properties.id as string | undefined);
-          if (sessionId) {
-            correctedFilesMap.set(sessionId, new Set());
-          }
-          return;
-        }
-
-        if (type === "session.idle") {
-          const properties = (ev.properties ?? {}) as Record<string, unknown>;
-          const info = (properties.info ?? {}) as Record<string, unknown>;
-          const sessionId =
-            (info.id as string | undefined) ??
-            (properties.sessionID as string | undefined) ??
-            (properties.id as string | undefined);
-          if (!sessionId) return;
-          const correctedFiles = correctedFilesMap.get(sessionId);
-          if (correctedFiles && correctedFiles.size > 0) {
-            void client.tui.showToast({
-              body: {
-                title: "Humanizer",
-                message: `Auto-corrected AI writing patterns in ${correctedFiles.size} file(s) this session. Run /humanizer for a full prose pass.`,
-                variant: "info",
-              },
-            });
-          }
-          return;
-        }
-
-        if (type === "session.deleted" || type === "session.end") {
-          const properties = (ev.properties ?? {}) as Record<string, unknown>;
-          const info = (properties.info ?? {}) as Record<string, unknown>;
-          const sessionId =
-            (info.id as string | undefined) ??
-            (properties.sessionID as string | undefined) ??
-            (properties.id as string | undefined);
-          if (sessionId) correctedFilesMap.delete(sessionId);
-          return;
-        }
-      } catch {
-        return;
-      }
-    },
-
     "tool.execute.after": async (input, _output) => {
       try {
         const toolName = input.tool ?? "";
@@ -241,18 +170,6 @@ const humanizerHookPlugin: Plugin = async ({ directory, client }) => {
         const diskContent = await Bun.file(canonicalPath).text();
         const corrected = applyReplacements(diskContent);
         await Bun.write(canonicalPath, corrected);
-
-        const sessionId = input.sessionID;
-        if (sessionId) {
-          getCorrectedFiles(sessionId).add(canonicalPath);
-        }
-        void client.tui.showToast({
-          body: {
-            title: "Humanizer",
-            message: `Auto-corrected ${signalCount} AI writing pattern(s) in ${canonicalPath}. Run /humanizer for a full prose pass.`,
-            variant: "info",
-          },
-        });
       } catch {
         return;
       }

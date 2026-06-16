@@ -1,218 +1,265 @@
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/testing.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
+
 ---
 applyTo: "**/*.test.ts,**/*.spec.ts,**/tests/**,**/__tests__/**"
 ---
 
 # Testing Rules
 
-These rules apply to all test files. Follow them on every new test and when modifying existing ones.
+Apply these rules when writing new tests, extending an existing test suite, or reviewing changes for test coverage.
 
 ---
 
-## 1. Testing Philosophy
+## Core Principles
 
-- Tests document intent, not implementation. A reader should understand what the code _does_ from tests alone.
-- Test behavior and contracts, not internal structure. Refactoring internals must not break tests unless the observable behavior changed.
-- Write tests that are deterministic, isolated, and fast. A test that fails intermittently is worse than no test.
-- **Coverage target: 80% lines and branches** (unit tests). Coverage is a minimum floor — meaningful tests over inflated numbers.
+**Tests are production code.** Apply the same quality bar to tests as to application code: clear naming, no duplication, no magic values, no dead code.
 
----
+**Tests should fail for the right reason.** A test that passes when the code is broken, or fails when the code is correct, is worse than no test; it erodes trust in the suite.
 
-## 2. Test-First for Bugs
+**Fast feedback.** Tests should run quickly. Slow tests are skipped; skipped tests provide no value. Isolate slow I/O behind interfaces so unit tests can run without it.
 
-Before fixing any bug:
+**Deterministic.** Tests must produce the same result on every run, in any order, on any machine. Flaky tests must be fixed or deleted; they erode trust in the entire suite.
 
-1. Write a failing test that reproduces the exact bug.
-2. Confirm the test fails on the unfixed code.
-3. Fix the bug.
-4. Confirm the test passes.
-5. Commit test + fix in the same commit.
-
-This prevents regression and documents the failure mode permanently.
+**Docstrings are required.** Every test function must have a docstring or JSDoc block describing the scenario being tested and the expected outcome.
 
 ---
 
-## 3. File & Folder Conventions
+## Test Directory Structure
 
-- Unit tests: colocated with source — `src/services/user.service.test.ts` next to `user.service.ts`.
-- Integration tests: `tests/integration/` or `src/__tests__/integration/`.
-- E2E tests: `tests/e2e/` (separate run command, not included in default `pnpm test`).
-- Test utilities / factories: `tests/helpers/` or `src/__tests__/helpers/` — never inside a test file that `describe`s a unit.
-- Each test file tests one module. One `describe` block at the top level matching the module name.
+All Python projects must use the following directory layout for tests. This structure separates concerns by test type and ensures that CI can run each tier independently.
 
----
-
-## 4. Naming Conventions
-
-```ts
-describe("UserService", () => {
-  describe("createUser", () => {
-    it("should create a user and return the sanitized record", async () => { ... });
-    it("should throw DuplicateEmailError when email already exists", async () => { ... });
-    it("should hash the password before persisting", async () => { ... });
-  });
-});
+```
+tests/
+    __init__.py
+    unit/
+        __init__.py
+        test_<module>.py
+    integration/
+        __init__.py
+        test_<module>_integration.py
+    acceptance/
+        __init__.py
+        test_<process>_process.py
 ```
 
-- `describe()` labels: match the class name or module name, then method name.
-- `it()` labels: start with `"should "` + verb + condition. Be specific enough that the label alone is a useful failure message.
-- Avoid generic labels like `"it works"` or `"test 1"`.
+Rules:
+
+- Every directory under `tests/` must contain an `__init__.py` file. This ensures pytest discovers all tests correctly and prevents import conflicts.
+- Unit test files follow the pattern `test_<module>.py`, where `<module>` is the name of the source module under test.
+- Integration test files follow the pattern `test_<module>_integration.py`. The `_integration` suffix allows CI to run or skip integration tests separately using pytest markers.
+- Acceptance test files follow the pattern `test_<process>_process.py`. The `_process` suffix marks full end-to-end workflow tests.
+- Do not mix unit and integration tests in the same file. The distinction matters for execution speed, environment requirements, and CI job structure.
 
 ---
 
-## 5. Arrange–Act–Assert Structure
+## Test Pyramid
 
-Every test body follows AAA. Use blank lines to separate sections. Do not mix concerns.
+Structure the test suite as a pyramid:
 
-```ts
-it("should return paginated results sorted by createdAt desc", async () => {
-  // Arrange
-  const users = await factory.createMany("user", 5);
+**Unit tests (most numerous, fastest)**
 
-  // Act
-  const result = await userService.list({ page: 1, pageSize: 3 });
+- Test a single function, method, or class in isolation
+- Stub or mock all dependencies (databases, HTTP clients, clocks, random sources)
+- Run in milliseconds; no network, no filesystem, no sleep calls
+- Cover all meaningful branches, including error paths and edge cases
 
-  // Assert
-  expect(result.items).toHaveLength(3);
-  expect(result.total).toBe(5);
-  expect(result.items[0].createdAt >= result.items[1].createdAt).toBe(true);
-});
-```
+**Integration tests (fewer, slower)**
 
----
+- Test the interaction between two or more components (e.g., service + database, HTTP handler + service layer)
+- Use real implementations or in-process fakes (test databases, local queues)
+- Cover the critical happy path and the most important failure modes
+- May run against a local Docker environment
 
-## 6. Factories Over Literals
+**End-to-end tests (fewest, slowest)**
 
-Use factory functions for building test fixtures. Never scatter raw object literals across test files.
-
-```ts
-// tests/helpers/factories.ts
-export function buildUser(overrides: Partial<User> = {}): User {
-  return {
-    id: faker.string.uuid(),
-    email: faker.internet.email(),
-    name: faker.person.fullName(),
-    role: "user",
-    createdAt: new Date(),
-    ...overrides,
-  };
-}
-
-// In tests
-const admin = buildUser({ role: "admin" });
-```
-
-- Keep factories in `tests/helpers/factories.ts` (or per-domain in subfolders).
-- Use `faker` (or `@faker-js/faker`) for realistic data. Seed for reproducibility in CI: `faker.seed(12345)` in `beforeAll`.
+- Test a complete user journey through the deployed system
+- Run in a staging environment that mirrors production
+- Cover the highest-value user flows only; not every feature
+- Must not be the primary safety net; that role belongs to unit and integration tests
 
 ---
 
-## 7. Mocking
+## What to Test
 
-### What to mock
+### Always Test
 
-- External I/O: databases, HTTP APIs, file system, message queues, clock.
-- Non-deterministic sources: `Date.now()`, `Math.random()`, `crypto.randomUUID()`.
-- Slow operations in unit tests.
+- Every public function and method
+- Every branch in business logic (if/else, switch, error returns)
+- Boundary conditions: empty collections, zero values, maximum values, strings at length limits
+- Error paths: what happens when a dependency returns an error, times out, or returns unexpected data
+- Security-relevant code paths: authentication checks, authorisation decisions, input validation
 
-### What NOT to mock
+### Consider Testing
 
-- The module under test.
-- Pure utility functions from within the same codebase — import and use them directly.
-- Third-party library internals.
+- Data transformations and serialisation/deserialisation
+- State machine transitions
+- Retry and backoff logic
+- Concurrency and race conditions (use the race detector where available)
+- Configuration parsing
 
-### How to mock
+### Do Not Test
 
-- Prefer dependency injection over module-level mocking. Pass mock implementations as constructor args.
-- Use `vi.mock()` / `jest.mock()` only when DI is not feasible.
-- Always restore mocks in `afterEach`. Use `vi.restoreAllMocks()` in a global `afterEach` hook.
-
-```ts
-// GOOD — DI-based mock
-const mockUserRepo: UserRepository = {
-  findByEmail: vi.fn().mockResolvedValue(buildUser()),
-  create: vi.fn(),
-  // ...
-};
-const service = new UserService(mockUserRepo);
-```
+- Third-party library internals
+- Generated code (unless the generator itself has bugs)
+- Trivial getters and setters with no logic
 
 ---
 
-## 8. Async Tests
+## Test Structure
 
-- Always `await` async operations. Never rely on promise side effects.
-- Use `expect.assertions(n)` in tests that must reach an assertion inside a callback or conditional, to catch cases where the assertion is silently skipped.
+### Naming
 
-```ts
-it("should reject with InvalidTokenError for expired tokens", async () => {
-  expect.assertions(1);
-  await expect(authService.verify(expiredToken)).rejects.toThrow(
-    InvalidTokenError,
-  );
-});
-```
+- Name test functions to describe what they verify: `test_checkout_fails_when_stock_is_zero` not `test_checkout_3`
+- For table-driven tests, name each case explicitly
+- Group related tests in a describe/suite block when the testing framework supports it
+
+### Enterprise Naming Conventions
+
+Use these naming patterns for Python test functions. Each pattern maps to a specific testing scenario:
+
+| Pattern                                        | When to use                                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `test_<method>_missing_param_<param>`          | The method is called without a required parameter                                               |
+| `test_<method>_invalid_type_<param>`           | A parameter is provided with an incorrect type                                                  |
+| `test_<method>_invalid_value_<param>`          | A parameter is provided with a value outside the allowed range or set                           |
+| `test_<method>_valid_values`                   | The method succeeds with a representative set of valid inputs                                   |
+| `test_<method>_valid_value_<param>`            | A specific parameter is tested with a valid value                                               |
+| `test_<method>_valid_without_<optional_param>` | The method succeeds when an optional parameter is omitted                                       |
+| `test_<method>_edge_case_empty_value_<param>`  | A parameter is provided as an empty string, list, or dict                                       |
+| `test_<method>_edge_case_large_value_<param>`  | A parameter is provided at the maximum or an unexpectedly large value                           |
+| `test_<method>_unimplemented_<service>`        | A dependency of the method has not been implemented or is mocked to raise `NotImplementedError` |
+
+Apply these patterns consistently across all test files. Do not invent alternative naming schemes within the same module.
+
+### Docstrings
+
+Every test function must begin with a docstring or JSDoc block. The docstring must describe:
+
+1. The scenario being tested (the input condition or system state)
+2. The expected outcome (what the test asserts will be true)
+
+This is the only permitted form of documentation inside a test function. Inline comments are forbidden.
+
+### Arrange-Act-Assert
+
+Structure every test in three clearly separated sections:
+
+1. **Arrange** - set up the system under test, its dependencies, and the input data
+2. **Act** - call the function or trigger the behaviour being tested
+3. **Assert** - verify the output, state change, or side effects
+
+Do not intermix these phases. Do not assert in the arrange phase.
+
+### One Logical Assertion per Test
+
+A test should verify one thing. When a test fails, it should be immediately obvious what went wrong. Multiple unrelated assertions in a single test obscure the failure.
+
+Multiple assertions are acceptable when they all verify properties of the same logical output (e.g., checking several fields of a returned struct).
+
+### Test Data
+
+- Use realistic but minimal test data; only the fields relevant to the test
+- Use factory functions or builder patterns to construct test objects; avoid copy-pasting large literal structs
+- Do not share mutable test data across tests; each test should own its data
+- Do not use production data in tests
+
+### Mocks and Stubs
+
+- Mock at the dependency boundary, not inside the code under test
+- Prefer fakes (in-memory implementations) over mocks (behaviour-verification objects) for complex dependencies
+- Do not mock types you do not own; write a thin adapter and mock that
+- Verify that mocks are called with the expected arguments; do not let unexpected calls pass silently
+- Reset mocks between tests; do not rely on execution order
 
 ---
 
-## 9. Setup and Teardown
+## Coverage
 
-- Use `beforeAll` for expensive one-time setup (e.g., spin up DB connection, seed static reference data).
-- Use `beforeEach` for per-test reset (e.g., reset mocks, clear DB tables, restore state).
-- Use `afterAll` to close connections and clean up resources.
-- Never rely on test execution order. Each `it` block must be independently executable.
-
-```ts
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-```
+- Aim for minimum 80% branch coverage as the mandatory floor for all new code. This is enforced in CI; a coverage drop below 80% blocks merge.
+- Coverage is a floor, not a goal; 100% line coverage with no assertions is worthless
+- Use coverage reports to find untested paths, then write tests that verify those paths behave correctly
+- Do not add assertions solely to inflate coverage metrics
+- Coverage must not decrease on any pull request
+- For legacy code, the 80% floor applies only to new features and bug fixes in that code; do not require retroactive 100% coverage of legacy paths that are not being changed in the current PR.
 
 ---
 
-## 10. Integration Tests
+## Test-First Development
 
-- Use real implementations for the module under test plus one layer down (e.g., service + real repository against test DB).
-- Use Docker test containers or an in-memory database (SQLite, PGlite) — not a shared staging environment.
-- Wrap each test in a transaction and roll back in `afterEach` to keep tests isolated without full re-seeding.
-- Cover: happy path, at least 2 error/edge cases, boundary values.
+When practical, write the test before the implementation:
 
----
+1. Write a failing test that describes the desired behaviour
+2. Write the minimum implementation to make the test pass
+3. Refactor the implementation while keeping the test green
 
-## 11. Snapshot Testing
-
-- Use snapshot tests **only** for serialized outputs where visual diffing is the point (e.g., CLI output, email templates, complex generated SQL).
-- Do not snapshot-test raw component trees or JSON API responses — write explicit assertions instead.
-- Commit snapshots to version control. Review snapshot diffs in PR as carefully as code diffs.
-- Regenerate snapshots intentionally (`--updateSnapshot`), never as a reflex to make tests pass.
+Test-first development is especially valuable for bug fixes: write a test that reproduces the bug before fixing it. This proves the bug existed and prevents regression.
 
 ---
 
-## 12. What NOT to Test
+## Regression Tests
 
-- Third-party library behavior (test your usage, not the library itself).
-- Private methods (test through the public interface).
-- Framework boilerplate (e.g., Express wiring of middleware order — test the middleware function itself).
-- Trivial getters/setters with no logic.
-- Code that is not yet written (no speculative tests).
+- Every bug fix must be accompanied by a test that would have caught the bug
+- Add the test to the most appropriate level of the pyramid (usually unit or integration)
+- Reference the issue or ticket number in the test's docstring
 
 ---
 
-## 13. Performance & CI Constraints
+## Test Isolation and Reproducibility
 
-- Unit tests must complete in < 100ms each. Flag tests that consistently take > 200ms for review.
-- Do not make real network calls in unit tests. Mock `fetch`, `axios`, `node:http`, etc.
-- Integration tests may take longer but must complete in < 30s per file.
-- Tests must be runnable with `pnpm test` (no manual setup beyond `.env.test`).
-- CI runs tests in parallel shards — do not use shared mutable global state across test files.
+- Tests must not depend on each other's execution order
+- Tests must not share mutable global state; use `beforeEach`/`setUp` to reset state
+- Tests must not depend on the current time; inject a clock and control it in tests
+- Tests must not depend on random values; seed the random source or inject it
+- Tests that touch the filesystem must use a temporary directory and clean up after themselves
+- Tests must not make real network calls; use HTTP test servers or recorded fixtures
 
 ---
 
-## 14. Error Case Coverage
+## Performance of Tests
 
-Every public function should have tests for:
+- Unit tests should run in under 1 ms each; the full unit suite in under 30 seconds
+- Mark slow tests explicitly (e.g., with a build tag, test category, or `@pytest.mark.slow`) so they can be skipped in local development
+- Profile the test suite periodically; delete or optimise tests that are disproportionately slow without providing unique value
 
-- Happy path (expected inputs, expected output).
-- Invalid/missing inputs (validation errors).
-- Boundary values (empty arrays, zero, max-length strings, etc.).
-- Downstream failure (mocked repo throws, external API fails).
-- Permission/auth denied cases (if applicable).
+---
+
+## Continuous Integration
+
+- All tests must pass on every pull request. The quality-gate CI job must be green before merge.
+- Coverage must not decrease on any pull request
+- Flaky tests must be quarantined and fixed within one sprint; do not tolerate persistent flakiness
+- Test failures block merge; they are not optional
+- Run tests in parallel where the framework supports it to keep CI fast
+
+---
+
+## Testing Checklist
+
+Before marking a change as complete, verify:
+
+- [ ] New behaviour has tests at the appropriate pyramid level
+- [ ] All test functions have docstrings describing the scenario and expected outcome
+- [ ] All branches (including error paths) are covered
+- [ ] Boundary conditions are tested
+- [ ] Tests are named descriptively
+- [ ] Each test follows Arrange-Act-Assert
+- [ ] No shared mutable state between tests
+- [ ] No real network calls or filesystem access in unit tests
+- [ ] No sleep or timing-dependent assertions
+- [ ] Bug fixes accompanied by a regression test
+- [ ] Coverage has not decreased
+- [ ] Full test suite passes locally before committing
+---
+
+## Code Review Gate
+
+Before marking any change as complete, verify each item in the checklist below.
+If this file is in the `applyTo` scope of this instruction file, these checks are mandatory.
+
+- [ ] All rules in this file have been applied to the changed code
+- [ ] No rule has been selectively ignored without a documented reason
+- [ ] Pre-commit hooks pass locally
+- [ ] The change has been tested against the scenarios described in the rules above
+
