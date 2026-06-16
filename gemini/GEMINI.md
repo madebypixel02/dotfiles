@@ -4,6 +4,10 @@
 
 ## Gemini CLI — Additional Instructions
 
+### Agent Model
+
+Gemini CLI is a single-agent tool — there is no `Task` tool and no subagent spawning. The universal orchestrator principle is defined in the shared `Orchestrator and Delegation Discipline` section of `AGENTS.md`. The Gemini-specific enforcement mechanism is the commands in `~/.gemini/commands/`: each command sequences phases with hard gates so that exploration, design, implementation, and review remain distinct steps. Use opencode when a task needs true parallel specialist reviews or the full planner-approval workflow.
+
 ### Slash Commands
 
 The following custom commands are available in `~/.gemini/commands/`. Invoke them by typing
@@ -35,6 +39,12 @@ have reviewed the plan and are satisfied, follow up with: "Proceed with the impl
 For complex architectural decisions, use `--model gemini-2.5-pro` to access extended thinking,
 which produces more thorough analysis before committing to an approach.
 
+### Coding SDLC
+
+The canonical 11-step SDLC is defined in `shared/AGENTS.md` under "Coding SDLC". Every coding task follows that sequence in full. For Gemini CLI, the `/feature` command is the primary enforcement mechanism: its phases map to SDLC steps and enforce hard gates between them. Running `/feature <task>` is the required entry point for any feature development task — do not begin implementation outside the `/feature` command structure.
+
+The `/feature` command enforces all SDLC steps through explicit phase gates. Do not skip any phase.
+
 ### MCP Servers
 
 All MCP servers in `settings.json` require explicit credentials and are available for use once
@@ -65,40 +75,6 @@ Zero-credential servers (`context7`, `semgrep`, `sentry`, `linear`) can be used 
 
 ### Token Economy
 
-- Reference code by `path/to/file:line`. Never reproduce more than 5 lines of existing code.
-- Do not echo file contents after reading them. Summarise findings; cite locations.
-- No preamble ("I'll now...", "Let me...") or postamble ("Let me know if...").
-- When a subagent or tool returns a complete answer, present it directly. Do not rephrase.
-- Do not re-read files already in context. Pass briefs to follow-up prompts instead.
-- Parallelise tool calls. When reading or searching multiple independent files, issue all calls
-  in a single operation where the model supports it.
+See the `Token Economy` section of `AGENTS.md` (loaded via `@./AGENTS.md`). The rules defined there apply in full.
 
 ---
-
-## Enterprise Development Standards
-
-The following shared rule files define non-negotiable standards for this enterprise
-codebase. Read the relevant file before starting any work in that domain. All paths
-are relative to the dotfiles repository root (e.g. `~/dotfiles/shared/rules/`), not
-relative to `~/.gemini`.
-
-- `shared/rules/python.md` — Python 3.11 runtime, `uv` package manager, Ruff linter and
-  formatter, type hints, Google-style docstrings, Bandit security linting, and
-  `pyproject.toml` as the single configuration source.
-- `shared/rules/observability.md` — Structured JSON logging compatible with ECS, required
-  log fields, analytics log fields for API and service calls, `/health` and `/ready`
-  endpoints, OpenTelemetry tracing, and metrics with alert thresholds.
-- `shared/rules/ai-development.md` — Standards for building production AI agents and
-  LangGraph workflows, prompt engineering (RTCF structure), evaluation pipelines, golden
-  datasets, and AI security controls.
-- `shared/rules/cicd.md` — GitHub Flow branching model, conventional commits enforced by
-  commitlint, semantic release, Docker multi-stage builds, GHCR publishing, and
-  environment promotion gates (INT -> CERT -> PROD).
-- `shared/rules/security.md` — Security review checklist for authentication, authorisation,
-  cryptography, input validation, secrets handling, and external-facing APIs.
-- `shared/rules/workflow.md` — Git branching model, conventional commits, PR requirements,
-  feature branch naming, and merge discipline.
-- `shared/rules/testing.md` — Test strategy across unit, integration, and end-to-end layers,
-  coverage targets, and test writing standards.
-- `shared/rules/markdown.md` — Markdown formatting specification, markdownlint configuration,
-  and documentation authoring standards.
