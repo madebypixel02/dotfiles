@@ -134,7 +134,9 @@ function extractContent(args: Record<string, unknown>): string | undefined {
 
 /** Returns true if the tool name corresponds to a write or edit operation. */
 function isWriteOrEdit(toolName: string): boolean {
-  return /^(write|edit|writeFile|write_file|editFile|edit_file)$/i.test(toolName);
+  return /^(write|edit|writeFile|write_file|editFile|edit_file)$/i.test(
+    toolName,
+  );
 }
 
 /**
@@ -146,7 +148,10 @@ function isWriteOrEdit(toolName: string): boolean {
  * as the write target. Callers must use this path — not the original `filePath`
  * — for all subsequent file operations to eliminate relative-path ambiguity.
  */
-export function resolveCanonicalPath(filePath: string, projectRoot: string): string | null {
+export function resolveCanonicalPath(
+  filePath: string,
+  projectRoot: string,
+): string | null {
   const absoluteRoot = resolve(projectRoot);
   const absoluteTarget = resolve(projectRoot, filePath);
   const rel = relative(absoluteRoot, absoluteTarget);
@@ -154,8 +159,8 @@ export function resolveCanonicalPath(filePath: string, projectRoot: string): str
   return absoluteTarget;
 }
 
-const humanizerHookPlugin: Plugin = async (context) => {
-  const projectRoot: string = context.directory ?? process.cwd();
+const humanizerHookPlugin: Plugin = async ({ directory, client }) => {
+  const projectRoot: string = directory ?? process.cwd();
   return {
     event: async (input) => {
       try {
@@ -187,9 +192,13 @@ const humanizerHookPlugin: Plugin = async (context) => {
           if (!sessionId) return;
           const correctedFiles = correctedFilesMap.get(sessionId);
           if (correctedFiles && correctedFiles.size > 0) {
-            console.log(
-              `\n[humanizer] Auto-corrected AI writing patterns in ${correctedFiles.size} file(s) this session. Run /humanizer for a full prose pass.\n`,
-            );
+            void client.tui.showToast({
+              body: {
+                title: "Humanizer",
+                message: `Auto-corrected AI writing patterns in ${correctedFiles.size} file(s) this session. Run /humanizer for a full prose pass.`,
+                variant: "info",
+              },
+            });
           }
           return;
         }
@@ -237,9 +246,13 @@ const humanizerHookPlugin: Plugin = async (context) => {
         if (sessionId) {
           getCorrectedFiles(sessionId).add(canonicalPath);
         }
-        console.log(
-          `\n[humanizer] Auto-corrected ${signalCount} AI writing pattern(s) in ${canonicalPath}. Run /humanizer for a full prose pass.\n`,
-        );
+        void client.tui.showToast({
+          body: {
+            title: "Humanizer",
+            message: `Auto-corrected ${signalCount} AI writing pattern(s) in ${canonicalPath}. Run /humanizer for a full prose pass.`,
+            variant: "info",
+          },
+        });
       } catch {
         return;
       }

@@ -1,5 +1,11 @@
 # Copilot Instructions
 
+## Agent Model
+
+GitHub Copilot operates as a single plan-first agent. There is no `Task` tool and no subagent spawning capability. The full orchestrator principle is defined in `shared/AGENTS.md` under "Orchestrator and Delegation Discipline" (the canonical source shared across all tools). The Copilot-specific enforcement is the plan-first workflow below: you never begin implementation without an approved plan, you apply the reviewer and security-auditor checklists inline before declaring any task complete, and you treat planning, implementation, and review as distinct non-overlapping phases.
+
+For tasks that require true multi-agent coordination — structured planner approval, parallel specialist reviews, or a dedicated builder/reviewer separation — use opencode.
+
 ## Plan-First Workflow
 
 When operating in Agent mode, use the built-in Plan mode before making changes.

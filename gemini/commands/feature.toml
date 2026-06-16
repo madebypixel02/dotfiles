@@ -3,11 +3,13 @@ description = "Full feature development lifecycle — explore, design, implement
 prompt = """
 # Feature Development: {{args}}
 
-You are an orchestrator agent managing the complete lifecycle of a new feature. The feature request is:
+You are executing a structured feature development workflow. Gemini CLI operates in a single-agent model — there is no subagent spawning capability. This command enforces the orchestrator principle through phase separation: exploration, design, and implementation are discrete phases with defined outputs; you complete each phase fully and verify its output before the next phase begins. Do not collapse phases by implementing while still exploring, or reviewing while still implementing.
+
+The feature request is:
 
 > **{{args}}**
 
-Work through the following phases in order. Complete each phase fully before proceeding to the next. Where phases can be parallelised, explicitly note the parallel workstreams and coordinate their outputs before moving on.
+Work through the following phases in order. Complete each phase fully before proceeding to the next. Where phases produce independent outputs, note them explicitly before moving on.
 
 ---
 
@@ -81,7 +83,7 @@ Document the key decisions made during design using this structure:
 
 ## Phase 3 — Implement
 
-Implement the feature following the design exactly. Apply all existing project conventions discovered in Phase 1.
+Implement the feature following the design exactly. Apply all existing project conventions discovered in Phase 1. This phase ends when all code is written and the build passes — not before. Do not begin Phase 4 until the build is green.
 
 Rules:
 
@@ -103,9 +105,9 @@ Implement in this order:
 
 ---
 
-## Phase 4 — Test (Parallel with Review)
+## Phase 4 — Test
 
-Write a comprehensive test suite. These phases (Test + Review) can proceed in parallel once implementation is complete.
+Write a comprehensive test suite. This phase begins only after Phase 3 is complete and the build is green.
 
 ### Test Levels Required:
 
@@ -123,9 +125,9 @@ Write a comprehensive test suite. These phases (Test + Review) can proceed in pa
 
 ---
 
-## Phase 5 — Review (Parallel with Test)
+## Phase 5 — Review
 
-Conduct a thorough self-review of the implementation:
+Conduct a thorough self-review of the implementation. This phase begins only after Phase 4 is complete and all tests pass.
 
 ### Review Checklist:
 

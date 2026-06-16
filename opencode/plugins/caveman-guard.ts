@@ -4,9 +4,8 @@
  * Division of labor with the `/caveman` skill:
  *   - This plugin manages session-level state for caveman mode and exposes the
  *     `caveman_toggle` tool so the model (or user via slash command) can switch
- *     modes programmatically. It also provides light advisory behaviour: logging
- *     a notice when verbose echo/printf commands are issued while caveman mode is
- *     active. It does not enforce prose compression — that is the model's job.
+ *     modes programmatically. It does not enforce prose compression — that is the
+ *     model's job.
  *   - The `/caveman` skill contains the full compression ruleset: intensity levels
  *     (lite, full, ultra), the specific grammar rules the model applies, the
  *     NOT vs YES examples, auto-clarity exception conditions, and the boundaries
@@ -15,9 +14,7 @@
  *     tracks whether that behaviour should be active.
  *
  * Behaviour:
- *   - On session.created: logs current mode status with activation instructions.
- *   - On tool.execute.before for Bash tool: skips verbose echo/printf commands
- *     when caveman mode is active (advisory skip, not a hard block).
+ *   - On session.created: shows a TUI toast confirming caveman mode is OFF.
  *   - Exposes caveman_toggle tool: on/off/lite/full/ultra.
  *
  * Design principles:
@@ -35,17 +32,7 @@ let caveman_active = false;
 /** Current intensity level when caveman mode is on. */
 let caveman_intensity: "lite" | "full" | "ultra" = "full";
 
-/**
- * Returns true if the bash command is an echo or printf producing verbose
- * multi-word output that caveman mode would abbreviate.
- * Detection is intentionally narrow to avoid false positives.
- */
-function isVerboseEchoCommand(command: string): boolean {
-  const trimmed = command.trim();
-  return /^(echo|printf)\s+['"]?.{40,}/.test(trimmed);
-}
-
-const cavemanGuardPlugin: Plugin = async (_ctx) => {
+const cavemanGuardPlugin: Plugin = async ({ client }) => {
   return {
     event: async (input) => {
       try {
@@ -55,30 +42,16 @@ const cavemanGuardPlugin: Plugin = async (_ctx) => {
         if (!type) return;
 
         if (type === "session.created") {
-          console.log(`\n[caveman] Mode: OFF. Activate: /caveman or type "caveman mode"\n`);
           caveman_active = false;
           caveman_intensity = "full";
+          void client.tui.showToast({
+            body: {
+              title: "Caveman Mode",
+              message: "OFF — activate with /caveman.",
+              variant: "info",
+            },
+          });
           return;
-        }
-      } catch {
-        return;
-      }
-    },
-
-    "tool.execute.before": async (input, output) => {
-      try {
-        const toolName = input.tool ?? "";
-        if (!/^(bash|Bash|shell|Shell)$/i.test(toolName)) return;
-        if (!caveman_active) return;
-
-        const args = (output.args ?? {}) as Record<string, unknown>;
-        const command =
-          (args.command as string | undefined) ?? (args.cmd as string | undefined) ?? "";
-
-        if (isVerboseEchoCommand(command)) {
-          console.log(
-            `[caveman] Verbose echo detected. Caveman mode active (${caveman_intensity}).`,
-          );
         }
       } catch {
         return;

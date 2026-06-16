@@ -255,15 +255,52 @@ These tools are available across all supported AI coding agents. Use them by nam
 
 ---
 
+## Orchestrator and Delegation Discipline
+
+All AI coding agents in this setup follow a plan-first, phase-separated model regardless of whether they support multiple specialist subagents.
+
+### Multi-agent tools (opencode)
+
+The orchestrator plans and coordinates — it never writes or edits code itself. Every coding task, regardless of scope, routes through the `@builder` subagent. A one-line fix is still delegated; the delegation prompt may be brief, but it is never skipped. The orchestrator reads files, delegates to specialists, integrates their outputs, and verifies results.
+
+There is no scope threshold at which delegation is skipped. If you find yourself writing code or editing a file while acting as the orchestrator, stop. Produce a delegation prompt instead.
+
+### Single-agent tools (Claude Code, Gemini CLI, GitHub Copilot)
+
+These tools operate within a single session with no subagent spawning. The orchestrator principle is enforced through phase discipline:
+
+- **Plan before implementing.** Never begin writing code without completing an exploration and design phase first. The plan must exist as an explicit, reviewable output — not a mental note.
+- **Complete each phase before starting the next.** Exploration ends before design begins. Design ends before implementation begins. Implementation ends (and the build passes) before testing begins. Testing ends before self-review begins.
+- **Do not collapse phases.** Writing code while still exploring, or reviewing while still implementing, is the single-agent equivalent of the orchestrator doing the builder's work.
+
+For tasks that require true parallel specialist reviews, a structured planner approval workflow, or an enforced builder/reviewer separation, use opencode.
+
+---
+
+## Domain Rule Files
+
+The following shared rule files define non-negotiable standards. Read the relevant file before starting any work in that domain. Paths are relative to the dotfiles repository root (`~/dotfiles/`).
+
+- `shared/rules/python.md` — Python 3.11 runtime, `uv` package manager, Ruff linter and formatter, type hints, Google-style docstrings, Bandit security linting, and `pyproject.toml` as the single configuration source.
+- `shared/rules/observability.md` — Structured JSON logging compatible with ECS, required log fields, analytics log fields for API and service calls, `/health` and `/ready` endpoints, OpenTelemetry tracing, and metrics with alert thresholds.
+- `shared/rules/ai-development.md` — Standards for building production AI agents and LangGraph workflows, prompt engineering (RTCF structure), evaluation pipelines, golden datasets, and AI security controls.
+- `shared/rules/cicd.md` — GitHub Flow branching model, conventional commits enforced by commitlint, semantic release, Docker multi-stage builds, GHCR publishing, and environment promotion gates (INT → CERT → PROD).
+- `shared/rules/security.md` — Security review checklist for authentication, authorisation, cryptography, input validation, secrets handling, and external-facing APIs.
+- `shared/rules/workflow.md` — Git branching model, conventional commits, PR requirements, feature branch naming, and merge discipline.
+- `shared/rules/testing.md` — Test strategy across unit, integration, and end-to-end layers, coverage targets, and test writing standards.
+- `shared/rules/markdown.md` — Markdown formatting specification, markdownlint configuration, and documentation authoring standards.
+
+---
+
 ## Delegation Hierarchy
 
 The agent hierarchy has three tiers. Delegation outside these tiers is forbidden.
 
-| Tier | Agent | May call |
-| --- | --- | --- |
-| 1 — Hub | Orchestrator | Any agent |
-| 2 — Implementer | Builder | `@reviewer`, `@test-architect`, `@security-auditor` only |
-| 3 — Leaf | All other agents | No agents |
+| Tier            | Agent            | May call                                                 |
+| --------------- | ---------------- | -------------------------------------------------------- |
+| 1 — Hub         | Orchestrator     | Any agent                                                |
+| 2 — Implementer | Builder          | `@reviewer`, `@test-architect`, `@security-auditor` only |
+| 3 — Leaf        | All other agents | No agents                                                |
 
 **Tier 3 agents (leaf nodes):** Planner, Reviewer, Security Auditor, Test Architect,
 Docs Writer, Debugger, Rubber Duck, Release Manager. These agents read, analyse, and
