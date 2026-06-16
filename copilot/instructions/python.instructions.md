@@ -369,4 +369,3 @@ If this file is in the `applyTo` scope of this instruction file, these checks ar
 - [ ] No rule has been selectively ignored without a documented reason
 - [ ] Pre-commit hooks pass locally
 - [ ] The change has been tested against the scenarios described in the rules above
-
