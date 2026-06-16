@@ -14,7 +14,13 @@ permission:
   skill: "allow"
   todowrite: "allow"
   bash:
-    "*": "deny"
+    "*": "ask"
+    "bash scripts/sync-dotfiles.sh": "allow"
+    "bash *.sh": "ask"
+    "docker restart *": "ask"
+    "docker compose restart *": "ask"
+    "systemctl --user restart *": "ask"
+    "systemctl restart *": "ask"
     "git status *": "allow"
     "git diff *": "allow"
     "git log *": "allow"
@@ -26,6 +32,7 @@ permission:
     "git commit *": "ask"
     "git push *": "ask"
     "gh pr create *": "ask"
+    "glab mr create *": "ask"
     "gh pr ready *": "ask"
     "npm run test *": "allow"
     "npm run lint *": "allow"
@@ -134,13 +141,30 @@ Core rules that apply to every edit:
 
 ### Step 3 -- Test
 
+If any file under `shared/rules/` or `shared/prompts/` is among the staged or modified files, run `bash scripts/sync-dotfiles.sh` from the repo root before running `pre-commit run --all-files`. This regenerates the copilot instruction files and gemini command files that are derived from those sources. The `check-dotfiles-drift` pre-commit hook runs with `always_run: true` and will fail if derived files are stale.
+
 After every set of edits, run the test suite. Fix failures at the root cause -- do not adjust test assertions to make them pass unless the test itself is wrong. Re-run until all tests pass.
 
 Also run linting and typechecking. Fix all errors and warnings before declaring the task complete.
 
+A non-zero exit from the Semgrep hook is a blocking failure, treated identically to any other pre-commit hook failure. Do not push until Semgrep exits 0. Resolution options, in order of preference: (1) fix the flagged code; (2) add a plain-path entry to `.semgrepignore` using gitignore syntax (for example, `path/to/file.sh`) with an accurate written rationale in a comment block above it -- the comment must include a `# Suppresses: <rule-id>` line and explain why the finding is a false positive or accepted risk; because the Semgrep pre-commit hook passes explicit file paths to Semgrep rather than scanning a directory, the file must also be added to the `exclude` regex in the Semgrep hook entry in `.pre-commit-config.yaml` for the suppression to take effect during pre-commit runs; (3) for non-shell files where a line-level suppression is more appropriate, add a nosemgrep annotation at the affected line -- use `// nosemgrep: <rule-id>` for TypeScript and JavaScript files, `# nosemgrep: <rule-id>` for Python files -- with a justification comment in the nearest enclosing docstring. Shell files have no docstring mechanism; prefer `.semgrepignore` combined with the hook exclude pattern for shell. Using `--no-verify` to bypass the hook is forbidden under any circumstance.
+
 ### Step 4 -- Git Operations
 
 When instructed by the developer agent to commit, push, or create a PR:
+
+**Pre-flight: commit message validation.** Before running `git commit`, count the characters in the header of the provided message: type + optional `(scope)` + `: ` + description. If the count exceeds 72 characters, do not attempt the commit. Return a structured rejection to the developer agent:
+
+```
+## Commit Rejected: Header Too Long
+
+**Header:** <the full header string>
+**Length:** <actual character count>
+**Limit:** 72
+**Action required:** shorten the header and re-delegate
+```
+
+Do not truncate or modify the message. Hard Rule 1 applies: the message must be returned to the developer for correction.
 
 - Stage files with `git add -p`. Stage only the files that are part of the logical change.
 - Commit using the **exact message** provided by the developer agent. Do not modify it.
@@ -190,3 +214,4 @@ Return a structured summary to the developer agent:
 11. Pre-commit hooks must pass before declaring complete.
 12. Never suppress linter warnings with inline ignores unless there is no alternative. If suppression is unavoidable, document the reason in a docstring on the affected symbol.
 13. Task lists are required for multi-step work. For tasks with more than 3 distinct steps, initialise a task list using `todowrite` before starting Step 0. Update each item's status continuously as steps are started, completed, or blocked. Do not batch updates at the end.
+14. Before attempting `git commit`, count the commit message header characters. If the count exceeds 72, refuse and return a structured rejection to the developer agent. Never proceed with an over-length header.

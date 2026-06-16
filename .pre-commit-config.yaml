@@ -51,6 +51,20 @@ repos:
         args: ["--skip", "B101", "-x", "tests,scripts"]
         types: [python]
 
+  - repo: https://github.com/semgrep/semgrep
+    rev: v1.166.0
+    hooks:
+      - id: semgrep
+        args: ["--config", "auto", "--error"]
+        exclude: >-
+          (?x)^(
+            .*\.lock$|
+            .*\.min\.js$|
+            .*\.min\.css$|
+            package-lock\.json$|
+            install\.sh$
+          )$
+
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.2.1
     hooks:
@@ -95,6 +109,12 @@ repos:
         language: pygrep
         entry: >-
           (?i)^Co-authored-by:.*(?:claude|gpt|copilot|gemini|openai|anthropic|chatgpt|cursor|opencode|\bai\b|bot)
+        stages: [commit-msg]
+
+      - id: commitlint
+        name: commitlint
+        language: node
+        entry: node_modules/.bin/commitlint --edit
         stages: [commit-msg]
 
       - id: check-dotfiles-drift

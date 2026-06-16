@@ -1,4 +1,6 @@
 {
+  "MD003": { "style": "atx" },
+
   "MD010": { "code_blocks": false },
 
   "MD013": false,

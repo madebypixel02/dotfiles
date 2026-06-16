@@ -1,10 +1,10 @@
-<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
-<!-- Source: shared/rules/python.md -->
-<!-- Regenerate with: scripts/sync-dotfiles.sh -->
-
 ---
 applyTo: "**/*.py"
 ---
+
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/python.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
 
 # Python Development Rules
 
@@ -358,6 +358,7 @@ See `shared/rules/testing.md` for full testing requirements. Python-specific add
 - Place tests in a `tests/` directory at the project root, mirroring the source layout under `src/`.
 - Run the full suite with `make test` before every commit.
 - Minimum branch coverage is 80%. The `--cov-fail-under=80` flag in `pyproject.toml` enforces this in CI.
+
 ---
 
 ## Code Review Gate
