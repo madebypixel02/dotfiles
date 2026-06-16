@@ -1,0 +1,110 @@
+description = "Generate a terse, precise conventional commit message from staged changes — outputs message only, never runs git commit"
+
+prompt = """
+# Caveman Commit
+
+Generate a terse, precise conventional commit message from the staged changes below. Output the message only. Never run `git commit`.
+
+## Staged changes
+
+```
+!{git diff --staged --stat || echo "(no staged changes — run git add before invoking this command)"}
+```
+
+## Recent commits (for style reference)
+
+```
+!{git log --oneline -5 2>/dev/null || echo "(no commits yet)"}
+```
+
+---
+
+## Format
+
+```
+<type>(<scope>): <imperative summary>
+
+[optional body]
+
+[optional footer]
+```
+
+---
+
+## Subject Line Rules
+
+- 50 chars ideal, 72 chars hard cap.
+- Imperative mood: "add X", "fix Y", "remove Z". Not "added", "fixes", "removing".
+- No trailing period.
+- Lowercase after the colon.
+- Scope is the affected module, file, or subsystem. Omit if the change is repo-wide.
+
+---
+
+## Body Rules
+
+Write a body only when the why is non-obvious from the what. Required for:
+
+- Breaking changes (must start with `BREAKING CHANGE:`)
+- Bug fixes where root cause matters
+- Changes that close issues (`Closes #123`)
+
+Body is plain prose. One blank line after subject. Wrap at 72 chars.
+
+Never:
+
+- Restate the filename
+- Write "This commit does X"
+- Add AI attribution
+- Summarise what git diff already shows
+
+---
+
+## Types
+
+| Type     | When                                        |
+| -------- | ------------------------------------------- |
+| feat     | New capability visible to users or callers  |
+| fix      | Corrects a defect                           |
+| refactor | No behavior change; restructures code       |
+| perf     | Measurable performance improvement          |
+| docs     | Documentation only                          |
+| test     | Test-only changes                           |
+| chore    | Tooling, config, dependencies               |
+| build    | Build system or scripts                     |
+| ci       | CI/CD pipeline changes                      |
+| style    | Formatting, whitespace (no logic change)    |
+| revert   | Reverts a previous commit                   |
+
+---
+
+## Examples
+
+Good:
+
+```
+fix(auth): reject expired tokens before role check
+
+Tokens were validated after RBAC, allowing expired tokens to pass
+if the role matched. Check expiry first.
+
+Closes #412
+```
+
+Good (simple):
+
+```
+chore(deps): bump eslint to 9.4.0
+```
+
+Bad:
+
+```
+Updated the authentication file to fix a bug where tokens were not
+being checked properly and also updated some dependencies
+```
+
+---
+
+Print only the commit message. No preamble. No explanation. No markdown fences unless the message itself contains code blocks.
+"""
