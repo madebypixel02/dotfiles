@@ -26,6 +26,7 @@ permission:
     "git commit *": "ask"
     "git push *": "ask"
     "gh pr create *": "ask"
+    "glab mr create *": "ask"
     "gh pr ready *": "ask"
     "npm run test *": "allow"
     "npm run lint *": "allow"
