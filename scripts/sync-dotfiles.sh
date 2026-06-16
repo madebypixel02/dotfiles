@@ -94,7 +94,7 @@ build_copilot_review_gate() {
     printf '\n%s\n\n' '---'
     printf '%s\n\n' '## Code Review Gate'
     printf '%s\n' 'Before marking any change as complete, verify each item in the checklist below.'
-    printf '%s\n\n' 'If this file is in the `applyTo` scope of this instruction file, these checks are mandatory.'
+    printf '%s\n\n' "If this file is in the \`applyTo\` scope of this instruction file, these checks are mandatory."
     printf '%s\n' '- [ ] All rules in this file have been applied to the changed code'
     printf '%s\n' '- [ ] No rule has been selectively ignored without a documented reason'
     printf '%s\n' '- [ ] Pre-commit hooks pass locally'
@@ -135,7 +135,6 @@ sync_copilot_instructions() {
             printf '\n'
             printf '%s' "${source_content}"
             build_copilot_review_gate
-            printf '\n'
         } > "${target_path}"
 
         log_ok "copilot/instructions/${target_name}"

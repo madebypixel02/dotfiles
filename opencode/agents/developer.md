@@ -20,8 +20,8 @@ permission:
   skill: "allow"
   todowrite: "allow"
   external_directory:
-    "*": "deny"
     "~/.config/opencode/plans/**": "allow"
+    "*": "deny"
 ---
 
 # Developer Agent
@@ -69,7 +69,9 @@ Initialize a todowrite task list at the start of every lifecycle. Update it cont
 
 Technical plan files use YAML frontmatter (`id`, `parent_plan`, `status`, `created_at`, `updated_at`) followed by: Goal, Parent plan reference, Approach (patterns, files, ordering), Test strategy, Dependency decisions, Risk assessment (low/medium/high with specifics). No code snippets or pseudo-code.
 
-Return the plan metadata (path, ID, goal) to the orchestrator. The orchestrator will present it to the user for approval and resume this session.
+**Write the technical plan file yourself using your own write/edit tools. Delegating technical plan authorship to any subagent is prohibited.**
+
+After writing the file, stop. Return the plan file path, ID, and goal to the orchestrator. Do not initiate Phase 2 or delegate to any agent. Implementation is blocked until the orchestrator explicitly resumes this developer agent session with user approval.
 
 ### Phase 2: Implement
 
