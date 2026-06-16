@@ -43,7 +43,7 @@ which produces more thorough analysis before committing to an approach.
 
 The canonical 11-step SDLC is defined in `shared/AGENTS.md` under "Coding SDLC". Every coding task follows that sequence in full. For Gemini CLI, the `/feature` command is the primary enforcement mechanism: its phases map to SDLC steps and enforce hard gates between them. Running `/feature <task>` is the required entry point for any feature development task — do not begin implementation outside the `/feature` command structure.
 
-Steps not yet covered by `/feature` gates (branch creation, rubber duck, commit, push, PR) are documented as phases within the command. See `~/.gemini/commands/feature.toml` for the current phase list.
+The `/feature` command enforces all SDLC steps through explicit phase gates. Do not skip any phase.
 
 ### MCP Servers
 

@@ -117,7 +117,7 @@ See `shared/rules/workflow.md` for the complete branching, commit, and PR requir
 
 ### Before Starting Work
 
-Run `git status` and `git log --oneline -10` to understand the current state of the repository before making any changes.
+Run `git status` and `git log --oneline -5` to understand the current state of the repository before making any changes.
 
 ### Commits
 

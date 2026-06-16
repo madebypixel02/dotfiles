@@ -1,4 +1,4 @@
-description = "Full feature development lifecycle — clarify, explore, design, branch, rubber-duck, implement, test, review, commit, docs, verify, push, PR"
+description = "Full feature development lifecycle — clarify, explore, design, branch, rubber-duck, implement, test, review, commit, docs, verify, push+PR"
 
 prompt = """
 # Feature Development: {{args}}
@@ -201,7 +201,7 @@ Produce a list of any issues found and fix them before proceeding.
 
 ---
 
-## Phase 7b — Commit
+## Phase 8 — Commit
 
 After all review findings are resolved, commit the implementation.
 
@@ -210,13 +210,13 @@ After all review findings are resolved, commit the implementation.
 3. Run `pre-commit run --staged`. If any hook fails, fix the failure and re-stage before committing.
 4. Run `git commit -m "<message>"`.
 
-**Gate:** Do not proceed to Phase 8 until the commit is clean and all hooks pass.
+**Gate:** Do not proceed to Phase 9 until the commit is clean and all hooks pass.
 
 **Output:** Commit hash and message.
 
 ---
 
-## Phase 8 — Docs
+## Phase 9 — Docs
 
 Produce documentation appropriate to the feature's scope:
 
@@ -227,7 +227,7 @@ Produce documentation appropriate to the feature's scope:
 
 ---
 
-## Phase 9 — Verify
+## Phase 10 — Verify
 
 Final verification before marking the feature complete:
 
@@ -241,7 +241,7 @@ Run through this checklist:
 - [ ] No new linting errors introduced
 - [ ] Feature matches the original requirement: **{{args}}**
 - [ ] ADR is saved to `docs/decisions/` (create the directory if it doesn't exist)
-- [ ] Commit is clean and pre-commit hooks passed (Phase 7b)
+- [ ] Commit is clean and pre-commit hooks passed (Phase 8)
 - [ ] Branch was created before any code was written (Phase 3)
 - [ ] Rubber duck verdict was "No blocking issues found" or all blocking issues resolved (Phase 4)
 - [ ] PR description is drafted (title, summary, testing notes, screenshots if UI)
@@ -250,6 +250,20 @@ Run through this checklist:
 - [ ] No emojis in code, commit messages, or PR description
 - [ ] Pre-commit hooks pass locally
 - [ ] Branch name follows pattern: `feat/description` or `fix/description`
+
+---
+
+## Phase 11 — Push + Draft PR
+
+Push the branch and open a Draft PR.
+
+1. Run `git push -u origin <branch-name>`.
+2. Open a Draft PR: `gh pr create --draft --title "<type>(<scope>): <description>" --body "<what changed / why / how to test>"`.
+3. Confirm the PR URL.
+
+The Draft PR is opened on the first push. Subsequent pushes update the existing PR automatically.
+
+**Mark Ready:** When all CI checks are green and all findings from Phase 7 are resolved, run `gh pr ready <PR-URL>` to mark the PR ready for human review.
 
 ---
 
