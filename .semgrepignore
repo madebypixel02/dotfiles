@@ -16,3 +16,8 @@
 # functionally equivalent and is therefore not a meaningful mitigation.
 # Suppresses: bash.curl.security.curl-pipe-bash.curl-pipe-bash
 install.sh
+
+# frontmatter.ts: the dynamic RegExp in extractFrontmatterField uses escapeRegex
+# to sanitise the field argument before interpolation. The field value is always a
+# hardcoded string literal at every call site ("id", "status", "updated_at").
+# Per-rule suppression is handled by the inline nosemgrep annotation in the file.
