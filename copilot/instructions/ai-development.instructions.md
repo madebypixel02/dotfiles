@@ -1,192 +1,265 @@
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/ai-development.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
+
 ---
 applyTo: "**/agents/**,**/prompts/**,**/chains/**,**/graphs/**,**/llm/**,**/ai/**,**/rag/**,**/evaluation/**"
 ---
 
-# AI Development Rules
+# AI/ML Development Rules
 
-These rules apply to all agent, prompt, chain, graph, LLM integration, RAG, and evaluation code. All general engineering standards from `copilot-instructions.md` and `python.instructions.md` apply in full. The rules in this file extend those standards with AI-specific requirements.
-
----
-
-## 1. Framework Standards
-
-**LangGraph** is the default and required framework for all agent and multi-step workflow implementations. Justify any deviation from LangGraph in an Architecture Decision Record before implementation.
-
-**MCP (Model Context Protocol)** is the required standard for integrating external tools and data sources into agents. Do not implement bespoke tool-calling wrappers when MCP is applicable.
-
-**A2A (Agent-to-Agent)** protocol is required for all inter-agent communication in multi-agent systems. Direct HTTP calls between agents are not permitted.
-
-All model traffic must route through the designated AI Gateway (Azure APIM for Azure-hosted workloads). Direct calls from application code to model provider APIs that bypass the gateway are prohibited in production.
+These rules govern the design, implementation, evaluation, and operation of AI and machine learning agents, pipelines, and models in this repository.
 
 ---
 
-## 2. Agent Classification
+## Agent Classification
 
-Classify every agent on two axes before implementation. The classification determines the required memory architecture, error handling strategy, and evaluation approach.
+Before beginning implementation, classify the agent correctly. The classification determines the approved tooling, infrastructure, and testing requirements.
 
-### Interaction type
+### Workflow Agents
 
-| Type           | Description                                              |
-| -------------- | -------------------------------------------------------- |
-| Workflow       | Executes a fixed sequence of steps triggered by an event |
-| Conversational | Maintains dialogue state across multiple user turns      |
+Agents that execute structured, goal-directed tasks as part of a larger process.
 
-### Decision mechanism
+| Subtype       | Description                                                              | Approved Tooling                               |
+| ------------- | ------------------------------------------------------------------------ | ---------------------------------------------- |
+| Traditional   | Rule-based or scripted workflow with deterministic branching             | Python, standard libraries                     |
+| LLM-augmented | Workflow with one or more LLM calls at specific decision points          | LangGraph, Azure AI Foundry                    |
+| Agentic       | LLM drives the control flow; tools are selected and invoked autonomously | LangGraph, MCP, Azure AI Foundry Agent Service |
 
-| Type        | Description                                                             |
-| ----------- | ----------------------------------------------------------------------- |
-| Traditional | Rule-based logic with no LLM involvement in routing decisions           |
-| LLM-based   | Uses an LLM for classification or routing, with deterministic execution |
-| Agentic     | LLM autonomously selects actions and tools; execution path varies       |
+### Conversational Agents
 
-Document the classification in the agent module's module-level docstring.
+Agents that interact with users through natural language over multiple turns.
 
----
-
-## 3. Memory Architecture
-
-| Scope      | Storage                      | Use case                                                 |
-| ---------- | ---------------------------- | -------------------------------------------------------- |
-| Short-term | Redis                        | Conversation state, session context, in-flight task data |
-| Long-term  | Azure AI Search or Cosmos DB | User preferences, knowledge bases, historical context    |
-
-Implement memory read and write as explicit graph nodes in LangGraph. Do not read or write memory as side effects inside action nodes.
-
-Define a TTL for all short-term memory entries. Do not allow Redis keys to grow unbounded.
+| Subtype       | Description                                                      | Approved Tooling                          |
+| ------------- | ---------------------------------------------------------------- | ----------------------------------------- |
+| Chatbot       | Scripted or intent-based dialogue with fixed response paths      | Dialogflow CX, Copilot Studio             |
+| LLM-augmented | Intent recognition backed by an LLM; responses may be generative | Copilot Studio, Vertex AI Agent Builder   |
+| Agentic       | LLM manages the conversation, retrieves context, and calls tools | LangGraph, Azure AI Foundry Agent Service |
 
 ---
 
-## 4. Prompt Engineering
+## Procode Agent Standards
+
+Procode agents are implemented in Python using approved frameworks.
+
+### Required Frameworks
+
+- **Orchestration:** LangGraph is the default framework for all procode agents. Deviations require written approval and must be documented in an Architecture Decision Record.
+- **Tool integration:** Use the Model Context Protocol (MCP) to expose tools to agents. Do not pass tools as raw Python callables in production agents.
+- **Inter-agent communication:** Use Agent-to-Agent (A2A) protocol for communication between separately deployed agents.
+- **Runtime:** Azure AI Foundry Agent Service for hosted agent execution.
+
+### Memory
+
+| Memory Type             | Storage Backend                                           |
+| ----------------------- | --------------------------------------------------------- |
+| Short-term memory (STM) | Redis                                                     |
+| Long-term memory (LTM)  | Azure AI Search (vector) and Azure Cosmos DB (structured) |
+
+Short-term memory expires with the session. Long-term memory persists across sessions and must be scoped to the user or tenant.
+
+### Test Coverage
+
+Procode agents must maintain a minimum of 80% test coverage. This applies to agent logic, tool implementations, memory operations, and prompt rendering functions.
+
+---
+
+## Declarative Agent Standards
+
+Declarative agents are configured through platform tools rather than code.
+
+| Platform                       | Approved use case                                                      |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| Microsoft Copilot Studio       | Microsoft 365 integration, Teams bots, Power Platform workflows        |
+| Google Vertex AI Agent Builder | Google Cloud-hosted conversational agents                              |
+| Google Dialogflow CX           | Complex multi-turn conversational flows with explicit state management |
+
+Declarative agent configurations must be committed to version control as exported JSON or YAML. Do not manage declarative agents solely through the platform UI without a versioned export in the repository.
+
+---
+
+## Model Management
+
+### Approved Model Catalogs
+
+- **Primary:** Azure AI Foundry model catalog
+- **Secondary:** Google Vertex AI model catalog
+
+Models from Hugging Face require written approval from the AI lead and a security review before use in production. The approval must be documented in an ADR.
+
+### AI Gateway
+
+All model API calls in production must route through an AI Gateway:
+
+- **Azure:** Azure API Management (APIM) with the AI Gateway policy set
+- **Google Cloud:** Apigee with rate limiting and authentication policies
+
+Direct calls to model provider APIs from application code are forbidden in production deployments. The gateway enforces rate limiting, token budgets, logging, and authentication centrally.
+
+---
+
+## Prompt Engineering
 
 ### Structure
 
-All production prompts must follow the RTCF structure:
+All prompts must follow the RTCF structure:
 
-1. **Role** — The persona or expertise the model should adopt.
-2. **Task** — The specific action the model must perform.
-3. **Context** — Background information required to complete the task correctly.
-4. **Format** — The required output format, schema, or constraints.
+| Component   | Description                                                    |
+| ----------- | -------------------------------------------------------------- |
+| **Role**    | Define the persona and expertise the model should adopt        |
+| **Task**    | State the specific task to be completed                        |
+| **Context** | Provide background information, constraints, and relevant data |
+| **Format**  | Specify the expected output format, length, and structure      |
 
 ### Naming Convention
 
-Name prompt files and variables descriptively using the pattern `<domain>_<action>_<version>`:
+Prompt files must follow this naming pattern:
 
-- `order_extraction_v1`
-- `sentiment_classification_v2`
-- `document_summary_v1`
+```
+<agent_name>_<task_name>_<version>.md
+```
+
+Examples:
+
+- `document_review_summarise_v1.md`
+- `support_triage_classify_v2.md`
 
 ### Versioning
 
-Prompts are code. They must be versioned, reviewed, and tested like any other code artifact. Store prompts in the `prompts/` directory, not inline in calling code. Use templating (Jinja2 or equivalent) — never string concatenation at runtime. Increment the version suffix when changing a prompt's wording, structure, or output schema.
+- Prompts are versioned using a monotonically increasing integer suffix (`v1`, `v2`, etc.).
+- Prompt files are stored in Azure Blob Storage for production deployments and committed to Git for review and change tracking.
+- The version in use by each deployed agent must be recorded in the agent's configuration.
+
+### Lifecycle Phases
+
+| Phase          | Description                                            |
+| -------------- | ------------------------------------------------------ |
+| Draft          | Prompt is under authorship; not yet evaluated          |
+| Experiment     | Prompt is being evaluated against the golden dataset   |
+| Pre-production | Prompt has passed evaluation; deployed to CERT/staging |
+| Production     | Prompt is live; monitored for drift and quality        |
+| Deprecated     | Prompt has been replaced; retained for audit purposes  |
+
+Promote a prompt to the next phase only after the evaluation criteria for the current phase are met and a human reviewer has approved the promotion.
 
 ---
 
-## 5. Evaluation Pipelines
-
-Evaluation pipelines are mandatory for all production agents and chains before promotion beyond the development environment.
+## Evaluation
 
 ### Golden Dataset
 
-- Minimum 20 representative cases per agent or chain.
-- Cases must cover happy path, edge cases, and known failure modes.
-- Golden datasets require human curation. AI-generated datasets are permitted as a starting point only; a human must review and approve every case.
-- Store golden datasets under `evaluation/datasets/` in version control.
-- Pin the dataset version alongside the model version in evaluation run metadata.
+Every agent must have a golden dataset for evaluation before it is deployed to production.
 
-### Metrics
+Requirements:
 
-Choose metrics appropriate to the task type. Document the chosen metrics in the evaluation configuration.
+- Minimum 20 test cases per agent.
+- Distribution: 60% direct questions (single-hop), 30% multi-hop questions (requiring reasoning over multiple pieces of context), 10% edge cases (ambiguous input, out-of-scope, adversarial).
+- Each case includes: input, expected output, and the ground truth source used to verify the answer.
+- The golden dataset is committed to the repository and updated when the agent scope changes.
 
-| Task type               | Required metrics                                         |
-| ----------------------- | -------------------------------------------------------- |
-| Question answering      | Faithfulness, answer relevance, context recall           |
-| Summarization           | Rouge-L, factual consistency, conciseness                |
-| Classification          | Accuracy, precision, recall, F1                          |
-| Code generation         | Pass@k, compilation success rate, test pass rate         |
-| Multi-step reasoning    | Step accuracy, final answer accuracy, hallucination rate |
-| Latency-sensitive tasks | p50/p95/p99 latency alongside accuracy metrics           |
+### Evaluation Metrics
 
-### Lifecycle
+Select the metrics appropriate to the agent's task type:
 
-1. Define metrics and golden dataset before writing agent code.
-2. Run evaluation after every significant prompt or graph change.
-3. Regressions in evaluation scores block promotion to integration, certification, and production environments without explicit sign-off from the owning team lead.
-4. Evaluation runs must be reproducible. Pin model versions, dataset versions, and metric definitions in run metadata.
+**Question Answering**
 
----
+| Metric       | Description                                                 |
+| ------------ | ----------------------------------------------------------- |
+| Token F1     | Token overlap between predicted and reference answer        |
+| BERTScore    | Semantic similarity using contextual embeddings             |
+| LLM-as-Judge | A separate LLM rates the answer quality on a defined rubric |
 
-## 6. LangGraph Implementation Standards
+**Summarisation**
 
-### Graph Structure
+| Metric    | Description                                               |
+| --------- | --------------------------------------------------------- |
+| ROUGE-L   | Longest common subsequence overlap with reference summary |
+| BERTScore | Semantic similarity to reference summary                  |
 
-- Define each logical step as a discrete, named node.
-- Nodes must be pure functions or async functions with a single responsibility.
-- State transitions must be explicit edges. Do not use implicit control flow or side effects to move between nodes.
-- Define the state schema as a typed `TypedDict` or Pydantic model.
+**Classification**
 
-### Error Handling in Graphs
+| Metric    | Description                                   |
+| --------- | --------------------------------------------- |
+| Precision | True positives divided by predicted positives |
+| Recall    | True positives divided by actual positives    |
+| F1        | Harmonic mean of precision and recall         |
 
-- Define an explicit error node for recoverable failures. Route to it from any node that may fail.
-- Unrecoverable errors must propagate as typed exceptions, not be swallowed inside nodes.
-- Log the node name and graph state summary at `error` level when a node fails.
-- Include retry logic with exponential backoff for nodes that call external services.
+**Retrieval-Augmented Generation (RAG)**
 
-### Checkpointing
+| Metric       | Description                                                       |
+| ------------ | ----------------------------------------------------------------- |
+| Faithfulness | Whether the generated answer is grounded in the retrieved context |
+| BERTScore    | Semantic similarity between generated answer and reference        |
 
-- Use LangGraph's checkpointer for all conversational agents to enable resume on failure.
-- Store checkpoints in the project's configured persistence backend (Redis for short-lived, Cosmos DB for durable).
+### Operational Metrics
 
----
+In addition to quality metrics, track operational metrics in production:
 
-## 7. LLM Call Standards
+| Metric                  | Description                                     |
+| ----------------------- | ----------------------------------------------- |
+| Latency (p50, p95, p99) | Time from request receipt to response delivered |
+| Cost per request        | Total token cost normalised per request         |
+| Error rate              | Percentage of requests that result in an error  |
 
-- Always set an explicit `timeout` on every LLM call.
-- Always specify `max_tokens` to prevent runaway completions.
-- Log `model`, `prompt_tokens`, `completion_tokens`, and `latency_ms` as structured fields on every LLM call. Do not log the prompt or completion content.
-- Emit an OpenTelemetry span for every LLM call with the same fields as attributes.
-- Use structured output (JSON mode or response schema) wherever the downstream code parses the model response. Validate the parsed output against a Pydantic model.
+### Evaluation Lifecycle
 
-```python
-response = await client.chat.completions.create(
-    model=settings.azure_openai_deployment,
-    messages=messages,
-    max_tokens=512,
-    response_format={"type": "json_object"},
-    timeout=30.0,
-)
-```
+| Stage          | Trigger                                    | Acceptance Criterion                                         |
+| -------------- | ------------------------------------------ | ------------------------------------------------------------ |
+| Initial        | First deployment of a new agent            | All quality metrics meet the defined baseline                |
+| Experiment     | Prompt or model change                     | Quality metrics do not regress from the previous passing run |
+| Pre-production | Promotion from experiment                  | Human reviewer approves evaluation report                    |
+| Production     | Ongoing, after each model or prompt update | Automated regression check; alert on degradation             |
 
 ---
 
-## 8. RAG Implementation
+## AI Security
 
-- Chunk documents at the logical boundary (paragraph, section, sentence) appropriate to the domain. Document the chunking strategy.
-- Store chunk metadata (source document, section, page, creation date) alongside embeddings in the vector store.
-- Re-rank retrieved chunks using a cross-encoder or LLM-based relevance score before passing to the generation step.
-- Validate that retrieved context is sufficient before invoking the LLM. If no relevant context is found, return a structured "insufficient context" response rather than hallucinating.
-- Attribute every generated statement to its source chunk in the response where the use case permits.
+### Content Safety
 
+All user-facing agents must route input and output through Azure AI Content Safety or an equivalent content moderation API. Configure safety categories (hate, self-harm, violence, sexual) at the threshold appropriate for the target audience. Log content safety decisions without logging the full user input.
+
+### Guardrails
+
+Implement guardrails at the application layer in addition to model-level safety:
+
+- Validate that agent outputs conform to the expected schema before returning them to callers.
+- Reject or escalate responses that the content safety layer flags.
+- Implement a circuit breaker: if the model returns malformed output on three consecutive requests, stop calling it and return a degraded response.
+
+### Prompt Injection Prevention
+
+- Never concatenate raw user input directly into a system prompt.
+- Separate system instructions from user-provided content using explicit delimiters that the model is instructed to treat as boundaries.
+- Validate that user input does not contain delimiter strings before inserting it into the prompt.
+- Test agents against a prompt injection test suite as part of the evaluation pipeline.
+
+### Logging Restrictions
+
+- Never log the full text of a user's message in a conversational agent; log a hash or truncated prefix for debugging purposes only.
+- Never log the full system prompt; log only the prompt name and version.
+- Log model responses at `debug` level only and ensure `debug` is disabled in production by default.
+
+### AI Gateway Policies
+
+Configure the following policies at the AI Gateway layer:
+
+- Rate limiting per user and per tenant to prevent runaway token consumption.
+- Token budget enforcement: reject requests that would exceed the configured token limit.
+- Request and response logging to the audit log (with sensitive field masking).
+- Authentication: all requests must carry a valid identity token; anonymous calls are rejected.
+
+### Data Classification
+
+Use Microsoft Purview to classify data that flows through AI pipelines. Data classified as Confidential or above must not be sent to external model providers without explicit approval and a documented data processing agreement.
 ---
 
-## 9. Security
+## Code Review Gate
 
-- Integrate **Azure AI Content Safety** at both the input and output boundaries of every user-facing agent. This is not optional.
-- Implement input guardrails before any user content reaches the LLM. Implement output guardrails before any LLM response reaches the user.
-- Treat all user-supplied content as untrusted. Sanitize before including in prompts. Do not allow prompt injection through user content.
-- Never expose raw model error messages to end users. Log them internally and return a sanitized response.
-- Conduct a threat model review for any agent that can take actions with side effects (file writes, API calls, database mutations, email sending).
-- Do not log full prompt content, full completion content, or user inputs that may contain PII.
-- Apply the principle of least privilege to all tool permissions granted to an agent.
+Before marking any change as complete, verify each item in the checklist below.
+If this file is in the `applyTo` scope of this instruction file, these checks are mandatory.
 
----
+- [ ] All rules in this file have been applied to the changed code
+- [ ] No rule has been selectively ignored without a documented reason
+- [ ] Pre-commit hooks pass locally
+- [ ] The change has been tested against the scenarios described in the rules above
 
-## 10. Testing AI Code
-
-Agent and chain code is subject to the same 80% coverage requirement as all other code.
-
-- Unit-test each node function in isolation with mocked LLM responses.
-- Unit-test each tool function in isolation.
-- Integration-test the full graph against a stubbed or sandboxed LLM backend. Do not mock the LLM in integration tests unless the test is explicitly validating retry or error-handling behavior.
-- Acceptance-test end-to-end agent behavior against the evaluation golden dataset.
-- Use `pytest-recording` or equivalent to record and replay LLM responses in unit tests for determinism.
-- Test all error paths: LLM timeout, LLM content filter rejection, tool failure, state schema validation failure.

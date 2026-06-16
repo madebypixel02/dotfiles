@@ -1,21 +1,50 @@
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/python.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
+
 ---
 applyTo: "**/*.py"
 ---
 
-# Python Rules
+# Python Development Rules
 
-These rules apply to all Python source files. Follow them when creating new modules or modifying existing ones.
+These rules govern all Python development in this repository. They apply to every Python file, configuration, and tooling decision.
 
 ---
 
-## 1. Runtime and Tooling
+## Python Version
 
-- Python 3.11 is the minimum and mandatory target version. Do not use syntax or standard-library features unavailable in 3.11.
-- Use `uv` exclusively for all package management operations. Never invoke `pip` directly.
-- Ruff is the linter and formatter. Configuration is project-level; do not override it inline except where a suppression is genuinely necessary and a docstring explains why.
-- Pylance (basic mode) provides type checking in VS Code. Use `pyright` for CI type checking. Fix all reported errors before committing.
+Python 3.11 is the standard runtime version for all projects. Deviations from this version require explicit approval from the project lead before any code is written or infrastructure is provisioned.
 
-**Ruff configuration baseline:**
+---
+
+## Package Manager
+
+`uv` is the mandatory package manager. `pip`, `poetry`, `pipenv`, and other package managers are forbidden unless a legacy project explicitly cannot be migrated.
+
+### Commands
+
+| Context                      | Command                  |
+| ---------------------------- | ------------------------ |
+| Install dependencies in CI   | `uv sync --frozen`       |
+| Build distributable packages | `uv build`               |
+| Run a script or tool         | `uv run <command>`       |
+| Add a dependency             | `uv add <package>`       |
+| Add a dev dependency         | `uv add --dev <package>` |
+
+### Lockfile
+
+Commit `uv.lock` to version control on every project. CI must use `uv sync --frozen` to ensure the locked versions are used exactly. Never run `uv sync` without `--frozen` in CI.
+
+---
+
+## Linting and Formatting
+
+`Ruff` is the mandatory linter and formatter. `flake8`, `black`, `isort`, and `autopep8` must not be used.
+
+### Configuration
+
+All Ruff configuration lives in `pyproject.toml` under `[tool.ruff]`. Do not use `ruff.toml` or `.ruff.toml`.
 
 ```toml
 [tool.ruff]
@@ -23,142 +52,321 @@ line-length = 120
 target-version = "py311"
 
 [tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "N",
+    "W",
+    "UP",
+    "S",
+    "B",
+    "A",
+    "C4",
+    "DTZ",
+    "ISC",
+    "PIE",
+    "PT",
+    "RET",
+    "SIM",
+    "TID",
+    "TCH",
+    "ERA",
+    "PL",
+    "RUF",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+```
+
+### Running Ruff
+
+```
+uv run ruff check .
+uv run ruff format .
+```
+
+Both commands must pass with no errors before any commit. The formatter is not optional; run it on every file you touch.
+
+---
+
+## Static Analysis
+
+### Pylance
+
+Use Pylance as the VS Code language server for type checking. Configure it in `.vscode/settings.json`:
+
+```json
+{
+  "python.languageServer": "Pylance",
+  "python.analysis.typeCheckingMode": "basic"
+}
+```
+
+### Pylint
+
+Pylint is used as a supplementary static analyzer alongside Ruff. It catches patterns that Ruff does not address. Run it with:
+
+```
+uv run pylint <package_or_module>
+```
+
+Resolve all Pylint errors before committing. Disable individual rules only when Ruff and Pylint conflict on the same construct, and document the disable with a docstring on the surrounding function or class explaining why.
+
+### Bandit
+
+Bandit performs security-focused static analysis. It is mandatory on all production source code.
+
+```
+uv run bandit -r <source_dir> --exclude tests,scripts -s B101
+```
+
+- Exclude `tests/` and `scripts/` directories from Bandit analysis.
+- Skip rule `B101` (assert statements are acceptable in test code and are excluded by the `--exclude` flag anyway).
+- All remaining Bandit findings at medium severity or above block the CI pipeline.
+
+---
+
+## Project Configuration
+
+`pyproject.toml` is the single source of truth for project metadata, dependencies, and tool configuration. Do not use `setup.py`, `setup.cfg`, or separate configuration files for tools that support `pyproject.toml`.
+
+### Minimal Required Structure
+
+```toml
+[project]
+name = "project-name"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "S", "B", "A", "C4", "DTZ", "ISC", "PIE", "PT", "RET", "SIM", "TID", "TCH", "ERA", "PL", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=src --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
 ```
 
 ---
 
-## 2. Type Hints
+## Makefile
 
-- Type hints are mandatory on all function signatures: parameters and return types.
-- Use `from __future__ import annotations` at the top of every module to enable PEP 563 deferred evaluation.
-- Prefer `X | Y` union syntax over `Union[X, Y]`. Prefer `X | None` over `Optional[X]`.
-- Use `TypeVar`, `Generic`, `Protocol`, and `TypedDict` where appropriate.
-- Never use `Any` without a docstring on the containing function explaining why the type cannot be constrained.
-- Use `Final` for module-level constants that must not be reassigned.
+Every Python project must include a `Makefile` at the repository root with the following standard targets. Do not rename these targets; CI pipelines depend on them.
+
+```makefile
+.PHONY: build test lint format typecheck clean new_release
+
+build:
+	uv build
+
+test:
+	uv run pytest
+
+lint:
+	uv run ruff check .
+	uv run pylint src
+	uv run bandit -r src --exclude tests,scripts -s B101
+
+format:
+	uv run ruff format .
+
+typecheck:
+	uv run pylance || uv run pyright
+
+clean:
+	rm -rf dist/ build/ .pytest_cache/ .ruff_cache/ htmlcov/ .coverage
+
+new_release:
+	uv run semantic-release version
+	uv build
+```
 
 ---
 
-## 3. Docstrings
+## DevContainer Standards
 
-- All public functions, classes, and methods require a Google-style docstring.
-- Private functions (prefixed `_`) require a docstring when their behaviour is not immediately obvious from the name and type hints alone.
-- Docstrings describe purpose, parameters, return value, and exceptions raised.
+All Python projects must include a DevContainer configuration so that contributors can work in a reproducible environment without local Python installation.
+
+### Dockerfile
+
+Base image: `python:3.11-slim-bookworm` (Debian 12 Bookworm). Do not use Alpine for Python projects; binary wheel compatibility is unreliable on musl libc.
+
+```dockerfile
+FROM python:3.11-slim-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN curl -sS https://starship.rs/install.sh | sh -s -- --yes
+
+RUN echo 'eval "$(starship init bash)"' >> /root/.bashrc
+
+WORKDIR /workspace
+```
+
+### devcontainer.json
+
+```json
+{
+  "name": "Python 3.11",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.pylint",
+        "tamasfe.even-better-toml",
+        "GitHub.copilot"
+      ],
+      "settings": {
+        "python.languageServer": "Pylance",
+        "python.analysis.typeCheckingMode": "basic",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      }
+    }
+  },
+  "postCreateCommand": ".devcontainer/post_create.sh",
+  "remoteUser": "root"
+}
+```
+
+### post_create.sh
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+uv sync --frozen
+pre-commit install
+```
+
+Make `post_create.sh` executable (`chmod +x .devcontainer/post_create.sh`) and commit that permission.
+
+---
+
+## Type Hints
+
+Type hints are required for all function signatures: parameters and return types. There are no exceptions.
 
 ```python
-def calculate_retry_delay(attempt: int, base_delay: float) -> float:
-    """Calculate exponential backoff delay for a retry attempt.
+def calculate_discount(price: float, rate: float) -> float:
+    """Calculate the discounted price by applying rate to price."""
+    return price * (1 - rate)
+```
+
+- Use `from __future__ import annotations` at the top of every module to enable PEP 563 deferred evaluation of annotations.
+- Use `typing.TYPE_CHECKING` blocks for imports that exist only for type checking, to avoid circular imports and runtime overhead.
+- Do not use `Any` without a docstring on the containing function explaining why the type cannot be constrained.
+
+---
+
+## Data Modelling
+
+Prefer `dataclasses` or `Pydantic` models over plain `dict` for any structured data that crosses function boundaries or is persisted.
+
+- Use `dataclasses.dataclass` for pure data containers with no validation logic.
+- Use `pydantic.BaseModel` for data that requires validation, serialisation, or comes from an external source (API request bodies, config files, environment variables).
+- Never pass `dict` objects between service-layer functions when the shape is known at design time.
+
+---
+
+## Docstrings
+
+All public functions, classes, and methods require Google-style docstrings. Private functions (prefixed with `_`) are encouraged to have docstrings but it is not mandatory.
+
+```python
+def fetch_user(user_id: str, include_deleted: bool = False) -> User:
+    """Fetch a single user record by identifier.
 
     Args:
-        attempt: Zero-indexed attempt number.
-        base_delay: Base delay in seconds before applying backoff.
+        user_id: The unique identifier of the user.
+        include_deleted: When True, soft-deleted users are included in the
+            search. Defaults to False.
 
     Returns:
-        Delay in seconds, capped at 60 seconds.
+        The User record matching the given identifier.
 
     Raises:
-        ValueError: If attempt is negative or base_delay is not positive.
+        UserNotFoundError: If no user with the given identifier exists and
+            include_deleted is False, or the user is hard-deleted.
+        DatabaseConnectionError: If the database is unreachable.
     """
 ```
 
 ---
 
-## 4. Data Modeling
+## Language and Naming
 
-- Use Pydantic `BaseModel` for all data that crosses a layer boundary (HTTP request/response, external API response, configuration).
-- Use `dataclasses.dataclass` for lightweight internal value objects that do not require validation.
-- Never use plain `dict` or `Any` for structured data that has a known shape.
-- Mark fields that must not be mutated after construction with `frozen=True` on the model or dataclass.
+All identifiers (variable names, function names, class names, module names, constant names) must be written in English. String values that are displayed to end users may be in any language appropriate to the product.
 
----
-
-## 5. Naming Conventions
-
-- Files: `snake_case.py`
+- Modules and packages: `snake_case`
+- Functions and variables: `snake_case`
 - Classes: `PascalCase`
-- Functions and methods: `snake_case`
-- Constants: `SCREAMING_SNAKE_CASE`, annotated with `Final`
-- Boolean functions and variables: prefix with `is_`, `has_`, `can_`, or `should_`
-- All identifiers must be English. No abbreviations except for universally understood acronyms (`id`, `url`, `http`).
+- Constants: `UPPER_SNAKE_CASE`
+- Private members: `_snake_case` (single leading underscore)
+- Name-mangled members: `__snake_case` (double leading underscore, used sparingly)
 
 ---
 
-## 6. Error Handling
+## Testing
 
-- Define typed exception classes for every distinct failure mode the module can produce. Inherit from a domain-specific base exception.
-- Never use bare `except:`. Catch the narrowest exception type possible.
-- Always use `raise NewError("message") from original_error` to preserve the exception chain.
-- Never swallow exceptions silently. If a caught exception cannot be re-raised, log it at `error` level before discarding.
-- Include contextual information in exception messages: what was attempted, what failed, and relevant identifiers.
+See `shared/rules/testing.md` for full testing requirements. Python-specific additions:
 
-```python
-class UserNotFoundError(UserServiceError):
-    """Raised when a user lookup finds no matching record."""
-
-try:
-    record = repository.find_by_id(user_id)
-except RepositoryError as err:
-    raise UserNotFoundError(f"User {user_id} not found") from err
-```
-
+- Use `pytest` as the test runner. Do not use `unittest` for new test files.
+- Use `pytest-cov` for coverage measurement.
+- Place tests in a `tests/` directory at the project root, mirroring the source layout under `src/`.
+- Run the full suite with `make test` before every commit.
+- Minimum branch coverage is 80%. The `--cov-fail-under=80` flag in `pyproject.toml` enforces this in CI.
 ---
 
-## 7. Async
+## Code Review Gate
 
-- Use `async def` for all functions that perform I/O (database access, HTTP calls, file operations, LLM calls).
-- Always `await` coroutines. Never fire-and-forget without explicit justification documented in a docstring.
-- Use `asyncio.gather` for concurrent independent operations.
-- Use `asyncio.timeout` for all external calls that could hang.
+Before marking any change as complete, verify each item in the checklist below.
+If this file is in the `applyTo` scope of this instruction file, these checks are mandatory.
 
----
+- [ ] All rules in this file have been applied to the changed code
+- [ ] No rule has been selectively ignored without a documented reason
+- [ ] Pre-commit hooks pass locally
+- [ ] The change has been tested against the scenarios described in the rules above
 
-## 8. Testing
-
-### File and Folder Layout
-
-- Unit tests: `tests/unit/test_<module_name>.py`
-- Integration tests: `tests/integration/test_<module_name>_integration.py`
-- Acceptance tests: `tests/acceptance/test_<feature>_process.py`
-- Shared fixtures and factories: `tests/conftest.py` or `tests/factories.py`
-
-### Naming
-
-- Test functions follow the pattern `test_<method_name>_<scenario>`.
-- Examples: `test_create_user_returns_sanitized_record`, `test_create_user_raises_on_duplicate_email`.
-
-### Fixtures and Factories
-
-- Use `pytest` fixtures for shared setup. Scope fixtures appropriately (`function`, `module`, `session`).
-- Use factory functions (`build_user(overrides)`) for constructing test data. Never scatter raw dict literals across test files.
-- Use `pytest-factoryboy` or plain factory functions — not raw model instantiation inline in tests.
-
-### Coverage
-
-- Minimum 80% line and branch coverage. Enforced in CI.
-- Test-first for bug fixes: write the failing test before writing the fix.
-
----
-
-## 9. Logging
-
-- Never use `print()`. Use the project's structured logger in all application code.
-- Every log entry must include `component_name` (the module or class name) and `correlation_id`.
-- Use `logger.debug` for diagnostic detail, `logger.info` for normal operational events, `logger.warning` for recoverable anomalies, `logger.error` for failures requiring attention, and `logger.critical` for failures that halt the service.
-- Never log passwords, API keys, tokens, session IDs, or any PII at any log level.
-
-```python
-logger.info(
-    "User created successfully",
-    extra={"component_name": "UserService", "correlation_id": correlation_id, "user_id": user_id},
-)
-```
-
----
-
-## 10. Security
-
-- Run Bandit (`uv run bandit -r src/`) and Ruff S-rules as part of `make lint`. Fix all findings before merging.
-- No hardcoded secrets, credentials, or environment-specific URLs in source code or test fixtures committed to version control.
-- Validate all external input through Pydantic at the entry point. Never pass raw request data into a service or repository.
-- Use parameterized queries for all database access. No string interpolation in query construction.
-- Sanitize any user-supplied content before it is rendered, stored, or passed to an external service.

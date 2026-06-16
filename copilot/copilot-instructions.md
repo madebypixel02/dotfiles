@@ -72,4 +72,4 @@ Run `make lint` and `uv run pyright` before declaring any task complete.
 
 All engineering standards, code conventions, security rules, testing requirements, observability standards, AI development practices, and git workflow rules are defined in `shared/AGENTS.md` and the domain rule files in `shared/rules/`. Those files are the canonical source. Do not duplicate their content here.
 
-GitHub Copilot does not support `@file` includes. This file must be manually kept in sync with `shared/AGENTS.md` when the canonical source changes. The Coding SDLC section above and the Architecture section are the only Copilot-specific content; everything else defers to the shared rules.
+GitHub Copilot does not support `@file` includes. The instruction files in `copilot/instructions/` are generated from `shared/rules/` by `scripts/sync-dotfiles.sh`. Run that script after modifying any shared rule to regenerate the Copilot versions. The `check-dotfiles-drift` pre-commit hook detects when generated files are out of sync.

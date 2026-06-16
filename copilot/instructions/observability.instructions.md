@@ -1,180 +1,239 @@
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/observability.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
+
 ---
 applyTo: "**/logging/**,**/monitoring/**,**/health/**,**/middleware/**,**/telemetry/**,**/observability/**"
 ---
 
 # Observability Rules
 
-These rules apply to all logging, monitoring, health check, middleware, telemetry, and observability code. Follow them when adding instrumentation or modifying any file in these directories.
+These rules govern logging, tracing, metrics, and health monitoring for all services and APIs in this repository. Observability is not optional; it is a production readiness requirement.
 
 ---
 
-## 1. Structured Logging
+## Core Principles
 
-All log output must be structured JSON compatible with Elastic Common Schema (ECS). Configure the logger at application startup to emit JSON. Never configure plain-text log output in production.
+**No `print()` in production code.** The `print()` function is forbidden in any code that runs in a deployed environment. Use the structured logger at all times. A `print()` statement that reaches `main` is treated as a bug, not a style issue.
+
+**Observable by default.** Every service must emit logs, expose health endpoints, and report metrics from day one. Adding observability after the fact is significantly more expensive and error-prone than building it in from the start.
+
+**Logs are for humans and machines.** Write log messages that a human can understand during an incident and that a machine can parse for automated alerting. Both consumers matter equally.
+
+---
+
+## Structured Logging
+
+All log output must be structured JSON, compatible with the Elastic Common Schema (ECS). Do not emit plain-text logs in production. Plain-text logs cannot be reliably parsed by log aggregation systems and must be rejected at the ingestion layer.
 
 ### Required Fields
 
 Every log entry must include the following fields:
 
-| Field            | Type     | Description                                          |
-| ---------------- | -------- | ---------------------------------------------------- |
-| `@timestamp`     | ISO 8601 | UTC time of the event                                |
-| `log.level`      | string   | `debug`, `info`, `warn`, `error`, or `critical`      |
-| `service.name`   | string   | Module or class that emitted the log entry           |
-| `correlation_id` | string   | Request-scoped identifier propagated across services |
-| `message`        | string   | Human-readable description of the event              |
+| Field            | Type            | Description                                          |
+| ---------------- | --------------- | ---------------------------------------------------- |
+| `@timestamp`     | ISO 8601 string | Time the event occurred, in UTC                      |
+| `log.level`      | string          | One of: `debug`, `info`, `warn`, `error`, `critical` |
+| `service.name`   | string          | Name of the component or service emitting the log    |
+| `correlation_id` | string          | Request or trace correlation identifier              |
+| `message`        | string          | Human-readable description of the event              |
 
-```json
-{
-  "@timestamp": "2024-06-12T14:23:45.123Z",
-  "log.level": "info",
-  "service.name": "OrderService",
-  "correlation_id": "req_abc123def456",
-  "message": "Order created",
-  "order_id": "ord_789"
-}
-```
+### Log Levels
 
----
+Use log levels consistently across all services:
 
-## 2. Analytics Logs
+| Level      | When to use                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------- |
+| `debug`    | Detailed diagnostic information useful during development; never enabled in production by default |
+| `info`     | Normal operational events: request received, background job started, configuration loaded         |
+| `warn`     | Unexpected but recoverable conditions: retry attempt, deprecated API used, slow query detected    |
+| `error`    | A specific operation failed; the service continues running; human attention required              |
+| `critical` | The service cannot continue operating; immediate intervention required                            |
 
-Log entries at the service boundary (router/handler layer) must include analytics fields to enable downstream aggregation and alerting.
+### Analytics Logs
 
-| Field          | Type    | Description                                                  |
-| -------------- | ------- | ------------------------------------------------------------ |
-| `request_path` | string  | The matched route path (not the raw URL with parameters)     |
-| `input_params` | object  | Sanitized, non-sensitive summary of request inputs           |
-| `result`       | string  | Outcome category: `success`, `validation_error`, `error`     |
-| `status_code`  | integer | HTTP status code of the response                             |
-| `latency_ms`   | float   | End-to-end request duration in milliseconds                  |
-| `error_msg`    | string  | Error message when `result` is not `success`; omit otherwise |
+For operations that feed analytics or audit pipelines, include these additional fields alongside the standard required fields:
 
-Never include raw request bodies, passwords, tokens, or PII in `input_params`. Include only field names and sanitized summaries.
+| Field                       | Type    | Description                                        |
+| --------------------------- | ------- | -------------------------------------------------- |
+| `input_params`              | object  | Sanitised input parameters passed to the operation |
+| `output_params.result`      | any     | The operation result (omit or mask if sensitive)   |
+| `output_params.error_msg`   | string  | Error message, if the operation failed             |
+| `output_params.status_code` | integer | HTTP status code or equivalent result code         |
+| `output_params.latency`     | number  | Operation duration in milliseconds                 |
 
----
+The `input_params` field must never contain passwords, tokens, API keys, or PII. Mask or omit sensitive fields before logging.
 
-## 3. Log Levels
-
-Use the correct level for every log entry. Misuse degrades signal-to-noise ratio and alert fidelity.
-
-| Level      | When to use                                                                                            |
-| ---------- | ------------------------------------------------------------------------------------------------------ |
-| `debug`    | Diagnostic detail useful during development or targeted investigation. Off in production by default.   |
-| `info`     | Normal operational events: service started, request completed, scheduled job ran.                      |
-| `warn`     | Recoverable anomalies: retried operation succeeded, deprecated code path used, rate limit approaching. |
-| `error`    | Failures that require attention but did not halt the service: request failed, downstream call failed.  |
-| `critical` | Failures that halt or severely degrade the service: database unreachable, startup failure.             |
-
----
-
-## 4. Prohibited Logging Practices
-
-The following are forbidden at any log level:
-
-- Passwords, API keys, access tokens, refresh tokens, or client secrets.
-- Session identifiers or authentication cookies.
-- Personally identifiable information: names, email addresses, phone numbers, government IDs, payment card numbers.
-- Full prompt content from LLM calls.
-- Raw request or response bodies from third-party APIs that may contain any of the above.
-- `print()` in any application code path. Use the structured logger.
-- Logging successful no-op confirmations ("function called", "entered method") — log meaningful state transitions only.
-
----
-
-## 5. Health Check Endpoints
-
-Every service must expose both endpoints. They must not require authentication.
-
-### GET /health
-
-Liveness check. Returns `200 OK` when the process is running and able to handle requests. Returns `503 Service Unavailable` if the process is in a state where it cannot serve traffic.
-
-```json
-{ "status": "ok" }
-```
-
-### GET /ready
-
-Readiness check. Returns `200 OK` only when all required downstream dependencies (database, cache, external APIs) are reachable and the service is ready to serve production traffic. Returns `503 Service Unavailable` with a detail field otherwise.
-
-```json
-{
-  "status": "ready",
-  "checks": {
-    "database": "ok",
-    "cache": "ok",
-    "azure_ai_foundry": "ok"
-  }
-}
-```
-
-Both endpoints must respond within 2 seconds. Never perform expensive operations in health check handlers.
-
----
-
-## 6. OpenTelemetry Tracing
-
-Use OpenTelemetry as the tracing standard. All trace data must be exported to the configured OTLP collector.
-
-### What to Instrument
-
-- All incoming HTTP requests (automatic via `opentelemetry-instrumentation-fastapi`).
-- All outgoing HTTP requests to external services.
-- All database queries.
-- All LLM calls (model name, prompt token count, completion token count, latency).
-- All cache reads and writes.
-- All agent and tool invocations in LangGraph graphs.
-
-### Span Conventions
-
-- Span names: `<verb> <resource>` — for example `GET /users/{user_id}`, `query users`, `llm.chat`.
-- Set `span.set_attribute("correlation_id", correlation_id)` on every root span.
-- Set `span.record_exception(err)` and `span.set_status(StatusCode.ERROR)` on any span that exits via exception.
-- Do not log full prompt or response content as span attributes.
+### Python Logging Setup
 
 ```python
-with tracer.start_as_current_span("llm.chat") as span:
-    span.set_attribute("llm.model", model_name)
-    span.set_attribute("llm.prompt_tokens", prompt_tokens)
-    response = await client.chat(...)
-    span.set_attribute("llm.completion_tokens", response.usage.completion_tokens)
-    span.set_attribute("llm.latency_ms", latency_ms)
+import logging
+import json
+from datetime import datetime, timezone
+
+
+class ECSFormatter(logging.Formatter):
+    """Format log records as ECS-compatible JSON."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Serialise a log record to an ECS JSON string.
+
+        Args:
+            record: The log record to format.
+
+        Returns:
+            A JSON string with all required ECS fields populated.
+        """
+        payload = {
+            "@timestamp": datetime.now(timezone.utc).isoformat(),
+            "log.level": record.levelname.lower(),
+            "service.name": record.name,
+            "correlation_id": getattr(record, "correlation_id", ""),
+            "message": record.getMessage(),
+        }
+        return json.dumps(payload)
 ```
 
 ---
 
-## 7. Metrics
+## What Must Never Be Logged
 
-Emit the following metrics at a minimum. Use the OpenTelemetry Metrics API or the project's configured metrics library.
+The following categories of data must never appear in any log entry at any level, in any environment:
 
-| Metric                  | Type      | Labels                          |
-| ----------------------- | --------- | ------------------------------- |
-| `http_requests_total`   | Counter   | `method`, `path`, `status_code` |
-| `http_request_duration` | Histogram | `method`, `path`                |
-| `http_errors_total`     | Counter   | `method`, `path`, `status_code` |
-| `http_error_rate`       | Gauge     | `path`                          |
+- Passwords and password hashes
+- Session tokens, JWTs, and API keys
+- OAuth tokens and refresh tokens
+- Credit card numbers and CVVs
+- National identification numbers
+- Full email addresses when they constitute PII in the product context
+- Private keys and certificates
+- Full HTTP request bodies when they may contain any of the above
 
-Use the matched route path as the `path` label — never the raw URL, which would explode cardinality with path parameters.
-
----
-
-## 8. Alert Thresholds
-
-These thresholds define the conditions under which automated alerts or issues must be raised. Configure them in the monitoring platform during service onboarding.
-
-| Condition                                | Action                                      |
-| ---------------------------------------- | ------------------------------------------- |
-| 5xx error rate exceeds 5% over 5 minutes | Auto-create incident issue and page on-call |
-| p99 latency exceeds 500ms over 5 minutes | Alert on-call channel                       |
-| Health check fails for 30 seconds        | Auto-create incident issue and page on-call |
-| Readiness check fails for 60 seconds     | Alert on-call channel                       |
+When logging a request or response that may contain sensitive fields, mask the sensitive fields before passing the object to the logger. Replace the value with a fixed placeholder such as `[REDACTED]`.
 
 ---
 
-## 9. Correlation ID Propagation
+## Distributed Tracing
 
-- Generate a `correlation_id` at the entry point (HTTP middleware) if not present in the incoming `X-Correlation-ID` header.
-- Inject the `correlation_id` into every downstream HTTP call as the `X-Correlation-ID` header.
-- Include the `correlation_id` in all log entries and span attributes within the request scope.
-- Return the `correlation_id` in the `X-Correlation-ID` response header on every response.
+Use OpenTelemetry (OTel) for distributed tracing. Do not use vendor-specific tracing SDKs directly; wrap them behind the OTel API so the exporter can be changed without modifying application code.
+
+### Backend
+
+The primary tracing backend is Azure Monitor (Application Insights). Configure the OTel exporter to send spans to the Azure Monitor endpoint using the Azure Monitor OTel Distro.
+
+```python
+from azure.monitor.opentelemetry import configure_azure_monitor
+
+configure_azure_monitor(
+    connection_string="<APPLICATIONINSIGHTS_CONNECTION_STRING>",
+)
+```
+
+The connection string must be read from an environment variable. It must never be hardcoded.
+
+### Span Requirements
+
+- Every inbound HTTP request must create a root span.
+- Every outbound HTTP call, database query, and message queue operation must create a child span.
+- Attach the `correlation_id` to each span as an attribute.
+- Do not attach sensitive data to span attributes.
+
+### Propagation
+
+Propagate trace context using the W3C `traceparent` header on all outbound HTTP calls. Read the `traceparent` header on all inbound calls and use it to continue the existing trace.
+
+---
+
+## Health Endpoints
+
+Every HTTP API must expose two health endpoints. These endpoints are not optional.
+
+### `/health`
+
+Reports the internal state of the application: whether it has initialised successfully and whether its core dependencies are reachable.
+
+- Returns `200 OK` with a JSON body when the application is healthy.
+- Returns `503 Service Unavailable` when any critical dependency is unreachable.
+- Must respond in under 500 ms. If it takes longer, something is wrong.
+
+Minimum response body:
+
+```json
+{
+  "status": "healthy",
+  "version": "1.2.3",
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+### `/ready`
+
+Reports whether the instance is ready to receive production traffic. This endpoint is used by the load balancer and container orchestrator.
+
+- Returns `200 OK` when the instance is ready.
+- Returns `503 Service Unavailable` during startup, graceful shutdown, or when overloaded.
+- A failing `/ready` endpoint causes the load balancer to stop sending traffic to this instance; it does not cause the instance to be restarted.
+
+Both endpoints must be excluded from authentication middleware. They are public by design.
+
+---
+
+## Log Aggregation
+
+Logs are aggregated using the ELK stack: Elasticsearch for storage and search, Logstash for ingestion and transformation, Kibana for dashboards and exploration.
+
+- All services must write structured JSON logs to stdout.
+- The container runtime or log shipper collects stdout and forwards it to Logstash.
+- Do not write logs to local files in containerised deployments; stdout is the only supported log sink in production.
+
+---
+
+## Alerting
+
+The following conditions trigger automated responses:
+
+| Condition               | Threshold                                          | Action                                            |
+| ----------------------- | -------------------------------------------------- | ------------------------------------------------- |
+| 5xx error rate          | Greater than 5% of requests over a 5-minute window | Auto-create incident issue in the project tracker |
+| Response latency (p99)  | Greater than 500 ms                                | Trigger alert to the on-call channel              |
+| Health endpoint failure | `/health` returns non-200 for 2 consecutive checks | Page on-call engineer                             |
+| Critical log entries    | Any `critical`-level log event                     | Immediate alert                                   |
+
+Alerts must include the service name, the metric value that triggered the alert, the time window, and a link to the relevant Kibana dashboard.
+
+---
+
+## Metrics
+
+Every API service must expose the following metrics per endpoint:
+
+| Metric                          | Description                                                                 |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| `http_requests_total`           | Total number of HTTP requests, labelled by method, path, and status code    |
+| `http_request_duration_seconds` | Histogram of request durations, labelled by method and path                 |
+| `http_errors_total`             | Total number of HTTP errors (4xx and 5xx), labelled by status code and path |
+
+Use Prometheus-compatible metric exposition. If the runtime is Azure-hosted, export metrics to Azure Monitor via the OTel metrics pipeline in addition to any Prometheus scrape endpoint.
+
+---
+
+## Uptime Monitoring
+
+Implement periodic uptime monitoring by calling the `/health` endpoint of every production service from an external monitor on a 60-second interval. The monitor must:
+
+- Run from a network location outside the production VNet to detect connectivity failures.
+- Alert when two consecutive checks fail.
+- Record availability as a percentage over 24-hour, 7-day, and 30-day windows.
+- Target availability: 99.9% measured over any rolling 30-day window.
+---
+
+## Code Review Gate
+
+Before marking any change as complete, verify each item in the checklist below.
+If this file is in the `applyTo` scope of this instruction file, these checks are mandatory.
+
+- [ ] All rules in this file have been applied to the changed code
+- [ ] No rule has been selectively ignored without a documented reason
+- [ ] Pre-commit hooks pass locally
+- [ ] The change has been tested against the scenarios described in the rules above
+

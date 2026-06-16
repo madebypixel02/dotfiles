@@ -1,0 +1,39 @@
+{
+  "description": "Single source of truth for MCP server definitions. Used by scripts/check-drift.sh to validate consistency across opencode/opencode.jsonc, gemini/settings.json, and claude/mcp.json.",
+  "claude_subset": ["context7", "semgrep", "github", "sentry", "playwright"],
+  "servers": {
+    "context7": { "url": "https://mcp.context7.com/mcp", "type": "remote" },
+    "semgrep": { "url": "https://mcp.semgrep.ai/mcp", "type": "remote" },
+    "github": { "url": "https://api.githubcopilot.com/mcp/", "type": "remote" },
+    "sentry": { "url": "https://mcp.sentry.dev/mcp", "type": "remote" },
+    "playwright": {
+      "command": "npx @playwright/mcp@latest --headless",
+      "type": "local"
+    },
+    "postgres": {
+      "command": "npx -y @modelcontextprotocol/server-postgres",
+      "type": "local"
+    },
+    "grafana": { "command": "uvx mcp-grafana", "type": "local" },
+    "linear": { "url": "https://mcp.linear.app/mcp", "type": "remote" },
+    "exa": { "url": "https://mcp.exa.ai/mcp", "type": "remote" },
+    "kubernetes": { "command": "npx mcp-server-kubernetes", "type": "local" },
+    "cloudflare-observability": {
+      "url": "https://observability.mcp.cloudflare.com/mcp",
+      "type": "remote"
+    },
+    "cloudflare-builds": {
+      "url": "https://builds.mcp.cloudflare.com/mcp",
+      "type": "remote"
+    },
+    "figma": { "command": "npx -y figma-developer-mcp", "type": "local" },
+    "slack": {
+      "command": "npx -y @zencoderai/slack-mcp-server",
+      "type": "local"
+    },
+    "internal-tools": {
+      "url": "https://mcp.internal.example.com/mcp",
+      "type": "remote"
+    }
+  }
+}

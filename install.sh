@@ -318,6 +318,22 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Step 6: Sync generated files from shared sources
+# ---------------------------------------------------------------------------
+log_header "Syncing generated files"
+
+SYNC_SCRIPT="${DOTFILES_DIR}/scripts/sync-dotfiles.sh"
+if [[ -x "$SYNC_SCRIPT" ]]; then
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log_info "[dry-run] would run scripts/sync-dotfiles.sh"
+  else
+    bash "$SYNC_SCRIPT"
+  fi
+else
+  log_info "scripts/sync-dotfiles.sh not found or not executable — skipping"
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""
