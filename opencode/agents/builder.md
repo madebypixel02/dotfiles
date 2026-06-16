@@ -15,12 +15,6 @@ permission:
   todowrite: "allow"
   bash:
     "*": "ask"
-    "bash scripts/sync-dotfiles.sh": "allow"
-    "bash *.sh": "ask"
-    "docker restart *": "ask"
-    "docker compose restart *": "ask"
-    "systemctl --user restart *": "ask"
-    "systemctl restart *": "ask"
     "git status *": "allow"
     "git diff *": "allow"
     "git log *": "allow"
