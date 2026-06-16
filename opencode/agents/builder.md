@@ -14,7 +14,12 @@ permission:
   skill: "allow"
   todowrite: "allow"
   bash:
-    "*": "deny"
+    "*": "ask"
+    "bash *.sh": "ask"
+    "docker restart *": "ask"
+    "docker compose restart *": "ask"
+    "systemctl --user restart *": "ask"
+    "systemctl restart *": "ask"
     "git status *": "allow"
     "git diff *": "allow"
     "git log *": "allow"
