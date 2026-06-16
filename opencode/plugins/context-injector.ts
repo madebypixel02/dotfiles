@@ -3,10 +3,10 @@
  *
  * Keeps the model well-informed across long sessions by:
  *
- * 1. session.created  — Reads AGENTS.md if present and injects a summary so
- *    the agent immediately knows the project's conventions. Also detects the
- *    most recent plan artifact under ~/.config/opencode/plans/ and injects its metadata
- *    (id, status, path, updated_at) without the full plan body.
+ * 1. session.created  — Detects the most recent plan artifact under
+ *    ~/.config/opencode/plans/ and injects its metadata (id, status, path,
+ *    updated_at) without the full plan body. Also injects current git branch
+ *    and recent commits so the agent starts with accurate repository context.
  *
  * 2. file.edited      — Tracks every file touched during the session so that
  *    the "compaction" snapshot is accurate.
@@ -24,12 +24,11 @@
  *   • Non-blocking — every async operation is fire-and-forget where possible.
  *   • Git calls are best-effort; if git is not available the snapshot omits
  *     those fields gracefully.
- *   • AGENTS.md injection is a one-shot on session start.
  *   • Plan metadata injection is a one-shot on session start; only metadata
  *     fields are injected, never the full plan body.
- *   • All untrusted strings from external sources (git output, AGENTS.md content,
- *     plan metadata, todo text) are sanitized before composition into injected
- *     markdown to prevent prompt injection.
+ *   • All untrusted strings from external sources (git output, plan metadata,
+ *     todo text) are sanitized before composition into injected markdown to
+ *     prevent prompt injection.
  */
 
 import { homedir } from "node:os";
@@ -57,7 +56,6 @@ interface PerSessionState {
   startMs: number;
   filesModified: Set<string>;
   todoItems: string[];
-  agentsMdInjected: boolean;
 }
 
 const sessionStateMap = new Map<string, PerSessionState>();
@@ -69,7 +67,6 @@ function getSessionState(sessionId: string): PerSessionState {
       startMs: Date.now(),
       filesModified: new Set(),
       todoItems: [],
-      agentsMdInjected: false,
     };
     sessionStateMap.set(sessionId, entry);
   }
@@ -191,58 +188,16 @@ async function gitCurrentBranch(cwd: string): Promise<string> {
  * Returns an empty array when git is unavailable.
  */
 async function gitRecentCommits(cwd: string, n = 5): Promise<string[]> {
-  const safeN = Math.min(GIT_COMMIT_COUNT_MAX, Math.max(GIT_COMMIT_COUNT_MIN, Math.floor(n)));
-  const output = await spawnGit(["-C", cwd, "log", "--oneline", `-${safeN}`], cwd);
+  const safeN = Math.min(
+    GIT_COMMIT_COUNT_MAX,
+    Math.max(GIT_COMMIT_COUNT_MIN, Math.floor(n)),
+  );
+  const output = await spawnGit(
+    ["-C", cwd, "log", "--oneline", `-${safeN}`],
+    cwd,
+  );
   if (!output) return [];
   return output.split("\n").filter(Boolean);
-}
-
-/**
- * Searches known candidate paths for an AGENTS.md file and returns its content.
- * Returns null when no file is found at any candidate location.
- */
-async function readAgentsMd(projectRoot: string): Promise<string | null> {
-  const candidates = [
-    join(projectRoot, "AGENTS.md"), // nosemgrep: path-join-resolve-traversal
-    join(projectRoot, ".opencode", "AGENTS.md"), // nosemgrep: path-join-resolve-traversal
-    join(projectRoot, "docs", "AGENTS.md"), // nosemgrep: path-join-resolve-traversal
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      const file = Bun.file(candidate);
-      const exists = await file.exists();
-      if (exists) {
-        const text = await file.text();
-        return text;
-      }
-    } catch {}
-  }
-  return null;
-}
-
-/**
- * Produces a condensed summary of AGENTS.md content.
- * Truncates to ~2000 chars to avoid overwhelming the context with the full doc.
- */
-function summariseAgentsMd(content: string): string {
-  const lines = content.split("\n");
-  const summary: string[] = [];
-  let charCount = 0;
-  const LIMIT = 2000;
-
-  for (const line of lines) {
-    if (charCount + line.length > LIMIT) {
-      summary.push(
-        `\n... (${content.length - charCount} chars truncated — read AGENTS.md for full content)`,
-      );
-      break;
-    }
-    summary.push(line);
-    charCount += line.length + 1;
-  }
-
-  return summary.join("\n");
 }
 
 /**
@@ -259,7 +214,11 @@ async function readMostRecentPlanMetadata(): Promise<PlanMetadata | null> {
   const plansDir = join(homedir(), ".config", "opencode", "plans"); // nosemgrep: path-join-resolve-traversal
   try {
     const glob = new Bun.Glob("*.md");
-    const entries: Array<{ name: string; validatedPath: string; updatedAt: string }> = [];
+    const entries: Array<{
+      name: string;
+      validatedPath: string;
+      updatedAt: string;
+    }> = [];
 
     for await (const name of glob.scan({ cwd: plansDir })) {
       if (!/^[\w.-]+\.md$/.test(name)) continue;
@@ -267,7 +226,8 @@ async function readMostRecentPlanMetadata(): Promise<PlanMetadata | null> {
       if (!filePath.startsWith(`${plansDir}/`)) continue;
       const file = Bun.file(filePath);
       const fileContent = await file.text();
-      const updatedAt = extractFrontmatterField(fileContent, "updated_at") ?? "";
+      const updatedAt =
+        extractFrontmatterField(fileContent, "updated_at") ?? "";
       entries.push({ name, validatedPath: filePath, updatedAt });
     }
 
@@ -289,8 +249,12 @@ async function readMostRecentPlanMetadata(): Promise<PlanMetadata | null> {
     const most = entries[0];
     const content = await Bun.file(most.validatedPath).text();
 
-    const id = sanitizeForInjection(extractFrontmatterField(content, "id") ?? most.name);
-    const status = sanitizeForInjection(extractFrontmatterField(content, "status") ?? "unknown");
+    const id = sanitizeForInjection(
+      extractFrontmatterField(content, "id") ?? most.name,
+    );
+    const status = sanitizeForInjection(
+      extractFrontmatterField(content, "status") ?? "unknown",
+    );
     const updatedAt = sanitizeForInjection(most.updatedAt);
     const displayPath = `~/.config/opencode/plans/${sanitizeFilePath(most.name)}`;
 
@@ -308,7 +272,10 @@ async function buildSessionSnapshot(
   cwd: string,
   sessionState: PerSessionState,
 ): Promise<SessionSnapshot> {
-  const [branch, recentCommits] = await Promise.all([gitCurrentBranch(cwd), gitRecentCommits(cwd)]);
+  const [branch, recentCommits] = await Promise.all([
+    gitCurrentBranch(cwd),
+    gitRecentCommits(cwd),
+  ]);
 
   const elapsedMs = Date.now() - sessionState.startMs;
   const elapsedMinutes = Math.round(elapsedMs / 60_000);
@@ -371,7 +338,11 @@ function snapshotToMarkdown(snap: SessionSnapshot): string {
   return sections.join("\n");
 }
 
-const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => {
+const contextInjectorPlugin: Plugin = async ({
+  client,
+  project,
+  directory,
+}) => {
   const cwd = directory ?? project?.worktree ?? process.cwd();
 
   return {
@@ -389,11 +360,10 @@ const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => 
         sessionState.startMs = Date.now();
         sessionState.filesModified = new Set();
         sessionState.todoItems = [];
-        sessionState.agentsMdInjected = false;
 
         /**
-         * The three fire-and-forget async blocks below (git context, AGENTS.md,
-         * and plan metadata) run concurrently with no guaranteed injection order.
+         * The two fire-and-forget async blocks below (git context and plan
+         * metadata) run concurrently with no guaranteed injection order.
          * The OpenCode inject() API is order-insensitive: each injected block is
          * appended to the context independently, so parallel execution is safe.
          * Do not sequentialise these blocks unless the API explicitly requires
@@ -433,45 +403,12 @@ const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => 
 
             if (
               client &&
-              typeof (client as unknown as Record<string, unknown>).inject === "function"
+              typeof (client as unknown as Record<string, unknown>).inject ===
+                "function"
             ) {
-              await (client as unknown as { inject: (msg: string) => Promise<void> }).inject(
-                gitMessage,
-              );
-            }
-          } catch {
-            return;
-          }
-        })();
-
-        void (async () => {
-          try {
-            const current = sessionStateMap.get(sessionId);
-            if (!current || current.agentsMdInjected) return;
-            const content = await readAgentsMd(cwd);
-            if (!content) return;
-
-            const summary = sanitizeForInjection(summariseAgentsMd(content));
-            const message = [
-              "## Project Agent Instructions (from AGENTS.md)",
-              "",
-              summary,
-              "",
-              "_This summary was automatically injected at session start._",
-            ].join("\n");
-
-            if (
-              client &&
-              typeof (client as unknown as Record<string, unknown>).inject === "function"
-            ) {
-              await (client as unknown as { inject: (msg: string) => Promise<void> }).inject(
-                message,
-              );
-            }
-
-            const afterInject = sessionStateMap.get(sessionId);
-            if (afterInject) {
-              afterInject.agentsMdInjected = true;
+              await (
+                client as unknown as { inject: (msg: string) => Promise<void> }
+              ).inject(gitMessage);
             }
           } catch {
             return;
@@ -498,11 +435,12 @@ const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => 
 
             if (
               client &&
-              typeof (client as unknown as Record<string, unknown>).inject === "function"
+              typeof (client as unknown as Record<string, unknown>).inject ===
+                "function"
             ) {
-              await (client as unknown as { inject: (msg: string) => Promise<void> }).inject(
-                message,
-              );
+              await (
+                client as unknown as { inject: (msg: string) => Promise<void> }
+              ).inject(message);
             }
           } catch {
             return;
@@ -525,7 +463,9 @@ const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => 
       if (type === "session.diff") {
         const sessionId = extractSessionId(ev);
         const properties = (ev.properties ?? {}) as Record<string, unknown>;
-        const diff = properties.diff as Array<Record<string, unknown>> | undefined;
+        const diff = properties.diff as
+          | Array<Record<string, unknown>>
+          | undefined;
         if (Array.isArray(diff) && sessionId) {
           const sessionState = getSessionState(sessionId);
           for (const entry of diff) {
@@ -549,7 +489,9 @@ const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => 
         const sessionId = properties.sessionID as string | undefined;
         if (!sessionId) return;
 
-        const todos = properties.todos as Array<{ content?: string; status?: string }> | undefined;
+        const todos = properties.todos as
+          | Array<{ content?: string; status?: string }>
+          | undefined;
         if (!Array.isArray(todos)) return;
 
         const sessionState = sessionStateMap.get(sessionId);
@@ -558,7 +500,9 @@ const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => 
         sessionState.todoItems = todos
           .filter((t) => t.status !== "completed")
           .map((t) => {
-            const status = t.status ? `[${sanitizeForInjection(t.status)}]` : "[todo]";
+            const status = t.status
+              ? `[${sanitizeForInjection(t.status)}]`
+              : "[todo]";
             const content = sanitizeForInjection(t.content ?? "(untitled)");
             return `${status} ${content}`;
           });
@@ -569,10 +513,13 @@ const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => 
     "tool.execute.after": async (input, _output) => {
       try {
         const toolName = input.tool ?? "";
-        if (!["todowrite", "TodoWrite", "todo_write"].includes(toolName)) return;
+        if (!["todowrite", "TodoWrite", "todo_write"].includes(toolName))
+          return;
 
         const args = (input.args ?? {}) as Record<string, unknown>;
-        const todos = args.todos as Array<{ content?: string; status?: string }> | undefined;
+        const todos = args.todos as
+          | Array<{ content?: string; status?: string }>
+          | undefined;
         if (!Array.isArray(todos)) return;
 
         const sessionId = input.sessionID;
@@ -584,7 +531,9 @@ const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => 
         sessionState.todoItems = todos
           .filter((t) => t.status !== "completed")
           .map((t) => {
-            const status = t.status ? `[${sanitizeForInjection(t.status)}]` : "[todo]";
+            const status = t.status
+              ? `[${sanitizeForInjection(t.status)}]`
+              : "[todo]";
             const content = sanitizeForInjection(t.content ?? "(untitled)");
             return `${status} ${content}`;
           });
@@ -596,7 +545,9 @@ const contextInjectorPlugin: Plugin = async ({ client, project, directory }) => 
     "experimental.session.compacting": async (input, output) => {
       try {
         const sessionId = input.sessionID;
-        const sessionState = sessionId ? sessionStateMap.get(sessionId) : undefined;
+        const sessionState = sessionId
+          ? sessionStateMap.get(sessionId)
+          : undefined;
         if (!sessionState) return;
 
         const snapshot = await buildSessionSnapshot(cwd, sessionState);

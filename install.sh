@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — Idempotent dotfiles installer
+# install.sh -- Idempotent dotfiles installer
 # Works on macOS and Linux.
 # Usage: bash install.sh [--dry-run]
 
@@ -65,7 +65,7 @@ do_symlink() {
   local link="$2"
 
   if [[ "$DRY_RUN" == "true" ]]; then
-    echo -e "  ${CYAN}[dry-run]${RESET} would symlink ${BOLD}${link}${RESET} → ${target}"
+    echo -e "  ${CYAN}[dry-run]${RESET} would symlink ${BOLD}${link}${RESET} -> ${target}"
     COUNT_CREATED=$((COUNT_CREATED + 1))
     return
   fi
@@ -78,7 +78,7 @@ do_symlink() {
   # Back up if something already exists and is NOT already our symlink
   if [[ -e "$link" || -L "$link" ]]; then
     if [[ -L "$link" && "$(readlink "$link")" == "$target" ]]; then
-      echo -e "  ${GREEN}✓${RESET} Already linked: ${BOLD}${link}${RESET}"
+      echo -e "  ${GREEN}+${RESET} Already linked: ${BOLD}${link}${RESET}"
       COUNT_CREATED=$((COUNT_CREATED + 1))
       return
     fi
@@ -86,20 +86,20 @@ do_symlink() {
     ts="$(date +%Y%m%d_%H%M%S)"
     local backup="${link}.bak.${ts}"
     if mv "$link" "$backup" 2>/dev/null; then
-      echo -e "  ${YELLOW}⚠${RESET} Backed up existing: ${BOLD}${link}${RESET} → ${backup}"
+      echo -e "  ${YELLOW}!${RESET} Backed up existing: ${BOLD}${link}${RESET} -> ${backup}"
       COUNT_BACKED_UP=$((COUNT_BACKED_UP + 1))
     else
-      echo -e "  ${RED}✗${RESET} Could not back up: ${BOLD}${link}${RESET}"
+      echo -e "  ${RED}x${RESET} Could not back up: ${BOLD}${link}${RESET}"
       COUNT_ERRORS=$((COUNT_ERRORS + 1))
       return
     fi
   fi
 
   if ln -sf "$target" "$link" 2>/dev/null; then
-    echo -e "  ${GREEN}✓${RESET} Created: ${BOLD}${link}${RESET} → ${target}"
+    echo -e "  ${GREEN}+${RESET} Created: ${BOLD}${link}${RESET} -> ${target}"
     COUNT_CREATED=$((COUNT_CREATED + 1))
   else
-    echo -e "  ${RED}✗${RESET} Failed to create symlink: ${BOLD}${link}${RESET}"
+    echo -e "  ${RED}x${RESET} Failed to create symlink: ${BOLD}${link}${RESET}"
     COUNT_ERRORS=$((COUNT_ERRORS + 1))
   fi
 }
@@ -112,7 +112,7 @@ log_header "OpenCode installation check"
 if command -v opencode &>/dev/null; then
   log_info "opencode already installed: $(command -v opencode)"
 else
-  log_info "opencode not found — install it manually before using OpenCode configuration."
+  log_info "opencode not found  -- install it manually before using OpenCode configuration."
   log_info "See: https://opencode.ai/install"
   log_info "Continuing with dotfiles symlink setup."
 fi
@@ -125,7 +125,7 @@ log_header "Gemini CLI installation check"
 if command -v gemini &>/dev/null; then
   log_info "gemini already installed: $(command -v gemini)"
 else
-  log_info "gemini not found — install it to use Gemini CLI configuration."
+  log_info "gemini not found  -- install it to use Gemini CLI configuration."
   log_info "See: https://github.com/google-gemini/gemini-cli#installation"
 fi
 
@@ -202,7 +202,7 @@ for f in opencode.jsonc tui.jsonc; do
   if [[ -f "$src" ]]; then
     do_symlink "$src" "${OPENCODE_CONFIG}/${f}"
   else
-    log_info "Skipping ${f} (not present in dotfiles — create it to enable)"
+    log_info "Skipping ${f} (not present in dotfiles  -- create it to enable)"
   fi
 done
 
@@ -237,7 +237,7 @@ for f in CLAUDE.md settings.json; do
 done
 
 log_info "MCP servers: Claude Code reads .mcp.json from project roots only."
-log_info "Template available at ${DOTFILES_DIR}/claude/mcp.json — copy to your projects."
+log_info "Template available at ${DOTFILES_DIR}/claude/mcp.json  -- copy to your projects."
 
 for d in agents rules skills; do
   src="${DOTFILES_DIR}/claude/${d}"
@@ -309,14 +309,44 @@ else
       if command -v bun &>/dev/null; then
         log_info "bun installed: $(command -v bun)"
       else
-        echo -e "  ${YELLOW}⚠${RESET} bun installer exited 0 but bun not found on PATH"
+        echo -e "  ${YELLOW}!${RESET} bun installer exited 0 but bun not found on PATH"
         COUNT_ERRORS=$((COUNT_ERRORS + 1))
       fi
     else
-      echo -e "  ${RED}✗${RESET} bun installation failed — install manually: https://bun.sh"
+      echo -e "  ${RED}x${RESET} bun installation failed  -- install manually: https://bun.sh"
       COUNT_ERRORS=$((COUNT_ERRORS + 1))
     fi
   fi
+fi
+
+# ---------------------------------------------------------------------------
+# Step 5b: Root dependencies (linting, type-checking)
+# ---------------------------------------------------------------------------
+log_header "Root dependencies (linting, type-checking)"
+
+if [[ -f "${DOTFILES_DIR}/package.json" ]]; then
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log_info "[dry-run] would run package manager install in ${DOTFILES_DIR}"
+  else
+    log_info "Installing root devDependencies in ${DOTFILES_DIR}..."
+    cd "$DOTFILES_DIR"
+    if command -v bun &>/dev/null; then
+      if ! bun install; then
+        echo -e "  ${YELLOW}!${RESET} bun install failed in ${DOTFILES_DIR}"
+        COUNT_ERRORS=$((COUNT_ERRORS + 1))
+      fi
+    elif command -v npm &>/dev/null; then
+      if ! npm install; then
+        echo -e "  ${YELLOW}!${RESET} npm install failed in ${DOTFILES_DIR}"
+        COUNT_ERRORS=$((COUNT_ERRORS + 1))
+      fi
+    else
+      echo -e "  ${YELLOW}!${RESET} Neither bun nor npm found  -- install dependencies manually in ${DOTFILES_DIR}"
+    fi
+    cd - >/dev/null
+  fi
+else
+  log_info "No package.json in dotfiles root  -- skipping dependency install"
 fi
 
 # ---------------------------------------------------------------------------
@@ -333,21 +363,21 @@ if [[ -f "${PLUGIN_DIR}/package.json" ]]; then
     cd "$PLUGIN_DIR"
     if command -v bun &>/dev/null; then
       if ! bun install; then
-        echo -e "  ${YELLOW}⚠${RESET} bun install failed in ${PLUGIN_DIR}"
+        echo -e "  ${YELLOW}!${RESET} bun install failed in ${PLUGIN_DIR}"
         COUNT_ERRORS=$((COUNT_ERRORS + 1))
       fi
     elif command -v npm &>/dev/null; then
       if ! npm install; then
-        echo -e "  ${YELLOW}⚠${RESET} npm install failed in ${PLUGIN_DIR}"
+        echo -e "  ${YELLOW}!${RESET} npm install failed in ${PLUGIN_DIR}"
         COUNT_ERRORS=$((COUNT_ERRORS + 1))
       fi
     else
-      echo -e "  ${YELLOW}⚠${RESET} Neither bun nor npm found — install dependencies manually in ${PLUGIN_DIR}"
+      echo -e "  ${YELLOW}!${RESET} Neither bun nor npm found  -- install dependencies manually in ${PLUGIN_DIR}"
     fi
     cd - >/dev/null
   fi
 else
-  log_info "No package.json in plugins/ — skipping dependency install"
+  log_info "No package.json in plugins/  -- skipping dependency install"
 fi
 
 # ---------------------------------------------------------------------------
@@ -363,22 +393,22 @@ if [[ -x "$SYNC_SCRIPT" ]]; then
     bash "$SYNC_SCRIPT"
   fi
 else
-  log_info "scripts/sync-dotfiles.sh not found or not executable — skipping"
+  log_info "scripts/sync-dotfiles.sh not found or not executable  -- skipping"
 fi
 
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "${BOLD}-----------------------------------------${RESET}"
 echo -e "${BOLD}Install summary${RESET}"
-echo -e "  ${GREEN}✓ Created / already linked:${RESET}  ${COUNT_CREATED}"
-echo -e "  ${YELLOW}⚠ Existing files backed up:${RESET}  ${COUNT_BACKED_UP}"
-echo -e "  ${RED}✗ Errors:${RESET}                   ${COUNT_ERRORS}"
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
+echo -e "  ${GREEN}+ Created / already linked:${RESET}  ${COUNT_CREATED}"
+echo -e "  ${YELLOW}! Existing files backed up:${RESET}  ${COUNT_BACKED_UP}"
+echo -e "  ${RED}x Errors:${RESET}                   ${COUNT_ERRORS}"
+echo -e "${BOLD}-----------------------------------------${RESET}"
 
 if [[ "$DRY_RUN" == "true" ]]; then
-  echo -e "\n${CYAN}Dry-run complete — no changes made.${RESET}"
+  echo -e "\n${CYAN}Dry-run complete  -- no changes made.${RESET}"
 fi
 
 if [[ "$COUNT_ERRORS" -gt 0 ]]; then

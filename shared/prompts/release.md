@@ -169,7 +169,7 @@ Identify all files that contain the version number and list the exact changes ne
 | `Cargo.toml`     | `version = `  | `"X.Y.Z"` | `"X'.Y'.Z'"` |
 | `version.txt`    | (entire file) | `X.Y.Z`   | `X'.Y'.Z'`   |
 
-Apply all version manifest updates now.
+Update the version in each manifest file listed below. After writing, include every modified file and the exact change made in the Step 7 output so the operator can review before committing.
 
 ---
 
