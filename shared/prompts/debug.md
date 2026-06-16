@@ -144,9 +144,9 @@ Ask "why?" at least five times (Five Whys technique) to reach root cause.
 - Do not add features during a bug fix.
 - If the correct fix is large (> ~50 lines), consider whether a targeted workaround is more appropriate for now, with a tracked follow-up for the proper fix.
 
-### 4b. Implement the Fix
+### 4b. Describe the Fix
 
-Apply the fix now.
+Describe the exact change needed: which file, which function, what the current code does, and what it should do instead. Frame this as instructions for the builder agent, not as actions to take yourself. You diagnose and recommend; the builder implements.
 
 ### 4c. Fix Review
 
@@ -221,12 +221,7 @@ Closes #<issue number if applicable>
 
 ### 6b. Add a Regression Test
 
-If a regression test was not already written, write one now. Mark it clearly:
-
-```
-// REGRESSION TEST: Prevents recurrence of [brief description]
-// Bug was introduced in [commit hash or PR] and fixed in [this commit]
-```
+If a regression test was not already written, write one now. Name the test file and test case to clearly indicate it is a regression test. Include the bug description and the originating commit or PR reference in the test's docstring or JSDoc block, not as inline comments.
 
 The test name should describe the bug scenario, not the implementation:
 
