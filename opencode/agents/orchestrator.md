@@ -218,6 +218,7 @@ After integration, perform these checks directly using `Read` and `Grep`. This i
 - Confirm every CRITICAL and HIGH finding from `@reviewer` and `@security-auditor` was resolved.
 - Confirm no inline code comments are present — only JSDoc/docstrings on public APIs.
 - Confirm no emojis appear in any file, commit message, or output.
+- Confirm a Draft PR is open on the remote. If not, delegate to `@builder` to open one before delivering.
 
 **Failure mode to avoid:** Skipping VERIFY because the subagent said everything was clean. Subagents can be wrong. You verify independently.
 

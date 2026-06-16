@@ -86,7 +86,7 @@ Document the key decisions made during design using this structure:
 Before writing any code, create the feature branch.
 
 1. Run `git checkout main && git pull` to ensure you are starting from the current `main`.
-2. Derive the branch name from the feature description: `<type>/<slug>` where type is one of `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `perf`, `revert` and slug is a short kebab-case description.
+2. Derive the branch name from the feature description: `<type>/<slug>` where type is one of `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `release`, `hotfix`, `perf`, `revert` and slug is a short kebab-case description.
 3. Run `git checkout -b <type>/<slug>`.
 4. Confirm with `git branch --show-current` and `git status`.
 
@@ -249,7 +249,7 @@ Run through this checklist:
 - [ ] All new public functions have docstrings
 - [ ] No emojis in code, commit messages, or PR description
 - [ ] Pre-commit hooks pass locally
-- [ ] Branch name follows pattern: `feat/description` or `fix/description`
+- [ ] Branch name follows pattern: `<type>/description` where type is one of `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci`, `release`, `hotfix`, `perf`, `revert`
 
 ---
 
@@ -263,7 +263,7 @@ Push the branch and open a Draft PR.
 
 The Draft PR is opened on the first push. Subsequent pushes update the existing PR automatically.
 
-**Mark Ready:** When all CI checks are green and all findings from Phase 7 are resolved, run `gh pr ready <PR-URL>` to mark the PR ready for human review.
+**Mark Ready:** When all CI checks are green and all findings from Phase 7 (Review) are resolved, run `gh pr ready <PR-URL>` to mark the PR ready for human review.
 
 ---
 
