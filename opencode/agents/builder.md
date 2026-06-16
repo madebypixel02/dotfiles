@@ -34,6 +34,7 @@ permission:
     "gh pr create *": "ask"
     "glab mr create *": "ask"
     "gh pr ready *": "ask"
+    "glab mr merge *": "ask"
     "npm run test *": "allow"
     "npm run lint *": "allow"
     "npm run build *": "allow"
