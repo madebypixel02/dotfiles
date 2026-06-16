@@ -11,7 +11,7 @@
   "mouse": true,
 
   // ─── Attention & notifications ────────────────────────────────────────────
-  // Alerts when a long-running task completes while you are in another window
+  // Alerts when a long-running task completes while you are in another window.
   "attention": {
     "enabled": true,
     "notifications": true,

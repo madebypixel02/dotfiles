@@ -87,12 +87,15 @@ async function fileExists(path: string): Promise<boolean> {
  *
  * Returns the first candidate that exists on disk, or null.
  */
-async function findCorrespondingTestFile(filePath: string): Promise<string | null> {
+async function findCorrespondingTestFile(
+  filePath: string,
+): Promise<string | null> {
   const normalised = filePath.replace(/\\/g, "/");
 
   const lastSlash = normalised.lastIndexOf("/");
   const dir = lastSlash >= 0 ? normalised.slice(0, lastSlash) : ".";
-  const filename = lastSlash >= 0 ? normalised.slice(lastSlash + 1) : normalised;
+  const filename =
+    lastSlash >= 0 ? normalised.slice(lastSlash + 1) : normalised;
 
   const dotIdx = filename.lastIndexOf(".");
   const base = dotIdx >= 0 ? filename.slice(0, dotIdx) : filename;
@@ -107,12 +110,20 @@ async function findCorrespondingTestFile(filePath: string): Promise<string | nul
   const candidates: string[] = [];
 
   for (const srcRoot of srcRoots) {
-    if (normalised.startsWith(`${srcRoot}/`) || normalised.includes(`/${srcRoot}/`)) {
+    if (
+      normalised.startsWith(`${srcRoot}/`) ||
+      normalised.includes(`/${srcRoot}/`)
+    ) {
       const relativePart = normalised.includes(`/${srcRoot}/`)
-        ? normalised.slice(normalised.indexOf(`/${srcRoot}/`) + srcRoot.length + 2)
+        ? normalised.slice(
+            normalised.indexOf(`/${srcRoot}/`) + srcRoot.length + 2,
+          )
         : normalised.slice(srcRoot.length + 1);
 
-      const relativeDir = relativePart.slice(0, relativePart.lastIndexOf("/") + 1);
+      const relativeDir = relativePart.slice(
+        0,
+        relativePart.lastIndexOf("/") + 1,
+      );
 
       for (const testRoot of testRoots) {
         for (const suffix of testSuffixes) {
@@ -187,12 +198,18 @@ function extractFilePath(args: Record<string, unknown>): string | undefined {
   );
 }
 
-const qualityGatePlugin: Plugin = async ({ directory, project }) => {
+const qualityGatePlugin: Plugin = async ({ directory, project, client }) => {
   const projectRoot = directory ?? project?.worktree ?? process.cwd();
 
   async function emit(message: string): Promise<void> {
     const line = `[${new Date().toISOString()}] ${message.trim()}\n`;
-    console.log(`\n${message.trim()}\n`);
+    void client.tui.showToast({
+      body: {
+        title: "Quality Gate",
+        message: message.trim(),
+        variant: "warning",
+      },
+    });
     try {
       const logPath = join(projectRoot, LOG_FILENAME);
       const dir = join(projectRoot, ".opencode");
@@ -203,7 +220,9 @@ const qualityGatePlugin: Plugin = async ({ directory, project }) => {
     }
   }
 
-  async function emitTestRunSuggestion(sessionState: QualityGateSessionState): Promise<void> {
+  async function emitTestRunSuggestion(
+    sessionState: QualityGateSessionState,
+  ): Promise<void> {
     const now = Date.now();
     if (now - sessionState.lastSuggestedTestRunAt < COOLDOWN_MS) return;
     sessionState.lastSuggestedTestRunAt = now;
@@ -213,7 +232,9 @@ const qualityGatePlugin: Plugin = async ({ directory, project }) => {
     );
   }
 
-  async function emitNoTestsWarning(sessionState: QualityGateSessionState): Promise<void> {
+  async function emitNoTestsWarning(
+    sessionState: QualityGateSessionState,
+  ): Promise<void> {
     await emit(
       `[quality-gate] Warning: ${sessionState.filesEditedThisSession.size} files modified this session but no test files were touched.\n` +
         `Consider adding or updating tests to cover your changes.`,
@@ -262,7 +283,8 @@ const qualityGatePlugin: Plugin = async ({ directory, project }) => {
         const sessionState = sessionStateMap.get(sessionId);
         if (!sessionState) return;
         if (
-          sessionState.filesEditedThisSession.size > IDLE_TEST_WARNING_THRESHOLD &&
+          sessionState.filesEditedThisSession.size >
+            IDLE_TEST_WARNING_THRESHOLD &&
           !sessionState.testFilesTouchedThisSession
         ) {
           await emitNoTestsWarning(sessionState);

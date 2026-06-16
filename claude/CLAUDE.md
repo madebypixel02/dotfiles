@@ -18,10 +18,34 @@ which allows file edits. Do not exit plan mode autonomously.
 Use `/compact` when context feels unwieldy -- do not fight a full context window.
 Run `/init` (Claude Code built-in) in any new project to generate a project-specific AGENTS.md.
 
+### Coding SDLC
+
+The canonical 11-step SDLC is defined in `shared/AGENTS.md` under "Coding SDLC". Every coding task follows that sequence in full. The Claude Code-specific mechanics for each step are:
+
+**Step 3 — Plan:** Plan mode structurally blocks file edits. The user exits plan mode (`shift+tab`) as the explicit approval gate. Do not proceed past planning until the user exits plan mode.
+
+**Step 4 — Branch:** After the user exits plan mode, the first action is branch creation. Run `git checkout main && git pull && git checkout -b <type>/<slug>` in the terminal. Confirm with `git status` before writing any file. If the terminal is not accessible, produce the exact commands for the user to run and wait for confirmation before proceeding.
+
+**Step 5 — Rubber Duck:** Before writing any code, invoke the rubber-duck subagent defined in `claude/agents/rubber-duck.md`. Pass the plan as context and request a Mode A Plan Critique. Block on the verdict. If blocking issues are found, surface them to the user before writing a single line of code.
+
+**Step 7 — Test + Docs:** After implementation, run the full test suite. Assess the diff: if new behaviour was added, write tests for it. If public APIs changed, update docstrings and relevant documentation. Both assessments are mandatory before proceeding to review.
+
+**Step 8 — Review + Audit:** After implementation, invoke the security-auditor and reviewer roles before any commit. Both must complete. Apply the security checklist from `shared/rules/security.md`. This is not optional.
+
+**Step 9 — Commit:** Run `git add -p` to stage only the logical change. Write a conventional commit message. Run pre-commit hooks (`pre-commit run --staged`). Do not commit if any hook fails.
+
+**Step 10 — Push + Draft PR:** Run `git push -u origin <branch>`. Immediately open a Draft PR: `gh pr create --draft --title "<conventional-commit-header>" --body "<what/why/how-to-test>"`. Do not wait until the feature is complete — open the Draft PR on the first push.
+
+**Step 11 — Mark Ready:** Run `gh pr ready <PR-URL>` only when all CI checks are green and all review findings are resolved.
+
 ### Memory
 
 Auto-memory is enabled (`autoMemoryEnabled` in settings.json). Important discoveries
 are saved to ~/.claude/MEMORY.md automatically. Check `/memory` to review and edit.
+
+### Orchestrator Discipline
+
+See the shared `Orchestrator and Delegation Discipline` section in `AGENTS.md` for the universal principle. Claude Code-specific enforcement: plan mode (`defaultMode: plan` in `settings.json`) structurally blocks file edits until the user approves a plan and exits plan mode. When the user exits plan mode, write operations are for subagent roles only — the main agent does not consume them. If you are about to write code or edit a file directly, stop and produce a delegation prompt for the builder role instead.
 
 ### Subagents
 
@@ -44,32 +68,3 @@ The `permissions.deny` list and the `PreToolUse` bash hook in settings.json both
 the same destructive command patterns (`rm -rf`, `git push --force`, pipe-to-shell).
 This duplication is intentional -- the hook provides a best-effort heuristic check as
 a second line of defence. The `permissions.deny` list remains the authoritative control.
-
-### Token Economy
-
-- Reference code by `path/to/file:line`. Never reproduce more than 5 lines of existing code.
-- Do not echo file contents after reading them. Summarize findings; cite locations.
-- No preamble ("I'll now...", "Let me...") or postamble ("Let me know if...").
-- When a subagent returns a complete answer, present it directly. Do not rephrase.
-- Do not re-read files already in context. Pass briefs to subagents instead of expecting re-reads.
-- Parallelise tool calls. When reading or searching multiple independent files, issue all calls in a single message.
-
----
-
-## Enterprise Development Standards
-
-The following shared rule files define non-negotiable standards for this enterprise
-codebase. Read the relevant file before starting any work in that domain.
-
-- `shared/rules/python.md` — Python 3.11 runtime, `uv` package manager, Ruff linter and
-  formatter, type hints, Google-style docstrings, Bandit security linting, and
-  `pyproject.toml` as the single configuration source.
-- `shared/rules/observability.md` — Structured JSON logging compatible with ECS, required
-  log fields, analytics log fields for API and service calls, `/health` and `/ready`
-  endpoints, OpenTelemetry tracing, and metrics with alert thresholds.
-- `shared/rules/ai-development.md` — Standards for building production AI agents and
-  LangGraph workflows, prompt engineering (RTCF structure), evaluation pipelines, golden
-  datasets, and AI security controls.
-- `shared/rules/cicd.md` — GitHub Flow branching model, conventional commits enforced by
-  commitlint, semantic release, Docker multi-stage builds, GHCR publishing, and
-  environment promotion gates (INT → CERT → PROD).
