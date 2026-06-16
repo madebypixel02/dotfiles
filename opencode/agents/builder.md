@@ -15,6 +15,7 @@ permission:
   todowrite: "allow"
   bash:
     "*": "ask"
+    "bash scripts/sync-dotfiles.sh": "allow"
     "bash *.sh": "ask"
     "docker restart *": "ask"
     "docker compose restart *": "ask"
@@ -139,6 +140,8 @@ Core rules that apply to every edit:
 - No `any` in TypeScript without a docstring explaining why.
 
 ### Step 3 -- Test
+
+If any file under `shared/rules/` or `shared/prompts/` is among the staged or modified files, run `bash scripts/sync-dotfiles.sh` from the repo root before running `pre-commit run --all-files`. This regenerates the copilot instruction files and gemini command files that are derived from those sources. The `check-dotfiles-drift` pre-commit hook runs with `always_run: true` and will fail if derived files are stale.
 
 After every set of edits, run the test suite. Fix failures at the root cause -- do not adjust test assertions to make them pass unless the test itself is wrong. Re-run until all tests pass.
 

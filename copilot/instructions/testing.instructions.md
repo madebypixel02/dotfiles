@@ -1,10 +1,10 @@
-<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
-<!-- Source: shared/rules/testing.md -->
-<!-- Regenerate with: scripts/sync-dotfiles.sh -->
-
 ---
 applyTo: "**/*.test.ts,**/*.spec.ts,**/tests/**,**/__tests__/**"
 ---
+
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/testing.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
 
 # Testing Rules
 
@@ -251,6 +251,7 @@ Before marking a change as complete, verify:
 - [ ] Bug fixes accompanied by a regression test
 - [ ] Coverage has not decreased
 - [ ] Full test suite passes locally before committing
+
 ---
 
 ## Code Review Gate

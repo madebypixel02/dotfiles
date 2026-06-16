@@ -1,10 +1,10 @@
-<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
-<!-- Source: shared/rules/ai-development.md -->
-<!-- Regenerate with: scripts/sync-dotfiles.sh -->
-
 ---
 applyTo: "**/agents/**,**/prompts/**,**/chains/**,**/graphs/**,**/llm/**,**/ai/**,**/rag/**,**/evaluation/**"
 ---
+
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/ai-development.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
 
 # AI/ML Development Rules
 
@@ -251,6 +251,7 @@ Configure the following policies at the AI Gateway layer:
 ### Data Classification
 
 Use Microsoft Purview to classify data that flows through AI pipelines. Data classified as Confidential or above must not be sent to external model providers without explicit approval and a documented data processing agreement.
+
 ---
 
 ## Code Review Gate

@@ -56,7 +56,7 @@ build_copilot_frontmatter() {
 }
 
 build_copilot_review_gate() {
-    printf '\n%s\n\n' '---'
+    printf '\n\n%s\n\n' '---'
     printf '%s\n\n' '## Code Review Gate'
     printf '%s\n' 'Before marking any change as complete, verify each item in the checklist below.'
     printf '%s\n\n' "If this file is in the \`applyTo\` scope of this instruction file, these checks are mandatory."
@@ -97,9 +97,9 @@ check_copilot_instructions() {
         source_content="$(cat "${source_path}")"
 
         {
-            build_copilot_generation_header "${source_name}"
-            printf '\n'
             build_copilot_frontmatter "${apply_to_pattern}"
+            printf '\n'
+            build_copilot_generation_header "${source_name}"
             printf '\n'
             printf '%s' "${source_content}"
             build_copilot_review_gate
