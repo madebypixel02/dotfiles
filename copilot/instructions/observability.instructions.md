@@ -1,10 +1,10 @@
-<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
-<!-- Source: shared/rules/observability.md -->
-<!-- Regenerate with: scripts/sync-dotfiles.sh -->
-
 ---
 applyTo: "**/logging/**,**/monitoring/**,**/health/**,**/middleware/**,**/telemetry/**,**/observability/**"
 ---
+
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/observability.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
 
 # Observability Rules
 
@@ -225,6 +225,7 @@ Implement periodic uptime monitoring by calling the `/health` endpoint of every 
 - Alert when two consecutive checks fail.
 - Record availability as a percentage over 24-hour, 7-day, and 30-day windows.
 - Target availability: 99.9% measured over any rolling 30-day window.
+
 ---
 
 ## Code Review Gate

@@ -1,10 +1,10 @@
-<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
-<!-- Source: shared/rules/markdown.md -->
-<!-- Regenerate with: scripts/sync-dotfiles.sh -->
-
 ---
 applyTo: "**/*.md,**/*.mdx"
 ---
+
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/markdown.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
 
 # Markdown Rules
 
@@ -133,6 +133,7 @@ Before committing a Markdown file, verify:
 - [ ] One blank line before and after every code block
 - [ ] Makefile recipe lines inside code blocks use real tabs, not spaces
 - [ ] No indented code blocks remain in the file
+
 ---
 
 ## Code Review Gate

@@ -1,10 +1,10 @@
-<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
-<!-- Source: shared/rules/security.md -->
-<!-- Regenerate with: scripts/sync-dotfiles.sh -->
-
 ---
 applyTo: "**/auth/**/*.ts,**/middleware/**/*.ts,**/routes/**/*.ts,**/handlers/**/*.ts"
 ---
+
+<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->
+<!-- Source: shared/rules/security.md -->
+<!-- Regenerate with: scripts/sync-dotfiles.sh -->
 
 # Security Rules
 
@@ -277,6 +277,7 @@ Before marking any security-sensitive change as complete, verify each item:
 - [ ] Rate limiting applied to sensitive endpoints
 - [ ] TLS enforced; certificate verification enabled
 - [ ] CI/CD security gates (npm/pip audit, semgrep, gitleaks) all pass
+
 ---
 
 ## Code Review Gate

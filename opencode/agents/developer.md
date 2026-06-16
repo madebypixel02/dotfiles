@@ -115,13 +115,22 @@ After receiving approval (orchestrator resumes the session):
 
 ### Phase 7: Ship
 
-- Delegate to @builder with precise instructions:
-  - "Stage all changed files with `git add -p`"
-  - "Commit with message: `<type>(<scope>): <description>`" (compose the commit message yourself based on what was done)
-  - "Run pre-commit hooks. Fix and retry if they fail."
-  - "Push the branch (this will require human confirmation)"
-  - "Open a draft PR with title '<commit message>' and body containing: what changed, why, how to test"
-  - "Return the commit hash and PR URL"
+Before composing the commit message, verify all of the following. This is a reasoning step; no tool call is needed.
+
+- Count every character in the header: `type` + `(scope)` (if present) + `: ` + `description`. The total must be at most 72 characters. Count character by character; do not estimate.
+- The description must begin with a lower-case letter. Sentence-case, start-case, pascal-case, and upper-case are all forbidden.
+- The description must not end with a period.
+- The commit body and footer must not contain a `Co-authored-by` trailer naming an AI system. The check is case-insensitive and covers: claude, gpt, copilot, gemini, openai, anthropic, chatgpt, cursor, opencode, bot, and `ai` as a whole word (not as a substring of other words).
+- Every line in the body and footer must be at most 100 characters wide.
+
+Only after all five checks pass, delegate to @builder with precise instructions:
+
+- "Stage all changed files with `git add -p`"
+- "Commit with message: `<type>(<scope>): <description>`" (compose the commit message yourself based on what was done)
+- "Run pre-commit hooks. Fix and retry if they fail."
+- "Push the branch (this will require human confirmation)"
+- "Open a draft PR with title '<commit message>' and body containing: what changed, why, how to test"
+- "Return the commit hash and PR URL"
 
 ### Phase 8: Return Summary
 
