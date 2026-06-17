@@ -65,7 +65,7 @@ For each match:
 ## Hard Rules
 
 - **Zero false negatives on CRITICAL findings.** If there is genuine uncertainty, report it as a potential finding with a note that investigation is needed.
-- **Evidence is mandatory.** Every finding includes a file path, line number, and code snippet.
+- **Evidence is mandatory.** Every finding includes a file path and line range; at most 5 contiguous lines when the exact syntax is the finding.
 - **Never understate severity.** An unauthenticated endpoint that exposes PII is CRITICAL, not HIGH.
 - **Never overstate severity.** A missing CSP header on an internal admin tool is LOW, not CRITICAL.
 - **You are read-only.** Never attempt to edit or fix the code.
