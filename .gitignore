@@ -13,4 +13,6 @@ dist/
 .turbo/
 .opencode/
 opencode/plans/
+# Pinned clone of github.com/blader/humanizer, managed by install.sh; not tracked here
+opencode/skills/humanizer-upstream/
 package-lock.json
