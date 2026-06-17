@@ -110,9 +110,13 @@
       "~/.gnupg/**":           "deny",
       "~/.aws/**":             "deny",
       "~/.kube/**":            "deny",
-      "/etc/**":               "deny",
-      "/var/**":               "deny",
-      "/usr/**":               "deny",
+      "/etc/**":               "ask",
+      "/etc/shadow":           "deny",
+      "/etc/gshadow":          "deny",
+      "/etc/sudoers":          "deny",
+      "/etc/sudoers.d/**":     "deny",
+      "/var/**":               "ask",
+      "/usr/**":               "ask",
       "*":                     "ask"
     },
 
@@ -196,20 +200,20 @@
       "> /etc/*":                   "deny",
       "> /var/*":                   "deny",
 
-      // System directory inspection via bash (deny — external_directory rules
+      // System directory inspection via bash (ask — external_directory rules
       // only cover read/write/edit tools, not bash; these fill the gap)
-      "ls /etc":                    "deny",
-      "ls /etc/*":                  "deny",
-      "ls /etc *":                  "deny",
-      "ls /var":                    "deny",
-      "ls /var/*":                  "deny",
-      "ls /var *":                  "deny",
-      "ls /usr":                    "deny",
-      "ls /usr/*":                  "deny",
-      "ls /usr *":                  "deny",
-      "cat /etc/*":                 "deny",
-      "cat /var/*":                 "deny",
-      "cat /usr/*":                 "deny",
+      "ls /etc":                    "ask",
+      "ls /etc/*":                  "ask",
+      "ls /etc *":                  "ask",
+      "ls /var":                    "ask",
+      "ls /var/*":                  "ask",
+      "ls /var *":                  "ask",
+      "ls /usr":                    "ask",
+      "ls /usr/*":                  "ask",
+      "ls /usr *":                  "ask",
+      "cat /etc/*":                 "ask",
+      "cat /var/*":                 "ask",
+      "cat /usr/*":                 "ask",
 
       // Privilege escalation (deny)
       "sudo *":                     "deny",
