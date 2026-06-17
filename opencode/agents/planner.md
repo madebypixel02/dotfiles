@@ -1,7 +1,7 @@
 ---
 description: Functional planning agent. Reads the codebase, explores documentation, and produces structured scope-and-requirements plans. Writes plans to ~/.config/opencode/plans/. Plans describe WHAT needs to happen and WHY, never HOW at the code level. Use before any implementation to produce a plan for user approval.
 mode: all
-color: "#bb9af7"
+color: "#9d7cd8"
 steps: 20
 permission:
   question: "allow"
@@ -10,12 +10,11 @@ permission:
   grep: "allow"
   list: "allow"
   write:
-    "~/.config/opencode/plans/*.md": "allow"
     "*": "deny"
-  edit:
     "~/.config/opencode/plans/*.md": "allow"
     "~/.config/opencode/plans/**": "allow"
-  write:
+  edit:
+    "*": "deny"
     "~/.config/opencode/plans/*.md": "allow"
     "~/.config/opencode/plans/**": "allow"
   bash:
