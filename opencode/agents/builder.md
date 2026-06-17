@@ -1,6 +1,6 @@
 ---
 description: Implementation agent. Writes production code, runs tests, manages git operations (branch, commit, push, PR). Pure executor with no delegation rights. Receives instructions from the developer agent and returns structured reports.
-mode: subagent
+mode: all
 color: "#9ece6a"
 steps: 30
 permission:

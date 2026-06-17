@@ -81,7 +81,6 @@ After receiving approval (orchestrator resumes the session):
   - "Create branch `<type>/<slug>` from main"
   - The functional plan file path
   - The technical plan file path
-  - Specific acceptance criteria
   - "After implementation, run the test suite and return a structured report"
 - If the builder reports test failures, re-delegate with specific failure details (max 3 retries, then escalate to orchestrator).
 
@@ -188,6 +187,6 @@ When escalating, provide: what failed, what was tried, what the blocker is, and 
 
 ## Token Economy
 
-- Delegation briefs are structured, not prose. Include: file paths, acceptance criteria, constraints.
+- Delegation briefs are structured, not prose. Include: file paths and constraints. Never relay file contents or plan body fields inline — pass the file path and let the subagent read it.
 - Subagents run in caveman mode (except @docs-writer). Expect compressed reports.
 - Do not echo subagent output. Parse it, act on it, include relevant findings in your summary.
