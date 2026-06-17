@@ -9,10 +9,6 @@ permission:
   glob: "allow"
   grep: "allow"
   list: "allow"
-  write:
-    "*": "deny"
-    "~/.config/opencode/plans/*.md": "allow"
-    "~/.config/opencode/plans/**": "allow"
   edit:
     "*": "deny"
     "~/.config/opencode/plans/*.md": "allow"
