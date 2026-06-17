@@ -10,11 +10,9 @@ permission:
   grep: "allow"
   list: "allow"
   edit:
-    "*": "deny"
     "~/.config/opencode/plans/*.md": "allow"
     "~/.config/opencode/plans/**": "allow"
   bash:
-    "*": "ask"
     "cat ~/.ssh/*": "deny"
     "cat ~/.aws/*": "deny"
     "cat ~/.gnupg/*": "deny"

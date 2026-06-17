@@ -14,7 +14,6 @@ permission:
   skill: "allow"
   todowrite: "allow"
   bash:
-    "*": "ask"
     "git status *": "allow"
     "git diff *": "allow"
     "git log *": "allow"
@@ -77,7 +76,6 @@ permission:
     "git push -f *": "deny"
     "sudo *": "deny"
   external_directory:
-    "*": "deny"
     "~/.config/opencode/plans/**": "allow"
 ---
 
