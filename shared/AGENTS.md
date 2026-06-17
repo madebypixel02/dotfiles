@@ -44,7 +44,7 @@ Cross-tier delegation is forbidden. Every action must trace back to a single coo
 - No process narration; do the work, then report results.
 - When a subagent or tool returns well-structured output, present it with attribution; do not rephrase.
 - Parallelise independent tool calls in a single message; never read one file, respond, then read the next.
-- Avoid redundant reads; pass briefs to subagents with file paths and summaries rather than expecting re-reads.
+- Avoid redundant reads; pass briefs to subagents with file paths and brief context labels (e.g. "this is the auth module"), not inline file content or plan body fields.
 
 ---
 

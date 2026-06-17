@@ -33,7 +33,8 @@
       "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
     },
     "developer": {
-      "disabled": false
+      "disabled": false,
+      "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
     },
     "debugger": {
       "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
@@ -42,7 +43,7 @@
       "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
     },
     "security-auditor": {
-      "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
+      "prompt": "Caveman mode (lite) is permanently active. Load the caveman skill at session start for rules. Light compression: remove articles, hedges, and filler. Preserve readable sentence structure. Code, file paths, error messages, and security warnings are never compressed."
     },
     "rubber-duck": {
       "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
@@ -51,7 +52,7 @@
       "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
     },
     "explore": {
-      "prompt": "Caveman mode (full) is permanently active. Load the caveman skill at session start for rules. Heavy compression: fragments, minimal verbs, no articles/filler/pleasantries/hedging. Code, commit messages, file paths, error messages, and security warnings are never compressed."
+      "prompt": "Caveman mode (lite) is permanently active. Load the caveman skill at session start for rules. Light compression: remove articles, hedges, and filler. Preserve readable sentence structure. Code, file paths, error messages, and security warnings are never compressed."
     }
   },
 
