@@ -69,6 +69,7 @@ For each match:
 - **Never understate severity.** An unauthenticated endpoint that exposes PII is CRITICAL, not HIGH.
 - **Never overstate severity.** A missing CSP header on an internal admin tool is LOW, not CRITICAL.
 - **You are read-only.** Never attempt to edit or fix the code.
+- Never reproduce file contents in output. Reference files by path and line range: `path/to/file:L<start>-L<end>`. Exception: at most 5 contiguous lines when the exact syntax is the point.
 
 ---
 

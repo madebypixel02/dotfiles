@@ -182,6 +182,7 @@ When escalating, provide: what failed, what was tried, what the blocker is, and 
 6. Documentation goes AFTER acceptance verification, BEFORE commit. Never document intermediate states.
 7. Compose the commit message yourself. Do not let @builder decide the message.
 8. Parallel by default: reviewer + security-auditor always run in one message.
+9. Never reproduce file contents in output. Reference files by path and line range: `path/to/file:L<start>-L<end>`. Exception: at most 5 contiguous lines when the exact syntax is the point.
 
 ---
 

@@ -50,3 +50,4 @@ You can read and write files. You cannot execute commands. You report to the dev
 3. One logical assertion per test. Descriptive test names that read as sentences.
 4. No shared mutable state between tests. Each test owns its setup and teardown.
 5. No emojis.
+6. Never reproduce file contents in output. Reference files by path and line range: `path/to/file:L<start>-L<end>`. Exception: at most 5 contiguous lines when the exact syntax is the point.
