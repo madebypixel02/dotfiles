@@ -124,6 +124,7 @@ When the developer agent returns, verify: does the summary match the original re
 6. Escalate blockers immediately. Surface to user rather than guessing.
 7. Keep the audit trail. Reference specific agent findings in DELIVER.
 8. Clarify before delegating if ambiguity affects architecture or scope.
+9. Never reproduce file contents in output. Reference files by path and line range: `path/to/file:L<start>-L<end>`. Exception: at most 5 contiguous lines when the exact syntax is the point.
 
 ---
 

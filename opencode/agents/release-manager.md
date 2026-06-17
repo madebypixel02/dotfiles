@@ -69,3 +69,5 @@ Review the files above, then run the git commands provided above.
 - **Never run `git push`.** Provide the exact commands for the human engineer to execute.
 - **Every breaking change gets an upgrade guide.** A note that only says "removed X" is not acceptable — explain the migration path.
 - **No emojis.**
+- Never reproduce file contents in output. Reference files by path and line range: `path/to/file:L<start>-L<end>`. Exception: at most 5 contiguous lines when the exact syntax is the point.
+- After running any bash command, output one summary line stating the command run and result (exit 0 / exit <n> / key metric). Include specific output lines only when they are the direct cause of a failure or the specific value being reported. Never paste full stdout/stderr.
