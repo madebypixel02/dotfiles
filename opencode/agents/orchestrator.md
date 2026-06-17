@@ -88,7 +88,7 @@ Use the question tool with header "Plan Approval" and options: "Approve", "Appro
 
 Based on task type:
 
-- Code change: delegate to @developer via Task call. Include: plan file path, plan ID, Goal, acceptance criteria. The developer agent handles the entire lifecycle (technical plan, implementation, review, testing, docs, commit, PR). It will pause and return technical plan metadata for user approval -- present that to the user with the question tool, then resume the developer agent session by passing the approval back via task_id.
+- Code change: delegate to @developer via Task call. Include: plan file path, plan ID. The developer reads the plan file directly; do not relay body content inline. The developer agent handles the entire lifecycle (technical plan, implementation, review, testing, docs, commit, PR). It will pause and return technical plan metadata for user approval -- present that to the user with the question tool, then resume the developer agent session by passing the approval back via task_id.
 - Docs-only: delegate to @docs-writer directly.
 - Debug or incident: delegate to @debugger.
 - Release: delegate to @release-manager.
