@@ -11,6 +11,9 @@ permission:
   list: "allow"
   edit:
     "~/.config/opencode/plans/*.md": "allow"
+  write:
+    "~/.config/opencode/plans/*.md": "allow"
+    "~/.config/opencode/plans/**": "allow"
   bash:
     "*": "deny"
     "git status *": "allow"
@@ -37,9 +40,6 @@ permission:
   task: "deny"
   skill: "deny"
   todowrite: "deny"
-  external_directory:
-    "~/.config/opencode/plans/**": "allow"
-    "*": "deny"
 ---
 
 # Planner Agent
