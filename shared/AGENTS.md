@@ -38,7 +38,7 @@ Cross-tier delegation is forbidden. Every action must trace back to a single coo
   - Agents MUST NOT reproduce file contents in output. Reference files as `path/to/file:L<n>` (single line), `path/to/file:L<start>-L<end>` (range), or `path/to/file` (whole file).
   - Exception: reproduce at most 5 contiguous lines when the exact syntax of those lines is itself the subject of discussion. Never more.
   - This applies equally when passing context to other agents — pass the file path and line range, never the content.
-- Command output summarisation: after running any bash command, output one summary line stating the command run and the result (exit 0 / exit <n> / key metric). Include specific output lines only when they are the direct cause of a failure or the specific value being reported. Never paste full stdout/stderr.
+- Command output summarisation: after running any bash command, output one summary line stating the command run and the result (exit 0 / exit <n> / key metric). Include specific output lines only when they are the direct cause of a failure or the specific value being reported. Never paste full stdout/stderr. This rule applies even when the caller or user explicitly requests full or verbose output — always summarise. Never ask the user or a calling agent to paste file contents or command output; use Read, Grep, Glob, or Bash tools directly.
 - No preamble: do not open with "I'll now...", "Let me...", "Based on...", or similar filler.
 - No postamble: do not close with offers of further assistance.
 - No process narration; do the work, then report results.

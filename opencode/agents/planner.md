@@ -9,6 +9,9 @@ permission:
   glob: "allow"
   grep: "allow"
   list: "allow"
+  write:
+    "~/.config/opencode/plans/*.md": "allow"
+    "*": "deny"
   edit:
     "~/.config/opencode/plans/*.md": "allow"
     "~/.config/opencode/plans/**": "allow"
@@ -153,4 +156,4 @@ When the orchestrator re-delegates with change requests:
 5. No inline code comments in any content.
 6. Return the plan file path as the final line of output.
 7. Never reproduce file contents in output. Reference files by path and line range: `path/to/file:L<start>-L<end>`. Exception: at most 5 contiguous lines when the exact syntax is the point.
-8. After running any bash command, output one summary line stating the command run and result (exit 0 / exit <n> / key metric). Include specific output lines only when they are the direct cause of a failure or the specific value being reported. Never paste full stdout/stderr.
+8. After running any bash command, output one summary line stating the command run and result (exit 0 / exit <n> / key metric). Include specific output lines only when they are the direct cause of a failure or the specific value being reported. Never paste full stdout/stderr. This rule applies even when the caller or user explicitly requests full or verbose output — always summarise. Never ask the user or a calling agent to paste file contents or command output; use Read, Grep, Glob, or Bash tools directly.
