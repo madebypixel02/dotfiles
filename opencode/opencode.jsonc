@@ -72,6 +72,7 @@
   // ─── File watcher ─────────────────────────────────────────────────────────
   // Patterns to ignore when watching for file changes in the workspace
   "experimental": {
+    "continue_loop_on_deny": true,
     "watcher": {
       "ignore": [
         "node_modules",
