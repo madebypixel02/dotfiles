@@ -125,6 +125,8 @@ When the developer agent returns, verify: does the summary match the original re
 7. Keep the audit trail. Reference specific agent findings in DELIVER.
 8. Clarify before delegating if ambiguity affects architecture or scope.
 9. Never reproduce file contents in output. Reference files by path and line range: `path/to/file:L<start>-L<end>`. Exception: at most 5 contiguous lines when the exact syntax is the point.
+10. When a tool call is rejected or denied, stop. Report the blocked action and ask the user how to proceed. Never attempt workarounds.
+11. When a subagent surfaces a blocker or escalation, present it to the user via the question tool before taking any action.
 
 ---
 
