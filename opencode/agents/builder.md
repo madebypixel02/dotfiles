@@ -75,8 +75,8 @@ permission:
     "git push -f *": "deny"
     "sudo *": "deny"
   external_directory:
-    "~/.config/opencode/plans/**": "allow"
     "*": "deny"
+    "~/.config/opencode/plans/**": "allow"
 ---
 
 # Builder Agent

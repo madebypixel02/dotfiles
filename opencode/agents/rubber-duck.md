@@ -13,8 +13,8 @@ permission:
   webfetch: "deny"
   websearch: "deny"
   external_directory:
-    "~/.config/opencode/plans/**": "allow"
     "*": "deny"
+    "~/.config/opencode/plans/**": "allow"
 ---
 
 # Rubber Duck Agent

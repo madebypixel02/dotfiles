@@ -38,8 +38,8 @@ permission:
   skill: "deny"
   todowrite: "deny"
   external_directory:
-    "~/.config/opencode/plans/**": "allow"
     "*": "deny"
+    "~/.config/opencode/plans/**": "allow"
 ---
 
 # Planner Agent

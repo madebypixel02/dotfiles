@@ -97,12 +97,13 @@
 
     // File edits: ask for confirmation on every write
     "edit": {
-      "~/.config/opencode/plans/**": "allow",
-      "*": "ask"
+      "*": "ask",
+      "~/.config/opencode/plans/**": "allow"
     },
 
     // External directory access: project workspace is open; home/system dirs are locked
     "external_directory": {
+      "*":                     "ask",
       "~/.config/opencode/**": "allow",
       "~/dotfiles/**":         "allow",
       "~/projects/**":         "allow",
@@ -112,12 +113,13 @@
       "~/.kube/**":            "deny",
       "/etc/**":               "deny",
       "/var/**":               "deny",
-      "/usr/**":               "deny",
-      "*":                     "ask"
+      "/usr/**":               "deny"
     },
 
     // Bash: safe read/nav commands allowed; destructive or network ops need approval
     "bash": {
+      "*": "ask",
+
       // Navigation & inspection (allow)
       "ls *":                       "allow",
       "ls":                         "allow",
@@ -233,10 +235,7 @@
       "cat ~/.aws/*":               "deny",
       "cat ~/.kube/*":              "deny",
       "cat /etc/passwd":            "deny",
-      "cat /etc/shadow":            "deny",
-
-      // Catch-all: anything not matched above requires approval
-      "*": "ask"
+      "cat /etc/shadow":            "deny"
     }
   },
 
