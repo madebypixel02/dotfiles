@@ -9,7 +9,6 @@ permission:
   grep: "allow"
   list: "allow"
   edit: "deny"
-  write: "deny"
   bash: "deny"
   webfetch: "deny"
   websearch: "deny"

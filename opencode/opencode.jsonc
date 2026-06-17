@@ -100,10 +100,6 @@
       "~/.config/opencode/plans/**": "allow",
       "*": "ask"
     },
-    "write": {
-      "~/.config/opencode/plans/**": "allow",
-      "*": "ask"
-    },
 
     // External directory access: project workspace is open; home/system dirs are locked
     "external_directory": {
