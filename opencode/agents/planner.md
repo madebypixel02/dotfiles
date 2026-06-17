@@ -11,8 +11,6 @@ permission:
   list: "allow"
   edit:
     "~/.config/opencode/plans/*.md": "allow"
-  write:
-    "~/.config/opencode/plans/*.md": "allow"
   bash:
     "*": "deny"
     "git status *": "allow"
