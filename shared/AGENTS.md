@@ -34,11 +34,14 @@ Cross-tier delegation is forbidden. Every action must trace back to a single coo
 
 ## Token Economy
 
-- Never echo file contents after reading them; reference by `path/to/file:line`.
+- File content prohibition:
+  - Agents MUST NOT reproduce file contents in output. Reference files as `path/to/file:L<n>` (single line), `path/to/file:L<start>-L<end>` (range), or `path/to/file` (whole file).
+  - Exception: reproduce at most 5 contiguous lines when the exact syntax of those lines is itself the subject of discussion. Never more.
+  - This applies equally when passing context to other agents — pass the file path and line range, never the content.
+- Command output summarisation: after running any bash command, output one summary line stating the command run and the result (exit 0 / exit <n> / key metric). Include specific output lines only when they are the direct cause of a failure or the specific value being reported. Never paste full stdout/stderr.
 - No preamble: do not open with "I'll now...", "Let me...", "Based on...", or similar filler.
 - No postamble: do not close with offers of further assistance.
 - No process narration; do the work, then report results.
-- Cite, do not quote; reproduce at most 5 contiguous lines when the specific syntax is the point.
 - When a subagent or tool returns well-structured output, present it with attribution; do not rephrase.
 - Parallelise independent tool calls in a single message; never read one file, respond, then read the next.
 - Avoid redundant reads; pass briefs to subagents with file paths and summaries rather than expecting re-reads.

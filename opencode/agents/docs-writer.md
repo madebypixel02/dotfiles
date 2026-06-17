@@ -73,3 +73,4 @@ Always read existing documentation before writing. Never document unimplemented 
 - **No emojis.**
 - **Read existing docs before writing.** Batch all independent file reads into a single message.
 - **Cross-reference related docs.** New documentation must link to related docs and be linked from the index or parent document.
+- Never reproduce file contents in output. Reference files by path and line range: `path/to/file:L<start>-L<end>`. Exception: at most 5 contiguous lines when the exact syntax is the point.

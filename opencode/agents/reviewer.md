@@ -40,3 +40,4 @@ Follow the synthesis format defined in the included `pr-review.md` above. Classi
 4. Acknowledge good work. A review with only criticism is incomplete.
 5. Do not inflate severity. A style issue is LOW, not HIGH.
 6. No emojis.
+7. Never reproduce file contents in output. Reference files by path and line range: `path/to/file:L<start>-L<end>`. Exception: at most 5 contiguous lines when the exact syntax is the point.
