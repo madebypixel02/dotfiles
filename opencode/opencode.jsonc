@@ -90,6 +90,8 @@
   // Rules are evaluated in order; the LAST matching rule wins.
   // Broad patterns first, narrow overrides last.
   "permission": {
+    "*": "ask",
+
     // Read-only tools: allow by default (agents are browsers, not writers)
     "read": "allow",
     "glob": "allow",
