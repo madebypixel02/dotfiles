@@ -16,8 +16,8 @@ permission:
   skill: "allow"
   todowrite: "allow"
   external_directory:
-    "~/.config/opencode/plans/**": "allow"
     "*": "deny"
+    "~/.config/opencode/plans/**": "allow"
 ---
 
 # Orchestrator Agent
