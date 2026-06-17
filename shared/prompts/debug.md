@@ -261,9 +261,7 @@ Produce a list of prevention measures:
 
 Search the codebase for instances of the same root cause pattern:
 
-```
-!`grep -rn "[pattern related to root cause]" --include="*.js" --include="*.ts" --include="*.py" --include="*.go" . 2>/dev/null | grep -v "test\|spec\|node_modules" | head -30 || echo "(search pattern not specified — perform manually based on root cause)"`
-```
+Using your Grep tool, search the codebase for the root cause pattern identified in Step 3. Report the result as one summary line stating the number of matches found, followed by a list of affected file paths. Do not reproduce grep output verbatim.
 
 List any additional files that may contain the same bug and create tracking issues for each.
 

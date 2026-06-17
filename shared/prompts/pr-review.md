@@ -6,7 +6,7 @@ Use this workflow when conducting a thorough code review on a pull request.
 
 ## Input
 
-[PULL REQUEST] — provide the PR number or URL, or paste the diff and description directly.
+[PULL REQUEST] — provide the PR number or URL, or pass the branch name, description, and list of changed file paths directly.
 
 ---
 
