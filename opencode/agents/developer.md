@@ -75,11 +75,7 @@ After writing the file, stop. Return the plan file path, ID, and goal to the orc
 
 After receiving approval (orchestrator resumes the session):
 
-- Delegate to @builder with a precise brief:
-  - "Create branch `<type>/<slug>` from main"
-  - The functional plan file path
-  - The technical plan file path
-  - "After implementation, run the test suite and return a structured report"
+- Delegate to @builder with an intent-oriented brief covering: the target branch type and slug, the functional plan file path, the technical plan file path, and the expected outcome (working implementation with test suite results).
 - If the builder reports test failures, re-delegate with specific failure details (max 3 retries, then escalate to orchestrator).
 
 ### Phase 3: Review and Audit
@@ -120,14 +116,7 @@ Before composing the commit message, verify all of the following. This is a reas
 - The commit body and footer must not contain a `Co-authored-by` trailer naming an AI system. The check is case-insensitive and covers: claude, gpt, copilot, gemini, openai, anthropic, chatgpt, cursor, opencode, bot, and `ai` as a whole word (not as a substring of other words).
 - Every line in the body and footer must be at most 100 characters wide.
 
-Only after all five checks pass, delegate to @builder with precise instructions:
-
-- "Stage all changed files with `git add -p`"
-- "Commit with message: `<type>(<scope>): <description>`" (compose the commit message yourself based on what was done)
-- "Run pre-commit hooks. Fix and retry if they fail."
-- "Push the branch (this will require human confirmation)"
-- "Open a draft PR with title '<commit message>' and body containing: what changed, why, how to test"
-- "Return the commit hash and PR URL"
+Only after all five checks pass, delegate to @builder with an outcome-oriented brief: the commit message you composed, the branch to ship, the PR title and body content (what changed, why, how to test), and that a draft PR is expected. The builder determines the sequence of staging, committing, hook execution, and pushing autonomously. Expect the builder to return the commit hash and PR URL.
 
 ### Phase 8: Return Summary
 
@@ -188,3 +177,4 @@ When escalating, provide: what failed, what was tried, what the blocker is, and 
 - Delegation briefs are structured, not prose. Include: file paths and constraints. Never relay file contents or plan body fields inline — pass the file path and let the subagent read it.
 - Subagents run in caveman mode (except @docs-writer). Expect compressed reports.
 - Do not echo subagent output. Parse it, act on it, include relevant findings in your summary.
+- Do not pass command sequences or scripts to subagents; describe the intended outcome and let each agent determine its own implementation steps.
