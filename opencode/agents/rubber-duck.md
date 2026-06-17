@@ -13,7 +13,6 @@ permission:
   webfetch: "deny"
   websearch: "deny"
   external_directory:
-    "*": "deny"
     "~/.config/opencode/plans/**": "allow"
 ---
 

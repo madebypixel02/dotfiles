@@ -16,7 +16,6 @@ permission:
   skill: "allow"
   todowrite: "allow"
   external_directory:
-    "*": "deny"
     "~/.config/opencode/plans/**": "allow"
 ---
 

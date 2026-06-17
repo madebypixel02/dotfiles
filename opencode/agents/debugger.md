@@ -10,7 +10,6 @@ permission:
   edit: "deny"
   task: "deny"
   bash:
-    "*": "ask"
     "git log*": "allow"
     "git diff*": "allow"
     "git show*": "allow"
