@@ -13,8 +13,9 @@ Ultra-compressed communication. Cut token usage ~65%. All technical substance st
 
 ## Activation
 
-Active when user says any of: "caveman mode", "be brief", "less tokens", "/caveman", "talk like caveman".
-Stays active until user says: "stop caveman", "normal mode", "be verbose", "turn off caveman".
+Active by default at session start. No activation phrase needed for initial session.
+Re-enable after explicit off with: "caveman mode", "be brief", "less tokens", "/caveman", "talk like caveman".
+Deactivate with: "stop caveman", "normal mode", "be verbose", "turn off caveman".
 
 Default intensity: **full**.
 
