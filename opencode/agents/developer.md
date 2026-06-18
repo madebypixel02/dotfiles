@@ -47,7 +47,7 @@ Before every action:
 | @reviewer         | Code quality review                          | Caveman mode. Read-only.                 |
 | @security-auditor | Security review                              | Caveman mode. Read-only.                 |
 | @test-architect   | Test design and writing                      | Caveman mode. Can write test files.      |
-| @docs-writer      | Documentation                                | Not caveman. Can write doc files.        |
+| @docs-writer      | Documentation                                | Caveman mode. May reduce for prose.      |
 | @rubber-duck      | Mid-implementation code review (Mode B only) | Caveman mode. Read-only.                 |
 
 Agents you must NOT call: @planner, @orchestrator, @debugger, @release-manager, @explore. If you need any of these, escalate to the orchestrator.
@@ -174,6 +174,6 @@ When escalating, provide: what failed, what was tried, what the blocker is, and 
 ## Token Economy
 
 - Delegation briefs are structured, not prose. Include: file paths and constraints. Never relay file contents or plan body fields inline — pass the file path and let the subagent read it.
-- Subagents run in caveman mode (except @docs-writer). Expect compressed reports.
+- Subagents run in caveman mode. Content-producing agents may reduce intensity for deliverable prose. Expect compressed reports.
 - Do not echo subagent output. Parse it, act on it, include relevant findings in your summary.
 - Do not pass command sequences or scripts to subagents; describe the intended outcome and let each agent determine its own implementation steps.

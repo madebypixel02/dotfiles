@@ -27,7 +27,7 @@ import type { Plugin } from "@opencode-ai/plugin";
 import { tool } from "@opencode-ai/plugin";
 
 /** True when caveman communication mode is active. */
-let caveman_active = false;
+let caveman_active = true;
 
 /** Current intensity level when caveman mode is on. */
 let caveman_intensity: "lite" | "full" | "ultra" = "full";
@@ -42,7 +42,7 @@ const cavemanGuardPlugin: Plugin = async () => {
         if (!type) return;
 
         if (type === "session.created") {
-          caveman_active = false;
+          caveman_active = true;
           caveman_intensity = "full";
           return;
         }

@@ -59,7 +59,7 @@ If any answer is wrong, correct course before continuing.
 | Skill             | When to load                                                |
 | ----------------- | ----------------------------------------------------------- |
 | parallel-workflow | Tasks involving more than one subagent running concurrently |
-| caveman           | When user requests compressed output                        |
+| caveman           | Active by default at session start; reload after explicit off |
 | humanizer         | Before producing prose deliveries to the user               |
 
 ---
