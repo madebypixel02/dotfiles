@@ -1,178 +1,148 @@
 # Onboarding Workflow
 
-Use this workflow to orient a new engineer or AI assistant to an unfamiliar codebase, or to generate a comprehensive, personalised onboarding guide for a new team member.
+Orient a new engineer or AI assistant to an unfamiliar codebase, or generate a role-personalised onboarding guide.
 
 ---
 
 ## Input
 
-[ROLE OR CODEBASE] — specify what to onboard to and for whom: the full repository, a specific service, a module, or a subsystem; and optionally the role of the new team member (backend engineer, frontend developer, DevOps/SRE, tech lead, QA engineer, data engineer, full-stack developer). Include any relevant context: the team's domain, the user problem the software solves, and any known complexity or historical context.
+[ROLE OR CODEBASE] -- what to onboard to (repo, service, module, subsystem), for whom (backend, frontend, DevOps/SRE, tech lead, QA, data engineer, full-stack). Include: team domain, user problem solved, known complexity or history.
 
 ---
 
-## Phase 1 — High-Level Orientation
+## Phase 1 -- High-Level Orientation
 
-**Understand the purpose.**
-Read the `README.md` at the repository root. Answer: what problem does this software solve, who uses it, and what are its primary capabilities?
+**Purpose.** Read `README.md`. Answer: what problem does this solve, who uses it, primary capabilities?
 
-**Understand the deployment topology.**
-How is the software deployed? Is it a monolith, a set of microservices, a library, a CLI tool? Where does it run? What external services does it depend on?
+**Deployment topology.** Monolith, microservices, library, CLI? Where does it run? External dependencies?
 
-**Understand the team context.**
-Who owns this codebase? What team or organisation is responsible for it? What are the primary communication channels for questions and decisions?
+**Team context.** Who owns this? What team/org? Primary communication channels?
 
 ---
 
-## Phase 2 — Repository Structure
+## Phase 2 -- Repository Structure
 
-**Read the top-level directory layout.**
-Map out the high-level structure. For each top-level directory, identify its purpose. Look for patterns:
+**Top-level layout.** Map each directory's purpose:
 
-- `src/` or `lib/` — source code
-- `cmd/` or `app/` — entry points
-- `pkg/` or `internal/` — shared packages
-- `api/` — API definitions (OpenAPI, Protobuf, GraphQL schemas)
-- `db/` or `migrations/` — database schema and migrations
-- `config/` — configuration files
-- `scripts/` — build, deployment, or maintenance scripts
-- `docs/` — documentation and ADRs
-- `test/` or `tests/` — integration or end-to-end tests
+- `src/`/`lib/` -- source code
+- `cmd/`/`app/` -- entry points
+- `pkg/`/`internal/` -- shared packages
+- `api/` -- API definitions (OpenAPI, Protobuf, GraphQL)
+- `db/`/`migrations/` -- schema and migrations
+- `config/` -- configuration
+- `scripts/` -- build/deploy/maintenance
+- `docs/` -- documentation and ADRs
+- `test/`/`tests/` -- integration/e2e tests
 
-**Identify the entry points.**
-Find the main function, the primary HTTP server setup, the queue consumer bootstrap, or equivalent. Trace the startup sequence: what is initialised and in what order?
+**Entry points.** Find main function, HTTP server setup, queue consumer bootstrap. Trace startup sequence.
 
-**Find the build and run instructions.**
-Read `Makefile`, `package.json` scripts, or equivalent. Run the build locally. Run the test suite. Confirm both succeed before reading further code.
+**Build/run instructions.** Read `Makefile`, `package.json` scripts, or equivalent. Build and test locally before reading further.
 
 ---
 
-## Phase 3 — Domain Model
+## Phase 3 -- Domain Model
 
-**Identify the core entities.**
-What are the primary domain objects? Find where these are defined: database schema, type definitions, protobuf messages.
+**Core entities.** Primary domain objects. Where defined: DB schema, type definitions, protobuf.
 
-**Understand the relationships.**
-How do the core entities relate to each other? Read the database schema or entity relationship documentation. Note: foreign keys, cardinality, and any denormalisation.
+**Relationships.** How entities relate. FK, cardinality, denormalisation.
 
-**Find the state machines.**
-Many entities have a lifecycle. Find where state transitions are defined and enforced.
+**State machines.** Entity lifecycles. Where state transitions are defined and enforced.
 
 ---
 
-## Phase 4 — Request Flow
+## Phase 4 -- Request Flow
 
-**Trace a representative request end-to-end.**
-Pick the most important operation in the system and trace it from entry to exit:
+Trace the most important operation end-to-end:
 
-1. Where does the request enter? (HTTP handler, queue consumer, cron job)
-2. What validation occurs at the boundary?
-3. What service or use-case layer handles the business logic?
-4. What data access layer is called, and what queries does it run?
-5. What external services are called?
-6. What is returned to the caller?
-7. What side effects occur? (emails sent, events published, caches invalidated)
+1. Entry point (HTTP handler, queue consumer, cron)
+2. Boundary validation
+3. Service/use-case layer business logic
+4. Data access layer and queries
+5. External service calls
+6. Response to caller
+7. Side effects (emails, events, cache invalidation)
 
-Document this trace. It is the most valuable output of onboarding — a map of the system's most critical path.
-
----
-
-## Phase 5 — Data Layer
-
-**Read the database schema.**
-Find the migration files or schema definition. Read them in chronological order to understand how the schema evolved. Note: table purposes, index strategy, constraints, and any unusual patterns.
-
-**Understand the data access pattern.**
-Is there an ORM, a query builder, or raw SQL? Where are queries defined?
-
-**Find the sensitive data.**
-Which tables or fields contain PII, payment data, credentials, or other sensitive information? How is access to this data controlled? Is it encrypted at rest?
+Document this trace -- the most valuable onboarding output.
 
 ---
 
-## Phase 6 — Configuration and Secrets
+## Phase 5 -- Data Layer
 
-**Map the configuration surface.**
-List all environment variables the application reads. For each: what is it, what default value does it have (if any), and is it required?
+**Schema.** Read migrations in chronological order. Note: table purposes, index strategy, constraints, unusual patterns.
 
-**Find the secrets.**
-How does the application access credentials and secrets? Confirm secrets are never committed to version control.
+**Access pattern.** ORM, query builder, or raw SQL? Where are queries defined?
 
-**Find the feature flags.**
-If the application uses feature flags, find the flag definitions and the code that reads them. Understand the flag lifecycle: creation, evaluation, and cleanup.
+**Sensitive data.** Which tables/fields contain PII, payment data, credentials? Access controls? Encrypted at rest?
 
 ---
 
-## Phase 7 — Testing Approach
+## Phase 6 -- Configuration and Secrets
 
-**Run the full test suite.**
-Confirm it passes. Measure how long it takes.
+**Config surface.** List all env vars: what each is, default value, required?
 
-**Understand the test structure.**
-Where do unit tests live relative to the code they test? Where are integration tests? Are there end-to-end tests?
+**Secrets.** How does the app access credentials? Confirm secrets never committed to VCS.
 
-**Find the test utilities.**
-Factories, fixtures, in-memory fakes, test database setup — where are they defined?
-
-**Identify coverage gaps.**
-Note areas of the codebase with little or no test coverage — these are higher-risk areas.
+**Feature flags.** Where defined, how evaluated, lifecycle (creation, evaluation, cleanup).
 
 ---
 
-## Phase 8 — Operational Knowledge
+## Phase 7 -- Testing Approach
 
-**Find the deployment process.**
-How is code deployed to production? What is the CI/CD pipeline? What environments exist? What is the rollback procedure?
+**Run full suite.** Confirm passing. Measure duration.
 
-**Find the monitoring.**
-What metrics are collected? Where are the dashboards? What alerts exist?
+**Test structure.** Where do unit tests live? Integration tests? E2e tests?
 
-**Find the runbooks.**
-Are there documented procedures for common operational tasks?
+**Test utilities.** Factories, fixtures, in-memory fakes, test DB setup.
 
-**Find the incident history.**
-Review recent incidents or postmortems. They reveal the most important failure modes and the institutional knowledge built up around them.
+**Coverage gaps.** Areas with little/no coverage -- higher-risk.
 
 ---
 
-## Phase 9 — Conventions and Norms
+## Phase 8 -- Operational Knowledge
 
-**Read the contributing guide.**
-If a `CONTRIBUTING.md` exists, read it. It will describe the expected workflow for making changes.
+**Deployment.** How is code deployed? CI/CD pipeline? Environments? Rollback procedure?
 
-**Identify code style conventions.**
-How is code formatted? What linter is used? Are there naming conventions beyond what the language mandates?
+**Monitoring.** Metrics collected? Dashboards? Alerts?
 
-**Read recent pull requests.**
-Read 3-5 recently merged PRs in the area you will be working in. This is the fastest way to understand what good code looks like in this codebase and what the review culture expects.
+**Runbooks.** Documented procedures for common ops tasks?
 
-**Read the ADR log.**
-If the project maintains Architecture Decision Records, read them in order. They explain why the system looks the way it does.
+**Incident history.** Recent incidents/postmortems. Reveal failure modes and institutional knowledge.
 
 ---
 
-## Phase 10 — Role-Specific Personalisation
+## Phase 9 -- Conventions and Norms
 
-Based on the role provided, tailor the onboarding content:
+**Contributing guide.** Read `CONTRIBUTING.md` if it exists.
 
-**Backend engineer:** Focus on API layer, business logic, data models, database patterns, background jobs, inter-service communication.
+**Code style.** Formatter, linter, naming conventions beyond language defaults.
 
-**Frontend developer:** Focus on UI component structure, state management, API integration patterns, styling approach, build pipeline, browser compatibility.
+**Recent PRs.** Read 3-5 recently merged PRs in your area. Fastest way to understand good code and review culture.
 
-**DevOps/SRE:** Focus on infrastructure-as-code, CI/CD pipelines, deployment process, monitoring and alerting, on-call runbooks, secrets management.
-
-**Tech lead / architect:** Focus on architecture decisions (ADRs), cross-cutting concerns, technical roadmap, code review standards, team processes.
-
-**QA engineer:** Focus on test strategy, test pyramid, test data management, CI integration, bug reporting process, test environments.
-
-**Data engineer:** Focus on data pipelines, schemas, ETL processes, data quality, analytics integrations, data access patterns.
-
-**Full-stack:** Combine backend and frontend sections.
+**ADR log.** If maintained, read in order. Explains why the system looks the way it does.
 
 ---
 
-## Phase 11 — Generate Onboarding Guide
+## Phase 10 -- Role-Specific Personalisation
 
-Produce a complete, role-personalised onboarding guide using this structure:
+**Backend:** API layer, business logic, data models, DB patterns, background jobs, inter-service comms.
+
+**Frontend:** UI components, state management, API integration, styling, build pipeline, browser compat.
+
+**DevOps/SRE:** IaC, CI/CD, deployment, monitoring/alerting, runbooks, secrets management.
+
+**Tech lead:** ADRs, cross-cutting concerns, roadmap, review standards, team processes.
+
+**QA:** Test strategy, test pyramid, test data, CI integration, bug reporting, test environments.
+
+**Data engineer:** Data pipelines, schemas, ETL, data quality, analytics, data access.
+
+**Full-stack:** Combine backend + frontend.
+
+---
+
+## Phase 11 -- Generate Onboarding Guide
+
+Produce role-personalised guide:
 
 ```
 Onboarding Guide: [Role]
@@ -208,21 +178,21 @@ Setup Steps:
 
 Architecture Overview
 
-[Architecture description — describe major components and how they connect]
+[Major components and connections]
 
 Key Components:
 | Component | Purpose | Location |
 | [name] | [what it does] | [directory or service] |
 
 Data Flow:
-[Describe how a typical request flows through the system]
+[Typical request flow through the system]
 
 ---
 
 Codebase Tour
 
 Directory Structure:
-[annotated directory tree — key directories with one-line description of each]
+[Annotated tree -- key directories with one-line descriptions]
 
 Where to Find Things:
 | "I want to..." | "Look in..." |
@@ -256,7 +226,7 @@ Commit Convention: type(scope): short description
 
 [ROLE-SPECIFIC SECTION]
 
-[Detailed section tailored to the role as determined in Phase 10]
+[Detailed section tailored to role per Phase 10]
 
 ---
 
@@ -268,7 +238,7 @@ Testing
   [coverage command]
 
 Test Philosophy:
-[Testing approach: coverage targets, test pyramid philosophy]
+[Testing approach: coverage targets, test pyramid]
 
 ---
 
@@ -284,18 +254,18 @@ Deployment and Environments
 First Week Checklist
 
 Day 1:
-- [ ] Repository cloned and running locally
+- [ ] Repo cloned and running locally
 - [ ] Tests passing
-- [ ] Read this entire onboarding guide
+- [ ] Read this guide
 
 Days 2-3:
-- [ ] Completed codebase tour
-- [ ] Made a small code change and opened a PR
-- [ ] Set up access to all required systems
+- [ ] Codebase tour complete
+- [ ] Small code change + PR opened
+- [ ] Access to all required systems
 
 Days 4-5:
-- [ ] Picked up first real task from backlog
-- [ ] Pair-programmed or reviewed code with a team member
+- [ ] First real task from backlog
+- [ ] Paired or reviewed code with team member
 
 End of Week 1:
 - [ ] Submitted feedback on this guide
@@ -317,46 +287,46 @@ Glossary
 
 ---
 
-## Phase 12 — Save Onboarding Materials
+## Phase 12 -- Save Onboarding Materials
 
-1. Save the onboarding guide to `docs/onboarding/[role-slug]-onboarding.md`
-2. Create `docs/onboarding/` if it does not exist
-3. Update or create `docs/onboarding/README.md` as an index of all role-specific guides
+1. Save guide to `docs/onboarding/[role-slug]-onboarding.md`
+2. Create `docs/onboarding/` if needed
+3. Update/create `docs/onboarding/README.md` as index
 
 ---
 
-## Onboarding Summary Document
+## Onboarding Summary
 
-After completing all phases, produce a summary that covers:
+After all phases, produce:
 
-1. **What the system does** (2-3 sentences)
-2. **High-level architecture** (diagram or structured description of major components)
-3. **Critical request trace** (the end-to-end path of the most important operation)
-4. **Core domain entities** (list with brief description of each)
-5. **Build and run commands** (exact commands to build, test, and run locally)
-6. **Configuration** (list of environment variables and their purpose)
-7. **Key files to know** (the 5-10 most important files in the codebase)
-8. **Known complexity or risk areas** (parts of the codebase that are tricky, fragile, or poorly understood)
-9. **Open questions** (things that remain unclear after the investigation)
+1. **What it does** (2-3 sentences)
+2. **Architecture** (major components)
+3. **Critical request trace** (most important operation end-to-end)
+4. **Core entities** (list with brief descriptions)
+5. **Build/run commands** (exact commands)
+6. **Configuration** (env vars and purpose)
+7. **Key files** (5-10 most important)
+8. **Risk areas** (tricky, fragile, or poorly understood)
+9. **Open questions** (unclear after investigation)
 
 ---
 
 ## Onboarding Checklist
 
-- [ ] README read and purpose understood
-- [ ] Repository structure mapped
-- [ ] Build and test suite run successfully
-- [ ] Core domain entities identified
+- [ ] README read, purpose understood
+- [ ] Repo structure mapped
+- [ ] Build and tests pass
+- [ ] Core entities identified
 - [ ] Entity relationships understood
-- [ ] End-to-end trace of the primary operation documented
-- [ ] Database schema read
-- [ ] Configuration and secrets approach understood
+- [ ] Primary operation traced end-to-end
+- [ ] DB schema read
+- [ ] Config and secrets approach understood
 - [ ] Test structure and utilities identified
-- [ ] Deployment and CI/CD process understood
-- [ ] Monitoring and alerting explored
-- [ ] Contributing guide and code conventions read
+- [ ] Deployment and CI/CD understood
+- [ ] Monitoring/alerting explored
+- [ ] Contributing guide and conventions read
 - [ ] Recent PRs reviewed
 - [ ] ADR log read (if exists)
-- [ ] Role-specific section tailored appropriately
-- [ ] Onboarding guide saved to `docs/onboarding/`
-- [ ] Onboarding summary document produced
+- [ ] Role-specific section tailored
+- [ ] Guide saved to `docs/onboarding/`
+- [ ] Summary document produced

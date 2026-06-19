@@ -1,16 +1,12 @@
 # Test Coverage Workflow
 
-Assess the current state of testing in this codebase, identify the most impactful gaps, and write high-quality tests to fill them.
-
-Good tests are an investment. Bad tests are technical debt. Write tests that will still be valuable in two years.
+Assess testing state, identify impactful gaps, write high-quality tests. Good tests are an investment. Bad tests are debt.
 
 ---
 
-## Phase 1 — Coverage Assessment
+## Phase 1 -- Coverage Assessment
 
 ### 1a. Test Inventory
-
-Catalogue what currently exists:
 
 | Category          | Count | Framework          | Location |
 | ----------------- | ----- | ------------------ | -------- |
@@ -22,27 +18,15 @@ Catalogue what currently exists:
 
 ### 1b. Source Code Inventory
 
-List all source modules/files that should have tests. For each, assess:
-
 | Module / File | Complexity   | Business Criticality | Has Tests?     | Coverage Est. |
 | ------------- | ------------ | -------------------- | -------------- | ------------- |
 | [file]        | High/Med/Low | High/Med/Low         | Yes/No/Partial | [%]           |
 
-**Complexity Assessment:**
+**Complexity:** High = multiple paths, stateful, external calls, complex algorithms. Medium = clear logic, some branching. Low = simple transforms, utilities.
 
-- High: Multiple code paths, stateful, external calls, complex algorithms
-- Medium: Clear business logic, some branching
-- Low: Simple transformations, utility functions
-
-**Business Criticality:**
-
-- High: Authentication, payment processing, data persistence, core business rules
-- Medium: Important features, data transformation
-- Low: UI helpers, formatters, configuration parsing
+**Criticality:** High = auth, payments, data persistence, core rules. Medium = important features, data transforms. Low = UI helpers, formatters, config parsing.
 
 ### 1c. Coverage Gap Analysis
-
-Identify the most significant coverage gaps, ordered by risk:
 
 | Gap           | Risk                  | Reason Untested      | Priority |
 | ------------- | --------------------- | -------------------- | -------- |
@@ -50,49 +34,43 @@ Identify the most significant coverage gaps, ordered by risk:
 
 ### 1d. Test Quality Assessment
 
-Evaluate the quality of existing tests (not just quantity):
-
-- **Testing behaviour or implementation?** Tests should test what, not how.
-- **Appropriate mocking level?** Over-mocking hides real integration issues.
-- **Deterministic?** No time-dependent or order-dependent tests.
-- **Clear test names?** `it("returns 404 when user not found")` not `it("works correctly")`.
-- **AAA structure?** Arrange / Act / Assert clearly separated.
-- **Test data management?** Hardcoded values vs. factories vs. fixtures.
+- Testing behaviour or implementation?
+- Appropriate mocking level? Over-mocking hides integration issues.
+- Deterministic? No time/order dependencies.
+- Clear names? `it("returns 404 when user not found")` not `it("works correctly")`.
+- AAA structure? Arrange / Act / Assert clearly separated.
+- Test data: hardcoded vs factories vs fixtures.
 
 ---
 
-## Phase 2 — Prioritisation
+## Phase 2 -- Prioritisation
 
-Rank test gaps using this priority matrix:
+**P1 -- Critical (write immediately)**
 
-**P1 — Critical (write immediately)**
+- High complexity + High criticality + No tests
+- Auth, payments, data integrity code
+- Recently changed code (regression risk)
+- Code with past bugs
 
-- High complexity + High business criticality + No tests
-- Any code handling authentication, authorisation, payments, or data integrity
-- Any code recently changed (regression risk)
-- Any code that has had bugs in the past
-
-**P2 — Important (write in this session)**
+**P2 -- Important (write this session)**
 
 - High complexity + Medium criticality + No/partial tests
-- Error handling paths (the most common untested area)
+- Error handling paths
 - Edge cases for critical code
 
-**P3 — Nice to Have (document for future)**
+**P3 -- Nice to Have (document for future)**
 
 - Low complexity code
-- Code with low change frequency
-- Simple configuration code
+- Low change frequency
+- Simple config code
 
 ---
 
-## Phase 3 — Write Tests
+## Phase 3 -- Write Tests
 
-For each P1 and P2 gap, write complete, production-quality tests.
+For each P1 and P2 gap, write production-quality tests.
 
 ### Test Writing Standards
-
-**Structure every test file like this:**
 
 ```javascript
 describe("[Module/Component Name]", () => {
@@ -137,58 +115,52 @@ class TestModuleName:
             subject.method(input_data=[])
 ```
 
-### Test Coverage Targets
+### Coverage Targets
 
-Write tests covering:
+**Every function/method:**
 
-**For every function/method:**
-
-- [ ] Happy path (valid inputs to expected output)
+- [ ] Happy path
 - [ ] Empty/null/zero input
 - [ ] Boundary values (min, max, off-by-one)
 - [ ] Invalid input (wrong type, out of range)
-- [ ] Each distinct error case (one test per `throw` / `raise`)
+- [ ] Each distinct error case
 
-**For API endpoints:**
+**API endpoints:**
 
-- [ ] Successful response (200/201) with correct body shape
-- [ ] Validation errors (400) for each required field
-- [ ] Authentication required (401)
-- [ ] Authorisation denied (403)
-- [ ] Not found (404) when resource doesn't exist
+- [ ] Success (200/201) with correct body
+- [ ] Validation errors (400) per required field
+- [ ] Auth required (401)
+- [ ] Auth denied (403)
+- [ ] Not found (404)
 - [ ] Conflict (409) where applicable
 - [ ] Server error handling
 
-**For async code:**
+**Async code:**
 
-- [ ] Resolved promise with expected value
-- [ ] Rejected promise with expected error
-- [ ] Timeout behaviour (if applicable)
-- [ ] Concurrent execution (if race conditions are possible)
+- [ ] Resolved with expected value
+- [ ] Rejected with expected error
+- [ ] Timeout behaviour
+- [ ] Concurrent execution (if race conditions possible)
 
-**For stateful code:**
+**Stateful code:**
 
 - [ ] Initial state
 - [ ] State after valid transition
-- [ ] Rejection of invalid state transitions
+- [ ] Invalid transition rejection
 - [ ] State after error recovery
 
 ### Mocking Guidelines
 
-- **Mock at the boundary.** Mock external services (HTTP calls, DB, message queues), not internal functions.
-- **Do not mock what you own.** If you own the code, test the real thing (or use an in-memory substitute).
-- **Verify mock calls.** If a mock should be called with specific args, assert it was.
-- **Name mocks clearly.** `mockUserRepository` not `mock` or `stub`.
+- **Mock at boundary.** Mock external services (HTTP, DB, queues), not internal functions.
+- **Don't mock what you own.** Test real code or in-memory substitutes.
+- **Verify mock calls.** Assert specific args if expected.
+- **Name clearly.** `mockUserRepository` not `mock` or `stub`.
 
 ---
 
-## Phase 4 — Test Infrastructure (if gaps exist)
-
-If the project lacks key testing infrastructure, recommend and implement:
+## Phase 4 -- Test Infrastructure (if gaps exist)
 
 ### Test Factories / Fixtures
-
-Create reusable factories for generating test data:
 
 ```javascript
 export const createUser = (overrides = {}) => ({
@@ -200,27 +172,23 @@ export const createUser = (overrides = {}) => ({
 });
 ```
 
-### Test Database Setup (if applicable)
+### Test Database (if applicable)
 
-For integration tests requiring a database:
+- In-memory or containerised test DB
+- Setup/teardown leaving DB clean between tests
+- Document test DB config
 
-- Recommend an in-memory or containerised test database.
-- Create setup/teardown patterns that leave the database clean between tests.
-- Document the test database configuration.
+### Test Environment
 
-### Test Environment Configuration
+Verify `.env.test` exists with:
 
-Verify a `.env.test` or test configuration exists with:
-
-- Test-safe values (no real external service credentials)
-- Clearly different from production/staging values
-- Documented in the onboarding guide
+- Test-safe values (no real external credentials)
+- Clearly different from prod/staging
+- Documented in onboarding guide
 
 ---
 
-## Phase 5 — Report
-
-Produce a comprehensive test coverage report:
+## Phase 5 -- Report
 
 ```markdown
 # Test Coverage Report
@@ -269,20 +237,18 @@ Produce a comprehensive test coverage report:
 
 ### Process Changes
 
-- [ ] [recommendation for preventing future coverage gaps]
+- [ ] [recommendation for preventing future gaps]
 ```
 
 ---
 
 ## Quality Checklist
 
-Before finalising, verify all written tests meet these standards:
-
-- [ ] Each test has a single, clear assertion focus
+- [ ] Each test has single, clear assertion focus
 - [ ] Test names describe behaviour, not implementation
-- [ ] No `console.log` / `print` debug statements left in tests
+- [ ] No debug statements in tests
 - [ ] No hardcoded credentials or PII in test data
-- [ ] Mocks are reset between tests (`beforeEach` / `afterEach`)
+- [ ] Mocks reset between tests
 - [ ] Tests pass in isolation (no inter-test dependencies)
-- [ ] Slow tests are marked or skipped in CI configuration
-- [ ] Tests are co-located with source or in a clearly documented location
+- [ ] Slow tests marked or skipped in CI
+- [ ] Tests co-located with source or in documented location

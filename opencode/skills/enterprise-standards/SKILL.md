@@ -5,7 +5,7 @@ description: Enterprise development standards, patterns, and conventions for nam
 
 # Enterprise Coding Standards
 
-This skill defines the non-negotiable baseline for production-grade code in an enterprise environment. Apply these standards to every piece of code written or reviewed.
+Non-negotiable baseline for production code. Apply to every file written or reviewed.
 
 ---
 
@@ -13,20 +13,20 @@ This skill defines the non-negotiable baseline for production-grade code in an e
 
 ### Variables and Functions
 
-- **camelCase** for variables, parameters, and function names.
-- **PascalCase** for classes, interfaces, types, and React components.
-- **SCREAMING_SNAKE_CASE** for true constants (values that never change at runtime).
-- **kebab-case** for file names, CSS classes, and URL segments.
+- **camelCase**: variables, parameters, functions
+- **PascalCase**: classes, interfaces, types, React components
+- **SCREAMING_SNAKE_CASE**: true constants (never change at runtime)
+- **kebab-case**: file names, CSS classes, URL segments
 
 ```typescript
-// ✅ Good
+// Good
 const userAccountBalance = 0
 const MAX_RETRY_ATTEMPTS = 3
 function calculateMonthlyInterest(principal: number, rate: number): number { ... }
 class PaymentProcessor { ... }
 interface UserProfile { ... }
 
-// ❌ Bad
+// Bad
 const UserAccountBalance = 0   // PascalCase for variable
 const maxRetryAttempts = 3     // constant should be SCREAMING_SNAKE
 function CalcMonthlyInterest() // PascalCase for function
@@ -35,12 +35,12 @@ class payment_processor { ... } // snake_case for class
 
 ### Files and Modules
 
-- One primary export per file; file name matches the export.
-- No abbreviations unless universally understood (`http`, `url`, `id`, `db`).
-- Group related files in a feature directory, not a type directory.
+- One primary export per file; filename matches export
+- No abbreviations unless universal (`http`, `url`, `id`, `db`)
+- Group by feature directory, not type directory
 
 ```
-// ✅ Good
+// Good
 src/
   payments/
     PaymentProcessor.ts
@@ -48,7 +48,7 @@ src/
     payment-processor.schema.ts
     payment.types.ts
 
-// ❌ Bad
+// Bad
 src/
   controllers/
     payment.ts
@@ -60,25 +60,24 @@ src/
 
 ### Database / API
 
-- **snake_case** for database column names and JSON API fields.
-- **PascalCase** for database table names (or plural snake_case — be consistent).
-- Never abbreviate column names: `created_at`, not `crt_at`.
+- **snake_case** for DB columns and JSON API fields
+- **PascalCase** for table names (or plural snake_case; be consistent)
+- Never abbreviate columns: `created_at`, not `crt_at`
 
 ---
 
-## 2. Error Handling Patterns
+## 2. Error Handling
 
-### The Golden Rules
+### Rules
 
-1. **Never swallow errors silently** — unless it is explicitly documented why.
-2. **Fail fast** — validate inputs at boundaries; don't let bad data travel deep.
-3. **Typed errors** — use custom error classes, not generic `Error`.
-4. **Always provide context** — include what was attempted and what failed.
+1. **Never swallow errors silently** unless explicitly documented why
+2. **Fail fast**: validate inputs at boundaries
+3. **Typed errors**: custom error classes, not generic `Error`
+4. **Always provide context**: what was attempted, what failed
 
 ### Custom Error Classes
 
 ```typescript
-// ✅ Good — typed, contextual, catchable by type
 export class PaymentProcessingError extends Error {
   readonly code: string;
   readonly transactionId: string;
@@ -100,9 +99,8 @@ try {
       code: err.code,
       transactionId: err.transactionId,
     });
-    throw err; // re-throw: let the caller decide
+    throw err; // re-throw: let caller decide
   }
-  // Unknown error — wrap it with context
   throw new PaymentProcessingError(
     `Unexpected error processing transaction ${txId}`,
     "UNKNOWN",
@@ -110,7 +108,7 @@ try {
   );
 }
 
-// ❌ Bad — swallowed, untyped, no context
+// Bad: swallowed, untyped, no context
 try {
   await processPayment(txId, amount);
 } catch {
@@ -118,22 +116,21 @@ try {
 }
 ```
 
-### Async / Promise Error Handling
+### Async Error Handling
 
-- Every `async` function either handles its errors or lets them propagate explicitly.
-- Never use unhandled promise rejections — use `void` + `catch` for fire-and-forget.
+Every `async` function either handles errors or lets them propagate. Never leave unhandled rejections.
 
 ```typescript
-// ✅ Good — fire-and-forget with explicit error swallow
+// Good: fire-and-forget with explicit catch
 void sendAnalyticsEvent(event).catch((err) => {
   logger.warn("Analytics event failed (non-critical)", { err });
 });
 
-// ❌ Bad — unhandled rejection
+// Bad: unhandled rejection
 sendAnalyticsEvent(event); // no await, no catch = potential crash
 ```
 
-### Result Pattern (for operations that can fail predictably)
+### Result Pattern
 
 ```typescript
 type Result<T, E = Error> =
@@ -151,18 +148,12 @@ async function findUser(id: string): Promise<Result<User, UserNotFoundError>> {
 
 ## 3. Logging Standards
 
-### Logger Configuration
-
-- Use a structured logger (e.g., `pino`, `winston`) — **never** bare `console.log` in production code.
-- Always pass a context object, never interpolate variables into the message string.
-- Log at the **appropriate level**:
-  - `debug`: internal state useful during development
-  - `info`: significant business events (user created, payment completed)
-  - `warn`: recoverable anomalies (retry, deprecated API used)
-  - `error`: failures that require attention
+- Structured logger (`pino`, `winston`). Never bare `console.log`
+- Pass context object; never interpolate variables into message string
+- Levels: `debug` (dev state), `info` (business events), `warn` (recoverable anomalies), `error` (needs attention)
 
 ```typescript
-// ✅ Good
+// Good
 logger.info("Payment processed", {
   transactionId: tx.id,
   amountCents: tx.amountCents,
@@ -176,38 +167,37 @@ logger.error("Database connection failed", {
   error: { message: err.message, code: err.code },
 });
 
-// ❌ Bad
+// Bad
 console.log(`Payment processed for user ${userId}: $${amount}`);
 logger.error(err); // no context
-logger.info("User " + userId + " logged in"); // string concatenation
+logger.info("User " + userId + " logged in"); // string concat
 ```
 
 ### What to Log
 
-- ✅ Business events (order placed, user registered)
-- ✅ External API calls with duration and status code
-- ✅ Errors with full context (no stack trace suppression)
-- ✅ Security events (auth failures, permission denials)
-- ❌ PII / passwords / tokens (even hashed, unless required by compliance)
-- ❌ Full request/response bodies by default (only debug, and sanitised)
+- Business events (order placed, user registered)
+- External API calls with duration and status code
+- Errors with full context (no stack trace suppression)
+- Security events (auth failures, permission denials)
+- NEVER: PII, passwords, tokens, full request/response bodies (debug only, sanitized)
 
 ### Correlation IDs
 
-Every log entry in a request/response cycle must include a `requestId` or `correlationId` so entries can be traced across services.
+Every log entry in request/response cycle must include `requestId` or `correlationId` for cross-service tracing.
 
 ---
 
-## 4. API Design Rules
+## 4. API Design
 
 ### RESTful Resources
 
-- Resources are **nouns**, never verbs: `/orders`, not `/getOrders`.
-- Use HTTP verbs correctly: `GET` (read), `POST` (create), `PUT/PATCH` (update), `DELETE`.
-- Nested resources only up to **2 levels**: `/users/{id}/orders`, not deeper.
-- Always return consistent envelope or plain resource — document which and stick to it.
+- Nouns, not verbs: `/orders`, not `/getOrders`
+- Correct HTTP verbs: `GET` (read), `POST` (create), `PUT/PATCH` (update), `DELETE`
+- Nested resources max 2 levels: `/users/{id}/orders`, not deeper
+- Consistent envelope or plain resource; document and stick to it
 
 ```
-// ✅ Good
+// Good
 GET    /api/v1/users
 GET    /api/v1/users/:id
 POST   /api/v1/users
@@ -215,7 +205,7 @@ PATCH  /api/v1/users/:id
 DELETE /api/v1/users/:id
 GET    /api/v1/users/:id/orders
 
-// ❌ Bad
+// Bad
 GET  /api/getUsers
 POST /api/updateUser
 GET  /api/users/:id/orders/:orderId/items/:itemId/reviews  // too deep
@@ -242,12 +232,9 @@ GET  /api/users/:id/orders/:orderId/items/:itemId/reviews  // too deep
 
 ### Input Validation
 
-- Validate **all** input at the API boundary before business logic runs.
-- Use a schema validation library (Zod, Joi, Yup).
-- Return `400 Bad Request` with field-level error details.
+Validate all input at API boundary before business logic. Use schema library (Zod, Joi, Yup). Return `400` with field-level details.
 
 ```typescript
-// ✅ Good
 const CreateUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1).max(100),
@@ -256,27 +243,24 @@ const CreateUserSchema = z.object({
 
 const parsed = CreateUserSchema.safeParse(req.body);
 if (!parsed.success) {
-  return res
-    .status(400)
-    .json({
-      error: { code: "VALIDATION_ERROR", details: parsed.error.flatten() },
-    });
+  return res.status(400).json({
+    error: { code: "VALIDATION_ERROR", details: parsed.error.flatten() },
+  });
 }
 ```
 
 ---
 
-## 5. Database Access Patterns
+## 5. Database Access
 
-- **Never write raw SQL in application code** — use a query builder or ORM.
-- **All queries go through a repository/DAO layer** — no DB calls directly in controllers.
-- **Parameterise everything** — SQL injection is never acceptable.
-- **Transactions for multi-step writes** — all-or-nothing semantics.
-- **Explicit column selection** — never `SELECT *` in production queries.
-- **Indices before queries go to production** — EXPLAIN ANALYZE every query added.
+- Never raw SQL in app code; use query builder or ORM
+- All queries through repository/DAO layer; no DB calls in controllers
+- Parameterize everything; SQL injection never acceptable
+- Transactions for multi-step writes
+- Explicit column selection; never `SELECT *` in production
+- EXPLAIN ANALYZE every new query before production
 
 ```typescript
-// ✅ Good
 class UserRepository {
   async findById(id: string): Promise<User | null> {
     return db
@@ -302,7 +286,7 @@ class UserRepository {
   }
 }
 
-// ❌ Bad
+// Bad: SQL injection
 app.get("/users/:id", async (req, res) => {
   const user = await db.query(
     `SELECT * FROM users WHERE id = '${req.params.id}'`,
@@ -315,22 +299,22 @@ app.get("/users/:id", async (req, res) => {
 
 ## 6. Security Requirements
 
-- **No hardcoded credentials** — ever. Use environment variables or secrets managers.
-- **All inputs validated** — treat every external input as hostile.
-- **Principle of least privilege** — code requests only the permissions it needs.
-- **Dependencies audited** — run `npm audit` / `bun audit` before every release.
-- **Secrets never logged** — sanitise log context before writing.
-- **Rate limiting** on all public-facing endpoints.
-- **HTTPS only** — no HTTP in production configurations.
-- **Auth tokens short-lived** — access tokens ≤1 hour; refresh tokens rotate.
+- No hardcoded credentials. Environment variables or secrets managers
+- All inputs validated; treat external input as hostile
+- Least privilege: request only needed permissions
+- Dependencies audited (`npm audit` / `bun audit`) before every release
+- Secrets never logged; sanitize log context
+- Rate limiting on all public endpoints
+- HTTPS only in production
+- Access tokens <=1 hour; refresh tokens rotate
 
 ```typescript
-// ✅ Good
+// Good
 const dbPassword = process.env["DATABASE_PASSWORD"];
 if (!dbPassword)
   throw new Error("DATABASE_PASSWORD environment variable is required");
 
-// ❌ Bad
+// Bad
 const db = createConnection({ password: "supersecret123" }); // hardcoded!
 ```
 
@@ -338,15 +322,14 @@ const db = createConnection({ password: "supersecret123" }); // hardcoded!
 
 ## 7. Testing Requirements
 
-- **Coverage baseline**: 80% line coverage minimum for all new code.
-- **Unit tests** for all business logic (pure functions, services, repositories).
-- **Integration tests** for all API endpoints.
-- **No mocking of the module under test** — only mock its dependencies.
-- **Tests are deterministic** — no random data without seeded RNG; no `Date.now()` without mocking.
-- **Test file naming**: `<module>.test.ts` or `<module>.spec.ts` co-located or in `tests/`.
+- 80% line coverage minimum for new code
+- Unit tests for all business logic (pure functions, services, repositories)
+- Integration tests for all API endpoints
+- Never mock the module under test; only mock dependencies
+- Deterministic: no random data without seeded RNG; no `Date.now()` without mocking
+- Naming: `<module>.test.ts` or `<module>.spec.ts`, co-located or in `tests/`
 
 ```typescript
-// ✅ Good test structure
 describe("PaymentProcessor", () => {
   describe("processPayment", () => {
     it("returns a transaction ID on success", async () => {
@@ -378,14 +361,13 @@ describe("PaymentProcessor", () => {
 
 ## 8. Documentation Requirements
 
-- **All public functions have JSDoc** with `@param`, `@returns`, and at least one `@example`.
-- **All types/interfaces documented** with a description of their purpose.
-- **Complex algorithms get a prose comment** explaining the approach (not what the code does — why).
-- **Every TODO includes**: a ticket/issue reference and the author's initials.
-- **README** kept current with any change to setup, environment variables, or run commands.
+- All public functions: JSDoc with `@param`, `@returns`, `@example`
+- All types/interfaces: description of purpose
+- Complex algorithms: prose explaining _why_, not _what_
+- Every TODO: ticket/issue reference + author initials
+- README current with setup, env vars, run commands
 
 ```typescript
-// ✅ Good
 /**
  * Calculates compound interest for a loan account.
  *
@@ -411,20 +393,20 @@ export function calculateCompoundInterest(
 
 ## 9. Git Commit Conventions
 
-Follow **Conventional Commits** (https://www.conventionalcommits.org/):
+Conventional Commits (https://www.conventionalcommits.org/):
 
 ```
 <type>(<scope>): <short imperative description>
 
-[optional body: what and why, not how — wrap at 72 chars]
+[optional body: what and why, not how -- wrap at 72 chars]
 
 [optional footer: BREAKING CHANGE: ..., Closes #123]
 ```
 
-**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 
 ```
-// ✅ Good
+// Good
 feat(payments): add support for multi-currency transactions
 
 Adds currency conversion at checkout using the ECB exchange rate API.
@@ -432,34 +414,28 @@ Rates are cached for 1 hour to reduce external API calls.
 
 Closes #482
 
-// ❌ Bad
+// Bad
 fixed stuff
 WIP
 update
 ```
 
-**Scope** = the feature/module affected (lowercase, singular).
+Scope = feature/module affected (lowercase, singular).
 
 ---
 
 ## 10. PR Standards
 
-- **PR description must include**:
-  - What changed and why (not how — the diff shows how)
-  - How to test the change locally
-  - Screenshots/recordings for UI changes
-  - Link to ticket/issue
-- **PR size**: aim for <400 lines changed; split large features into stacked PRs.
-- **Self-review first**: read your own diff before requesting review.
-- **All CI checks pass** before requesting review.
-- **Respond to review comments** within 1 business day.
-- **No force-pushes** to shared branches.
+- Description: what changed + why, how to test locally, screenshots for UI, link to ticket
+- Size: <400 lines; split large features into stacked PRs
+- Self-review diff before requesting review
+- All CI checks pass before requesting review
+- Respond to review comments within 1 business day
+- No force-pushes to shared branches
 
 ---
 
-## Enterprise Completion Checklist
-
-Before declaring any task complete, run through this checklist:
+## Completion Checklist
 
 ```
 PRE-SUBMISSION CHECKLIST
@@ -468,7 +444,7 @@ Code Quality
 [ ] No hardcoded credentials, secrets, or environment-specific values
 [ ] All inputs validated at entry points
 [ ] All errors handled with proper types and context (no silent swallows)
-[ ] No console.log — structured logger used throughout
+[ ] No console.log -- structured logger used throughout
 [ ] No TODO left without a ticket reference
 
 Tests

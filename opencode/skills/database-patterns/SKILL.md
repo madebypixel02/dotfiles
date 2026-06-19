@@ -5,18 +5,17 @@ description: Enterprise database design, migration strategy, naming conventions,
 
 # Enterprise Database Patterns
 
-This skill covers the full lifecycle of enterprise database work — from initial schema design through migration, query optimization, and data retention. Apply these patterns consistently across all services.
+Full lifecycle: schema design, migration, query optimization, data retention.
 
 ---
 
 ## 1. Migration Strategy
 
-### The Up/Down Contract
+### Up/Down Contract
 
-Every migration MUST have a reversible `down` function. If a migration cannot be reversed (e.g., destructive data transformation), document WHY explicitly and provide a data recovery procedure.
+Every migration needs reversible `down`. If irreversible: document why + provide recovery procedure.
 
 ```typescript
-// ✅ Good — reversible migration
 export async function up(db: Knex): Promise<void> {
   await db.schema.createTable("orders", (table) => {
     table.uuid("id").primary().defaultTo(db.raw("gen_random_uuid()"));
@@ -32,7 +31,6 @@ export async function up(db: Knex): Promise<void> {
     table.timestamps(true, true); // created_at, updated_at
   });
 
-  // Add index in the same migration as the table
   await db.schema.alterTable("orders", (table) => {
     table.index(["user_id", "status"], "idx_orders_user_status");
     table.index(["created_at"], "idx_orders_created_at");
@@ -46,21 +44,17 @@ export async function down(db: Knex): Promise<void> {
 
 ### Migration Rules
 
-1. **One concern per migration** — never combine schema changes with data backfills.
-2. **Non-destructive by default** — add columns as nullable first; populate; then add NOT NULL constraint in a later migration.
-3. **Test down migrations in CI** — run up then down and verify schema is unchanged.
-4. **Never modify a migration after it has been merged to main** — create a new migration instead.
-5. **Zero-downtime migrations** — for large tables, prefer:
-   - Add column as nullable
-   - Backfill in batches (never a single UPDATE on millions of rows)
-   - Add NOT NULL constraint (PostgreSQL 11+ can do this without a full table scan if default is set)
-   - Remove old column in a later deploy
+1. **One concern per migration**: never combine schema changes with data backfills
+2. **Non-destructive default**: add columns nullable first, populate, then add NOT NULL in later migration
+3. **Test down migrations in CI**: run up then down, verify schema unchanged
+4. **Never modify merged migrations**: create new migration instead
+5. **Zero-downtime** for large tables: add nullable column -> batch backfill -> add NOT NULL constraint (PG 11+ skips full scan with default) -> drop old column in later deploy
 
 ### Zero-Downtime Column Removal
 
 ```sql
--- Step 1 (Deploy A): Stop writing the column in application code (still read)
--- Step 2 (Deploy B): Stop reading the column in application code
+-- Step 1 (Deploy A): Stop writing the column (still read)
+-- Step 2 (Deploy B): Stop reading the column
 -- Step 3 (Migration): Drop the column
 ALTER TABLE users DROP COLUMN legacy_phone_number;
 ```
@@ -68,7 +62,6 @@ ALTER TABLE users DROP COLUMN legacy_phone_number;
 ### Large Table Backfills
 
 ```typescript
-// ✅ Good — batch backfill, not a single giant UPDATE
 async function backfillOrderAmountCents(db: Knex): Promise<void> {
   const BATCH_SIZE = 1000;
   let lastId = "";
@@ -102,28 +95,27 @@ async function backfillOrderAmountCents(db: Knex): Promise<void> {
 
 ### Tables
 
-- **Plural snake_case**: `users`, `order_items`, `payment_methods`
-- Junction tables: `{table_a}_{table_b}` alphabetically: `role_users` (not `user_roles`)
-- Avoid prefixes like `tbl_` — they add noise without value
+- Plural snake_case: `users`, `order_items`, `payment_methods`
+- Junction tables: `{table_a}_{table_b}` alphabetical: `role_users` (not `user_roles`)
+- No prefixes like `tbl_`
 
 ### Columns
 
-- **snake_case**, full words (no abbreviations): `created_at`, not `crt_at`
-- Primary key: always `id` (UUID or BIGSERIAL)
-- Foreign keys: `{referenced_table_singular}_id` → `user_id`, `order_id`
-- Timestamps: `created_at`, `updated_at`, `deleted_at` (for soft deletes)
-- Booleans: `is_{state}` or `has_{property}` → `is_active`, `has_verified_email`
-- Amounts: include unit in name → `amount_cents`, `duration_seconds`, `size_bytes`
-- Status: `status` (string enum) preferred over multiple boolean flags
+- snake_case, full words (no abbreviations): `created_at`, not `crt_at`
+- Primary key: `id` (UUID or BIGSERIAL)
+- Foreign keys: `{referenced_table_singular}_id`: `user_id`, `order_id`
+- Timestamps: `created_at`, `updated_at`, `deleted_at`
+- Booleans: `is_{state}` or `has_{property}`: `is_active`, `has_verified_email`
+- Amounts with unit: `amount_cents`, `duration_seconds`, `size_bytes`
+- Status: string enum preferred over multiple boolean flags
 
 ### Indexes
 
-- `idx_{table}_{columns}` → `idx_users_email`, `idx_orders_user_status`
-- Unique constraints: `uniq_{table}_{columns}` → `uniq_users_email`
-- Foreign key indexes: always create — `idx_{table}_{fk_column}`
+- `idx_{table}_{columns}`: `idx_users_email`, `idx_orders_user_status`
+- Unique: `uniq_{table}_{columns}`: `uniq_users_email`
+- FK indexes: always create: `idx_{table}_{fk_column}`
 
 ```sql
--- ✅ Good naming examples
 CREATE TABLE payment_methods (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -143,42 +135,32 @@ CREATE INDEX idx_payment_methods_user_default ON payment_methods(user_id, is_def
 
 ## 3. Index Strategy
 
-### When to Add an Index
+### When to Index
 
-Add an index when:
+Add when: column in `WHERE`/`ORDER BY`/`JOIN ON` of frequent query, `EXPLAIN ANALYZE` shows Seq Scan on >10K rows, FK column (PG does NOT auto-index FKs).
 
-- The column appears in a `WHERE`, `ORDER BY`, or `JOIN ON` clause in a frequent query
-- `EXPLAIN ANALYZE` shows a Seq Scan on a table with >10,000 rows
-- A foreign key column (always index FK columns — PostgreSQL does NOT do this automatically)
-
-Don't add an index when:
-
-- The table has <1,000 rows (full scan is faster)
-- The column has very low cardinality AND no partial index is applicable (e.g., `is_deleted` on a table where 99% are deleted)
-- The write rate is very high and read rate is low (indexes slow writes)
+Skip when: table <1K rows, very low cardinality without applicable partial index, high write / low read ratio.
 
 ### Index Types
 
-| Type      | Use Case                                           | Syntax                            |
-| --------- | -------------------------------------------------- | --------------------------------- |
-| B-tree    | Default; equality and range queries                | `CREATE INDEX ... ON t(col)`      |
-| Partial   | Index only a subset of rows                        | `WHERE col IS NOT NULL`           |
-| Composite | Multi-column WHERE clauses                         | `(col_a, col_b)` — order matters! |
-| GIN       | Full-text search, JSONB, arrays                    | `CREATE INDEX ... USING GIN`      |
-| BRIN      | Very large, naturally ordered tables (time-series) | `USING BRIN`                      |
+| Type      | Use Case                              | Syntax                       |
+| --------- | ------------------------------------- | ---------------------------- |
+| B-tree    | Default; equality and range           | `CREATE INDEX ... ON t(col)` |
+| Partial   | Subset of rows                        | `WHERE col IS NOT NULL`      |
+| Composite | Multi-column WHERE (order matters)    | `(col_a, col_b)`             |
+| GIN       | Full-text, JSONB, arrays              | `USING GIN`                  |
+| BRIN      | Large naturally-ordered (time-series) | `USING BRIN`                 |
 
-### Composite Index Column Order
+### Composite Column Order
 
-Place the most selective column first (highest cardinality), unless the query always includes both columns with equality — then the order can match query patterns.
+Most selective column first (highest cardinality), unless query always has equality on both columns.
 
 ```sql
--- Query: WHERE user_id = $1 AND status = $2
--- user_id is UUID (very selective), status is enum (low cardinality)
--- ✅ Good: user_id first
+-- WHERE user_id = $1 AND status = $2
+-- user_id (UUID, selective) first
 CREATE INDEX idx_orders_user_status ON orders(user_id, status);
 
--- Query: WHERE status = 'pending' ORDER BY created_at
--- ✅ Good: status + created_at
+-- WHERE status = 'pending' ORDER BY created_at
 CREATE INDEX idx_orders_status_created ON orders(status, created_at)
   WHERE status = 'pending'; -- partial index: only pending rows
 ```
@@ -186,7 +168,6 @@ CREATE INDEX idx_orders_status_created ON orders(status, created_at)
 ### EXPLAIN ANALYZE Workflow
 
 ```sql
--- Always run EXPLAIN ANALYZE on new queries before shipping
 EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT o.id, o.amount_cents, u.email
 FROM orders o
@@ -196,40 +177,36 @@ WHERE o.status = 'pending'
 ORDER BY o.created_at DESC
 LIMIT 25;
 
--- Red flags to look for:
+-- Red flags:
 -- "Seq Scan" on large tables
--- "Rows Removed by Filter" >> "Rows" (filter is not using index)
--- "Hash Join" on large tables (consider adding index for nested loop join)
--- Estimated rows << Actual rows (stale statistics — run ANALYZE)
+-- "Rows Removed by Filter" >> "Rows" (not using index)
+-- "Hash Join" on large tables (consider index for nested loop)
+-- Estimated rows << Actual rows (stale stats -- run ANALYZE)
 ```
 
 ---
 
 ## 4. Query Optimization
 
-### General Rules
+### Rules
 
-1. **SELECT only what you need** — never `SELECT *` in application code.
-2. **Filter early** — push WHERE conditions as close to the data as possible.
-3. **Avoid functions on indexed columns** in WHERE clauses — they prevent index use.
-4. **Paginate with cursors** for large result sets, not OFFSET (OFFSET scans all preceding rows).
-5. **Use prepared statements** for repeated queries (avoids query planning overhead).
+1. **SELECT only needed columns**: never `SELECT *` in application code
+2. **Filter early**: push WHERE close to data
+3. **No functions on indexed columns** in WHERE (prevents index use)
+4. **Cursor pagination** for large results, not OFFSET (scans all preceding rows)
+5. **Prepared statements** for repeated queries (avoids planning overhead)
 
 ```sql
--- ❌ Bad: function on indexed column prevents index use
+-- Bad: function on indexed column
 WHERE LOWER(email) = 'jane@example.com'
 
--- ✅ Good: use a functional index or store lowercase
--- Option A: functional index
+-- Good: functional index or store lowercase
 CREATE INDEX idx_users_email_lower ON users(LOWER(email));
 
--- Option B: store normalised
--- Enforce lowercase at application layer before insert/update
-
--- ❌ Bad: OFFSET pagination — scans O(offset) rows
+-- Bad: OFFSET pagination O(offset)
 SELECT * FROM orders ORDER BY created_at DESC LIMIT 25 OFFSET 10000;
 
--- ✅ Good: cursor pagination — O(1) scan
+-- Good: cursor pagination O(1)
 SELECT * FROM orders
 WHERE created_at < :last_cursor_created_at
    OR (created_at = :last_cursor_created_at AND id < :last_cursor_id)
@@ -237,13 +214,11 @@ ORDER BY created_at DESC, id DESC
 LIMIT 25;
 ```
 
-### CTEs vs. Subqueries
+### CTEs vs Subqueries
 
-- Use CTEs (`WITH` clauses) for readability when the subquery is referenced multiple times.
-- Be aware: in PostgreSQL <12, CTEs are optimisation fences (planned independently). Use `MATERIALIZED` / `NOT MATERIALIZED` to control.
+CTEs for readability when subquery referenced multiple times. In PG <12, CTEs are optimization fences; use `MATERIALIZED`/`NOT MATERIALIZED` to control.
 
 ```sql
--- ✅ Good: CTE for readability and reuse
 WITH recent_orders AS (
   SELECT user_id, COUNT(*) AS order_count, SUM(amount_cents) AS total_cents
   FROM orders
@@ -264,13 +239,12 @@ ORDER BY ro.total_cents DESC;
 
 ### Rules
 
-1. **Keep transactions short** — hold locks for the minimum time possible.
-2. **Never call external APIs inside a transaction** — network latency extends the lock window.
-3. **Use serializable isolation** only when strictly necessary (highest overhead).
-4. **Handle deadlocks with retry** — they are normal in concurrent systems.
+1. **Keep transactions short**: minimize lock duration
+2. **Never call external APIs inside transaction**: network latency extends lock window
+3. **Serializable isolation** only when strictly necessary (highest overhead)
+4. **Handle deadlocks with retry**: normal in concurrent systems
 
 ```typescript
-// ✅ Good transaction pattern
 async function transferFunds(
   db: Knex,
   fromAccountId: string,
@@ -278,7 +252,7 @@ async function transferFunds(
   amountCents: number,
 ): Promise<void> {
   await db.transaction(async (trx) => {
-    // Lock rows in a consistent order to prevent deadlocks
+    // Lock rows in consistent order to prevent deadlocks
     const [from, to] = await trx("accounts")
       .whereIn("id", [fromAccountId, toAccountId].sort()) // sorted = consistent lock order
       .forUpdate()
@@ -302,14 +276,14 @@ async function transferFunds(
       amount_cents: amountCents,
       created_at: new Date(),
     })
-    // Transaction commits here; if any step throws, it rolls back automatically
+    // Transaction commits here; any throw triggers rollback
   })
 }
 
-// ❌ Bad: external API call inside transaction
+// Bad: external API inside transaction
 await db.transaction(async (trx) => {
   await trx("orders").update({ status: "processing" }).where("id", orderId)
-  await stripeClient.createPaymentIntent(amount) // ← NEVER do this inside a transaction
+  await stripeClient.createPaymentIntent(amount) // NEVER inside transaction
   await trx("payments").insert({ ... })
 })
 ```
@@ -344,30 +318,28 @@ async function withDeadlockRetry<T>(
 
 ## 6. Connection Pooling
 
-### Configuration Guidelines
+### Configuration
 
 ```typescript
-// PostgreSQL with pg / Knex
 const pool = knex({
   client: "pg",
   connection: process.env["DATABASE_URL"],
   pool: {
     min: 2, // Keep 2 connections warm at all times
     max: 10, // Max 10 per application instance
-    // max = (CPU_CORES * 2) + n_spindles — for typical OLTP workloads
-    // For a 4-core server: max = 10–12
-    idleTimeoutMillis: 30_000, // Release idle connections after 30s
-    createTimeoutMillis: 5_000, // Fail if connection can't be created in 5s
-    acquireTimeoutMillis: 5_000, // Fail if pool is exhausted after 5s
-    reapIntervalMillis: 1_000, // Check for idle connections every 1s
+    // max = (CPU_CORES * 2) + n_spindles -- for typical OLTP
+    // 4-core server: max = 10-12
+    idleTimeoutMillis: 30_000, // Release idle after 30s
+    createTimeoutMillis: 5_000, // Fail if can't create in 5s
+    acquireTimeoutMillis: 5_000, // Fail if pool exhausted after 5s
+    reapIntervalMillis: 1_000, // Check idle every 1s
   },
 });
 ```
 
-### Health Checks
+### Health Check
 
 ```typescript
-// Check pool health on app startup and liveness probes
 async function checkDatabaseHealth(
   db: Knex,
 ): Promise<{ healthy: boolean; latencyMs: number }> {
@@ -382,33 +354,31 @@ async function checkDatabaseHealth(
 }
 ```
 
-### Connection Pool Sizing Rules
+### Pool Sizing Rules
 
-- **Rule of thumb**: `max_connections = (num_cpu_cores × 2) + num_disk_spindles`
-- Never set `max` to the database's `max_connections` — leave headroom for admin connections.
-- With multiple application instances: `pool.max × instance_count < db.max_connections × 0.8`
-- Monitor pool wait queue length — if it's consistently >0, increase pool size OR add read replicas.
+- Formula: `max_connections = (num_cpu_cores * 2) + num_disk_spindles`
+- Never set `max` to DB `max_connections`; leave headroom for admin
+- Multi-instance: `pool.max * instance_count < db.max_connections * 0.8`
+- Monitor pool wait queue; if consistently >0, increase pool or add read replicas
 
 ---
 
 ## 7. N+1 Query Detection
 
-### What N+1 Looks Like
-
 ```typescript
-// ❌ Bad: N+1 — 1 query for orders, then N queries for users
+// Bad: N+1 -- 1 query for orders, N for users
 const orders = await db("orders").select("*").limit(50); // 1 query
 for (const order of orders) {
   order.user = await db("users").where("id", order.user_id).first(); // 50 queries!
 }
 
-// ✅ Good: JOIN or batch load
+// Good: JOIN
 const orders = await db("orders as o")
   .select("o.*", "u.email as user_email", "u.name as user_name")
   .join("users as u", "u.id", "o.user_id")
   .limit(50); // 1 query
 
-// ✅ Also good: DataLoader pattern (for GraphQL or dynamic include scenarios)
+// Good: DataLoader pattern (GraphQL or dynamic includes)
 const userIds = orders.map((o) => o.user_id);
 const users = await db("users")
   .whereIn("id", userIds)
@@ -421,59 +391,50 @@ orders.forEach((o) => {
 
 ### Detection in Logs
 
-Configure your query logger to warn on repeated identical queries:
+Track query fingerprints; warn if same query runs >3x per request. Use APM (Datadog, Sentry Performance) to visualize repeated DB calls in traces.
 
 ```typescript
 db.on("query", (queryData) => {
-  // Track query fingerprints — if the same query runs >3x per request, log a warning
   queryTracker.record(queryData.sql);
 });
 ```
 
-Use APM tools (Datadog, Sentry Performance) to visualise repeated DB calls in traces.
-
 ---
 
-## 8. Data Retention Policies
+## 8. Data Retention
 
-### Retention Schedule Template
+### Retention Schedule
 
-Define retention for every table in your data dictionary:
+| Table               | Retention                | Deletion Strategy                    | Legal Hold |
+| ------------------- | ------------------------ | ------------------------------------ | ---------- |
+| `users`             | Until deletion + 7 years | Soft delete -> hard delete after 7yr | Yes        |
+| `orders`            | 7 years (financial)      | Archive to cold storage after 2yr    | Yes        |
+| `sessions`          | 30 days (or on logout)   | Hard delete                          | No         |
+| `audit_logs`        | 5 years                  | Archive to S3 after 1yr              | Yes        |
+| `analytics_events`  | 2 years                  | Hard delete (aggregates kept)        | No         |
+| `temp_upload_files` | 24 hours                 | Hard delete                          | No         |
 
-| Table               | Retention                        | Deletion Strategy                    | Legal Hold |
-| ------------------- | -------------------------------- | ------------------------------------ | ---------- |
-| `users`             | Until account deletion + 7 years | Soft delete → hard delete after 7 yr | Yes        |
-| `orders`            | 7 years (financial records)      | Archive to cold storage after 2 yr   | Yes        |
-| `sessions`          | 30 days (or on logout)           | Hard delete                          | No         |
-| `audit_logs`        | 5 years                          | Archive to S3 after 1 year           | Yes        |
-| `analytics_events`  | 2 years                          | Hard delete (aggregates kept)        | No         |
-| `temp_upload_files` | 24 hours                         | Hard delete                          | No         |
-
-### Soft Delete Pattern
+### Soft Delete
 
 ```sql
--- Add deleted_at column
 ALTER TABLE users ADD COLUMN deleted_at TIMESTAMPTZ;
 
--- All queries exclude deleted records via a view or WHERE clause
 CREATE VIEW active_users AS
   SELECT * FROM users WHERE deleted_at IS NULL;
 
--- Hard delete job (runs via cron after retention period)
+-- Hard delete job (cron, after retention period)
 DELETE FROM users
 WHERE deleted_at IS NOT NULL
   AND deleted_at < NOW() - INTERVAL '7 years';
 ```
 
-### Archival Pattern
+### Archival
 
 ```typescript
-// Move old records to an archive table before hard deletion
 async function archiveOldOrders(db: Knex): Promise<void> {
   const CUTOFF = new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000); // 2 years ago
 
   await db.transaction(async (trx) => {
-    // Copy to archive
     await trx.raw(
       `
       INSERT INTO orders_archive
@@ -484,7 +445,6 @@ async function archiveOldOrders(db: Knex): Promise<void> {
       [CUTOFF],
     );
 
-    // Delete originals
     await trx("orders")
       .where("created_at", "<", CUTOFF)
       .whereIn("status", ["completed", "cancelled", "refunded"])
@@ -496,20 +456,19 @@ async function archiveOldOrders(db: Knex): Promise<void> {
 ### GDPR / Right to Erasure
 
 ```typescript
-// User deletion must cascade through all personal data
 async function deleteUserData(db: Knex, userId: string): Promise<void> {
   await db.transaction(async (trx) => {
-    // Anonymise instead of delete where records must be kept for legal reasons
+    // Anonymize where records must be kept for legal reasons
     await trx("orders")
       .where("user_id", userId)
       .update({ user_id: null, customer_note: "[DELETED]" });
 
-    // Hard delete truly personal data
+    // Hard delete personal data
     await trx("user_profiles").where("user_id", userId).delete();
     await trx("sessions").where("user_id", userId).delete();
     await trx("payment_methods").where("user_id", userId).delete();
 
-    // Soft-delete the user record (keep for audit trail)
+    // Soft-delete user record (keep for audit)
     await trx("users")
       .where("id", userId)
       .update({
@@ -519,7 +478,6 @@ async function deleteUserData(db: Knex, userId: string): Promise<void> {
       });
   });
 
-  // Audit log: GDPR deletion is itself a business event
   logger.info("User data erased per GDPR request", { userId });
 }
 ```
