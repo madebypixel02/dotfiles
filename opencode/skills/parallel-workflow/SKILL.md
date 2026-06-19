@@ -3,66 +3,66 @@ name: parallel-workflow
 description: Orchestrate parallel multi-agent workflows for enterprise development tasks. Use when multiple independent tasks can be executed concurrently, spawning subagents for analysis, code generation, testing, or review in a single message for true parallelism. Covers when to parallelize, subagent spawning patterns, result synthesis, failure handling, cost optimization, and progress tracking with todowrite.
 ---
 
-# Parallel Workflow Orchestration for Enterprise Development
+# Parallel Workflow Orchestration
 
-This skill describes how to decompose large enterprise development tasks into parallel workstreams, spawn subagents efficiently, synthesise their results, handle partial failures, and track progress — all while optimising for cost and speed.
+Decompose tasks into parallel workstreams, spawn subagents, synthesize results, handle failures, track progress.
 
-> **Orchestration policy is defined in `opencode/agents/orchestrator.md`.** That file is the authoritative source for when parallelism is mandatory, hard rules, and the full UNDERSTAND → PLAN → DELEGATE → INTEGRATE → VERIFY → DELIVER workflow. This skill covers the practical mechanics of decomposition, spawning, synthesis, failure handling, and cost optimisation.
+> Orchestration policy in `opencode/agents/orchestrator.md` (authoritative source for when parallelism is mandatory and the full UNDERSTAND/PLAN/DELEGATE/INTEGRATE/VERIFY/DELIVER workflow). This skill covers decomposition, spawning, synthesis, failure handling, cost optimization.
 
 ---
 
-## Core Principle: True Parallelism Requires ONE Message
+## Core Principle
 
-All independent `Task` (subagent) calls must be issued in a **single message** to run in parallel. Issuing them one at a time wastes time and defeats the purpose of parallelisation.
+All independent `Task` calls in a **single message** for true parallelism. Sequential calls waste time.
 
 ```
-[CORRECT — all tasks start simultaneously]
+[CORRECT -- simultaneous]
 [Single message]:
   Task("analyse auth module")
   Task("analyse payments module")
   Task("analyse API layer")
   Task("run security audit")
 
-[INCORRECT — each waits for the previous to finish]
-Message 1: Task("analyse auth module") → wait for result
-Message 2: Task("analyse payments module") → wait for result
-Message 3: Task("analyse API layer") → wait for result
+[INCORRECT -- each waits for previous]
+Message 1: Task("analyse auth module") -> wait
+Message 2: Task("analyse payments module") -> wait
+Message 3: Task("analyse API layer") -> wait
 ```
 
 ---
 
 ## 1. When to Parallelise
 
-### Strong Signals — Always Parallelise
+### Always Parallelise
 
-- Tasks operating on **different files or modules** (no shared write state)
-- Tasks that are **read-only analysis** (audits, reviews, search)
-- Tasks that produce **independent artifacts** (test files for different modules)
-- Tasks with **no ordering dependency** between them
-- Tasks that are **estimated to take >2 minutes** each (parallelism ROI is high)
+- Tasks on **different files/modules** (no shared write state)
+- **Read-only analysis** (audits, reviews, search)
+- Tasks producing **independent artifacts**
+- **No ordering dependency**
+- Tasks **>2 min each** (high parallelism ROI)
 
-### Weak Signals — Parallelise with Care
+### Parallelise with Care
 
-- Tasks that read from the same files but write to different ones
-- Tasks that have a soft dependency (one informs the other) — sequence these
-- Tasks where failure of one affects the usefulness of others
+- Same files read, different files written
+- Soft dependency (one informs the other): sequence these
+- Failure of one affects usefulness of others
 
-### Do NOT Parallelise
+### Never Parallelise
 
-- Tasks that write to the **same file** (race condition)
-- Tasks where **Task B depends on the output of Task A**
-- Tasks that share mutable state (e.g., both run `git commit`)
-- Tasks where the total count is ≤2 (overhead may exceed benefit)
+- Tasks writing to **same file** (race condition)
+- **Task B depends on Task A output**
+- Shared mutable state (both run `git commit`)
+- Total count <=2 (overhead exceeds benefit)
 
 ### Decision Tree
 
 ```
-Is the task list > 2 items?
+Task list > 2 items?
 └── YES
-    Are tasks independent (no shared write targets)?
-    └── YES → Parallelise ALL in one message
-    └── PARTIAL → Group independent subsets; run groups in parallel, groups sequentially
-└── NO → Run sequentially; parallelism overhead not worth it
+    Independent (no shared write targets)?
+    └── YES -> Parallelise ALL in one message
+    └── PARTIAL -> Group independent subsets; parallel within, sequential between
+└── NO -> Sequential; parallelism overhead not worth it
 ```
 
 ---
@@ -71,101 +71,89 @@ Is the task list > 2 items?
 
 ### Pattern A: Module Fanout
 
-Decompose a single large task by module/service:
-
 ```
 Goal: "Audit all microservices for security vulnerabilities"
 
-Decomposition:
-  Task A → audit auth-service/
-  Task B → audit payments-service/
-  Task C → audit notifications-service/
-  Task D → audit api-gateway/
+  Task A -> audit auth-service/
+  Task B -> audit payments-service/
+  Task C -> audit notifications-service/
+  Task D -> audit api-gateway/
   [All four in ONE message]
 
-Synthesis: collect results → aggregate findings → prioritise by severity
+Synthesis: collect -> aggregate -> prioritise by severity
 ```
 
 ### Pattern B: Concern Fanout
 
-Decompose a single module by concern type:
-
 ```
-Goal: "Refactor the User module for enterprise standards"
+Goal: "Refactor User module for enterprise standards"
 
-Phase 1 (parallel — read-only analysis):
-  Task A → analyse naming conventions in src/user/
-  Task B → analyse error handling patterns in src/user/
-  Task C → analyse test coverage for src/user/
-  Task D → find missing JSDoc in src/user/
+Phase 1 (parallel, read-only):
+  Task A -> analyse naming in src/user/
+  Task B -> analyse error handling in src/user/
+  Task C -> analyse test coverage for src/user/
+  Task D -> find missing JSDoc in src/user/
 
-Phase 2 (sequential — after synthesis):
-  Synthesise findings → produce prioritised fix list
+Phase 2 (sequential): synthesise -> prioritised fix list
 
-Phase 3 (parallel — independent file edits):
-  Task E → fix naming in user.service.ts
-  Task F → add error handling to user.repository.ts
-  Task G → add JSDoc to user.controller.ts
-  Task H → add missing tests to user.service.test.ts
+Phase 3 (parallel, independent edits):
+  Task E -> fix naming in user.service.ts
+  Task F -> add error handling to user.repository.ts
+  Task G -> add JSDoc to user.controller.ts
+  Task H -> add tests to user.service.test.ts
 ```
 
 ### Pattern C: Layer Fanout
-
-Decompose a full-stack feature by layer:
 
 ```
 Goal: "Add 'Export to CSV' feature"
 
 Phase 1 (parallel):
-  Task A (cheaper model) → write database query + repository method
-  Task B (cheaper model) → write CSV generation service
-  Task C → write API endpoint + validation
-  Task D → write frontend download button component
-  Task E → write integration tests for the endpoint
+  Task A (cheap model) -> DB query + repository method
+  Task B (cheap model) -> CSV generation service
+  Task C -> API endpoint + validation
+  Task D -> frontend download button
+  Task E -> integration tests
 
-Phase 2 (sequential):
-  Wire up the components (depends on Phase 1 outputs)
+Phase 2 (sequential): wire up components
 ```
 
 ---
 
-## 3. Spawning Subagents — The Template
+## 3. Spawning Subagents
 
-When issuing parallel Task calls, use this structure in a **single message**:
+Issue all parallel Task calls in a **single message**:
 
 ```
-I'll parallelise this across [N] subagents. Spawning all simultaneously:
+Parallelising across [N] subagents:
 
-Task 1: "[Specific, bounded description of what this agent should do]"
-  - Scope: [exactly which files/directories to touch]
-  - Output: [what artifact to produce]
-  - Constraints: [read-only? write to X only? use Y pattern?]
+Task 1: "[Specific bounded description]"
+  - Scope: [exactly which files/dirs]
+  - Output: [artifact to produce]
+  - Constraints: [read-only? write to X only?]
 
-Task 2: "[Specific, bounded description]"
+Task 2: "[Specific bounded description]"
   - Scope: [...]
   - Output: [...]
   - Constraints: [...]
-
-[... all N tasks in this single message ...]
 ```
 
-### Task Prompt Quality Rules
+### Task Prompt Rules
 
-- **One responsibility per task** — a task that does two things is a task that might do neither well.
-- **Explicit output format** — tell the subagent exactly what to produce (a file, a JSON summary, a list of findings).
-- **File scope boundaries** — specify exactly which files the task may read/write.
-- **Success criteria** — "The task is complete when X is true."
+- **One responsibility per task**
+- **Explicit output format**: file, JSON summary, findings list
+- **File scope boundaries**: which files may be read/written
+- **Success criteria**: "complete when X is true"
 
 ```
-[CORRECT — good task prompt]
+[CORRECT]
 "Analyse src/payments/ for N+1 query patterns.
  Read all .ts files in that directory.
  Do NOT modify any files.
- Output: a JSON list of findings with format:
-   { file: string, line: number, description: string, severity: 'high'|'medium'|'low' }
- The task is complete when every .ts file has been inspected."
+ Output: JSON list: { file: string, line: number, description: string, severity: 'high'|'medium'|'low' }
+ Complete when every .ts file inspected."
 
-[INCORRECT — bad task prompt]
+[INCORRECT]
 "Look at the payments code and find problems."
 ```
 
@@ -173,18 +161,16 @@ Task 2: "[Specific, bounded description]"
 
 ## 4. Cost Optimization: Model Selection
 
-Not all subagents need the same model. Use cheaper/faster models for simpler subtasks:
-
-| Task Type                    | Recommended Model Tier                        | Rationale                        |
-| ---------------------------- | --------------------------------------------- | -------------------------------- |
-| Complex architecture design  | Full model (e.g., claude-sonnet)              | Requires deep reasoning          |
-| Code generation with context | Full model                                    | Context window + quality matters |
-| Simple file analysis / audit | Small model (e.g., claude-haiku, gpt-4o-mini) | Pattern matching, not reasoning  |
-| Test file generation         | Small-medium model                            | Template-heavy, less creative    |
-| Documentation writing        | Small-medium model                            | Well-defined structure           |
-| Regex / search tasks         | Small model                                   | Purely mechanical                |
-| Security scanning            | Full model                                    | High stakes, needs judgment      |
-| PR description writing       | Small model                                   | Summarisation task               |
+| Task Type                    | Model Tier   | Rationale                |
+| ---------------------------- | ------------ | ------------------------ |
+| Complex architecture design  | Full         | Deep reasoning           |
+| Code generation with context | Full         | Context window + quality |
+| Simple file analysis/audit   | Small        | Pattern matching         |
+| Test file generation         | Small-medium | Template-heavy           |
+| Documentation writing        | Small-medium | Well-defined structure   |
+| Regex/search tasks           | Small        | Purely mechanical        |
+| Security scanning            | Full         | High stakes, judgment    |
+| PR description writing       | Small        | Summarisation            |
 
 ```typescript
 {
@@ -209,11 +195,9 @@ Not all subagents need the same model. Use cheaper/faster models for simpler sub
 
 ## 5. Progress Tracking with todowrite
 
-For multi-phase parallel workflows, use `todowrite` to maintain a visible task board. Update it before and after each phase.
+Use `todowrite` for multi-phase parallel workflows. Update before and after each phase.
 
-### Workflow: Initialise Task Board
-
-At the start of a parallel workflow, create todos for every known task:
+### Initialize
 
 ```
 todowrite([
@@ -226,176 +210,161 @@ todowrite([
 ])
 ```
 
-### Workflow: Update on Completion
-
-After each subagent completes, update its todo:
+### Update on Completion
 
 ```
 todowrite([
-  { id: "phase1-auth",     content: "...", status: "completed" },  // done
-  { id: "phase1-payments", content: "...", status: "completed" },  // done
+  { id: "phase1-auth",     content: "...", status: "completed" },
+  { id: "phase1-payments", content: "...", status: "completed" },
   { id: "phase1-notif",    content: "...", status: "in_progress" }, // still running
   ...
 ])
 ```
 
-### Status Meanings
+### Statuses
 
-| Status        | Meaning                                        |
-| ------------- | ---------------------------------------------- |
-| `pending`     | Not yet started; waiting for a dependency      |
-| `in_progress` | Actively running (a subagent is working on it) |
-| `completed`   | Done; output available for synthesis           |
-| `failed`      | Failed; see failure handling section           |
+| Status        | Meaning                                   |
+| ------------- | ----------------------------------------- |
+| `pending`     | Not started; waiting for dependency       |
+| `in_progress` | Actively running (subagent working on it) |
+| `completed`   | Done; output available for synthesis      |
+| `failed`      | Failed; see failure handling              |
 
 ---
 
 ## 6. Result Synthesis
 
-After parallel subagents complete, the orchestrating agent must synthesise:
-
-### Synthesis Checklist
+After parallel subagents complete, synthesize:
 
 ```
-[ ] Collect all subagent outputs (findings, files written, summaries)
-[ ] Check for conflicts (did two agents produce inconsistent recommendations?)
+[ ] Collect all subagent outputs
+[ ] Check for conflicts (inconsistent recommendations?)
 [ ] Deduplicate overlapping findings
-[ ] Prioritise: sort by severity / importance / effort
-[ ] Produce a unified output:
-    - For audits: a single prioritised findings list
-    - For code generation: integrate all generated files
-    - For analysis: a consolidated report with cross-module patterns
-[ ] Update todowrite to reflect completion
-[ ] Present the summary to the user
+[ ] Prioritise by severity / importance / effort
+[ ] Produce unified output:
+    - Audits: single prioritised findings list
+    - Code gen: integrate all generated files
+    - Analysis: consolidated report with cross-module patterns
+[ ] Update todowrite
+[ ] Present summary to user
 ```
 
 ### Synthesis Prompt Pattern
 
 ```
-The following [N] subagents have completed. Their outputs are:
+[N] subagents completed:
 
-Subagent 1 (auth-service audit):
-[output]
-
-Subagent 2 (payments-service audit):
-[output]
-
+Subagent 1 (auth-service audit): [output]
+Subagent 2 (payments-service audit): [output]
 ...
 
-Synthesise these into:
-1. A deduplicated, prioritised list of findings (P0/P1/P2/P3)
-2. A cross-module patterns section (issues appearing in multiple services)
-3. A recommended fix order (dependencies between fixes)
+Synthesise into:
+1. Deduplicated, prioritised findings (P0/P1/P2/P3)
+2. Cross-module patterns (issues in multiple services)
+3. Recommended fix order (dependencies between fixes)
 ```
 
 ---
 
 ## 7. Failure Handling
 
-### Partial Failure Strategy
-
-When one subagent fails, the orchestrator must decide:
+### Partial Failure
 
 ```
-Subagent N failed. Was its output required for other subagents?
-├── YES (dependency) → Pause dependent tasks; report failure; ask user how to proceed
-└── NO (independent) → Continue with successful outputs; report failure at synthesis
+Subagent N failed. Output required for other subagents?
+├── YES (dependency) -> Pause dependent tasks; report failure; ask user
+└── NO (independent) -> Continue with successful outputs; report at synthesis
 ```
 
 ### Retry Policy
 
-- **Transient failures** (timeout, rate limit): retry once automatically with a 10-second delay.
-- **Scope errors** (file not found, wrong path): correct the scope and retry.
-- **Logic errors** (task is fundamentally wrong): do not retry; surface to user.
+- **Transient** (timeout, rate limit): retry once, 10s delay
+- **Scope** (file not found, wrong path): correct scope, retry
+- **Logic** (fundamentally wrong task): do not retry; surface to user
 
-### Failure Communication Template
+### Failure Template
 
 ```
-[WARNING] Partial completion: [N-1] of [N] subagents completed successfully.
+[WARNING] Partial completion: [N-1] of [N] subagents succeeded.
 
 Failed: [Task Name]
 Reason: [Brief explanation]
-Impact: [What is missing from the final output]
+Impact: [What missing from output]
 
 Options:
-A) Proceed with [N-1] outputs — the [missing concern] can be addressed separately.
-B) Retry the failed task — I'll reissue it now.
-C) Skip — the missing piece is not critical for this workflow.
+A) Proceed with [N-1] outputs; address [missing concern] separately
+B) Retry failed task now
+C) Skip; missing piece not critical
 
 What would you prefer?
 ```
 
 ---
 
-## 8. Enterprise Workflow Templates
+## 8. Workflow Templates
 
-### Template 1: Full Security Audit
-
-```
-Phase 1 — Parallel discovery (all in one message):
-  Task: audit src/auth/           → findings JSON
-  Task: audit src/payments/       → findings JSON
-  Task: audit src/api/            → findings JSON
-  Task: audit infra/              → findings JSON
-  Task: scan dependencies (npm audit) → vulnerability list
-
-Phase 2 — Sequential synthesis:
-  Merge findings → deduplicate → sort by severity → produce report
-
-Phase 3 — Parallel fixes (P0 and P1 only):
-  Task: fix auth P0 findings      → edited files
-  Task: fix payments P0 findings  → edited files
-  Task: fix api P0 findings       → edited files
-```
-
-### Template 2: Feature Implementation
+### Full Security Audit
 
 ```
-Phase 1 — Parallel implementation (all in one message):
-  Task (cheap model): write DB migration
-  Task (cheap model): write repository layer
-  Task (full model):  write service layer with business logic
-  Task (cheap model): write API endpoint + validation schema
-  Task (cheap model): write unit tests for service layer
+Phase 1 (parallel):
+  Task: audit src/auth/       -> findings JSON
+  Task: audit src/payments/   -> findings JSON
+  Task: audit src/api/        -> findings JSON
+  Task: audit infra/          -> findings JSON
+  Task: npm audit             -> vulnerability list
 
-Phase 2 — Sequential integration:
-  Wire layers together → verify imports → run linter
+Phase 2 (sequential): merge -> deduplicate -> sort by severity -> report
 
-Phase 3 — Parallel documentation:
+Phase 3 (parallel, P0/P1 only):
+  Task: fix auth P0 findings
+  Task: fix payments P0 findings
+  Task: fix api P0 findings
+```
+
+### Feature Implementation
+
+```
+Phase 1 (parallel):
+  Task (cheap): DB migration
+  Task (cheap): repository layer
+  Task (full):  service layer + business logic
+  Task (cheap): API endpoint + validation schema
+  Task (cheap): unit tests for service layer
+
+Phase 2 (sequential): wire layers -> verify imports -> lint
+
+Phase 3 (parallel):
   Task: update API changelog
-  Task: update README with new endpoint
-  Task: add JSDoc to new public functions
+  Task: update README
+  Task: add JSDoc to public functions
 ```
 
-### Template 3: Codebase Migration
+### Codebase Migration
 
 ```
-Phase 1 — Parallel analysis:
-  Task: find all files using old pattern X
-  Task: find all files using old pattern Y
+Phase 1 (parallel):
+  Task: find files using old pattern X
+  Task: find files using old pattern Y
   Task: identify circular dependencies
 
-Phase 2 — Sequential plan:
-  Review findings → create ordered migration plan (respecting dependencies)
+Phase 2 (sequential): review -> ordered migration plan
 
-Phase 3 — Parallel migration batches:
-  Batch A (no inter-dependencies): migrate files A1, A2, A3 in parallel
-  → verify batch A compiles
-  Batch B (depends on A): migrate files B1, B2 in parallel
-  → verify batch B compiles
+Phase 3 (parallel batches):
+  Batch A (no inter-deps): migrate A1, A2, A3 -> verify compiles
+  Batch B (depends on A): migrate B1, B2 -> verify compiles
   [continue until complete]
 ```
 
 ---
 
-## 9. Antipatterns to Avoid
+## 9. Antipatterns
 
-| Antipattern                   | Problem                                     | Fix                                               |
-| ----------------------------- | ------------------------------------------- | ------------------------------------------------- |
-| Sequential Task calls         | Negates parallelism; wastes time            | Issue all independent tasks in ONE message        |
-| Overlapping write scopes      | Race conditions; corrupted files            | Define non-overlapping file boundaries per task   |
-| Vague task prompts            | Subagent produces wrong output; needs retry | Specify exact scope, format, and success criteria |
-| Over-parallelising tiny tasks | Orchestration overhead > task time          | Only parallelise tasks estimated >1–2 min         |
-| Full model for simple tasks   | Expensive; slow for simple work             | Use cheap models for analysis and template tasks  |
-| No failure handling           | Partial failure silently drops results      | Always check all task outputs; report failures    |
-| Skipping todowrite            | No visibility into progress                 | Always initialise and update the task board       |
+| Antipattern                   | Problem                          | Fix                                      |
+| ----------------------------- | -------------------------------- | ---------------------------------------- |
+| Sequential Task calls         | Negates parallelism              | All independent tasks in ONE message     |
+| Overlapping write scopes      | Race conditions, corrupted files | Non-overlapping file boundaries per task |
+| Vague task prompts            | Wrong output, needs retry        | Exact scope, format, success criteria    |
+| Over-parallelising tiny tasks | Overhead > task time             | Only parallelise tasks >1-2 min          |
+| Full model for simple tasks   | Expensive and slow               | Cheap models for analysis/template tasks |
+| No failure handling           | Partial failure drops results    | Always check outputs; report failures    |
+| Skipping todowrite            | No visibility into progress      | Always init and update task board        |

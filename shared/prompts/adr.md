@@ -1,75 +1,63 @@
-# Architecture Decision Record (ADR) Workflow
+# ADR Workflow
 
-Use this workflow to document a significant architectural decision in a durable, reviewable format.
+Document significant architectural decisions in a durable, reviewable format.
 
 ---
 
 ## Input
 
-[DECISION TOPIC] — describe the architectural question or decision to be recorded. Include: the context in which the decision arose, who the stakeholders are, and the date the decision was made (or is being made).
+[DECISION TOPIC] -- the architectural question, context, stakeholders, and date.
 
 ---
 
 ## When to Write an ADR
 
-Write an ADR when making a decision that:
+Write when a decision:
 
-- Is difficult or costly to reverse
-- Affects multiple services, teams, or system components
-- Establishes a pattern or convention that others will follow
-- Involves a meaningful trade-off between alternatives
-- Is likely to be questioned in the future without context
+- Is difficult/costly to reverse
+- Affects multiple services, teams, or components
+- Establishes a pattern others will follow
+- Involves meaningful trade-offs
+- Will be questioned later without context
 
-Do not write an ADR for routine implementation choices. ADRs are for decisions at the level of: choice of database, inter-service communication protocol, authentication approach, API versioning strategy, caching layer, message broker, or core library adoption.
-
----
-
-## Phase 1 — ADR Numbering
-
-Determine the next ADR number:
-
-1. List all existing ADR files in `docs/decisions/` or `docs/adr/`
-2. Find the highest existing number (for example, `ADR-0007-...` means next is `0008`)
-3. If no ADRs exist, start at `0001`
-4. Format: four-digit zero-padded number (`0001`, `0042`, `0100`)
+Skip routine implementation choices. ADRs cover: database choice, communication protocol, auth approach, API versioning, caching layer, message broker, core library adoption.
 
 ---
 
-## Phase 2 — Context Research
+## Phase 1 -- ADR Numbering
 
-Before proposing a decision, deeply research the context.
+1. List existing ADRs in `docs/decisions/` or `docs/adr/`
+2. Next number = highest existing + 1
+3. Start at `0001` if none exist
+4. Format: four-digit zero-padded (`0001`, `0042`, `0100`)
+
+---
+
+## Phase 2 -- Context Research
 
 ### Problem Statement
 
-Articulate the exact problem or need being addressed:
-
-- What is the current state that is unsatisfactory?
-- What specific requirements or constraints must the solution satisfy?
-- What are the quality attributes at stake (performance, security, maintainability, cost, developer experience)?
-- What is the cost of inaction?
+- Current unsatisfactory state?
+- Requirements/constraints the solution must satisfy?
+- Quality attributes at stake (performance, security, maintainability, cost, DX)?
+- Cost of inaction?
 
 ### Constraints
 
-Identify non-negotiable constraints:
-
-- Technical constraints (existing stack, language, runtime, infrastructure)
-- Organisational constraints (team expertise, time, budget)
-- Regulatory and compliance constraints
-- Compatibility requirements (existing APIs, clients, data formats)
+- Technical (stack, language, runtime, infra)
+- Organisational (team expertise, time, budget)
+- Regulatory/compliance
+- Compatibility (existing APIs, clients, data formats)
 
 ### Related Decisions
 
-Search for related ADRs that provide context:
-
-- Decisions that this new decision builds on
-- Decisions that this new decision may supersede or constrain
-- Decisions that conflict with options being considered
+Search for ADRs this decision builds on, supersedes, constrains, or conflicts with.
 
 ---
 
-## Phase 3 — Options Research
+## Phase 3 -- Options Research
 
-Research and evaluate at least three viable options (two if the decision is binary). For each option:
+Research 3+ viable options (2 if binary). For each:
 
 ```
 Option N: [Name]
@@ -96,36 +84,30 @@ Estimated Effort: [Low / Medium / High / Unknown]
 Fit with current constraints: [Good / Partial / Poor] — [explanation]
 ```
 
-Research options using:
-
-- Existing codebase patterns
-- Well-known industry solutions
-- Trade-off analysis against the stated requirements
+Research using: existing codebase patterns, industry solutions, trade-off analysis against requirements.
 
 ---
 
-## Phase 4 — Decision
-
-After evaluating all options:
+## Phase 4 -- Decision
 
 ### Recommendation
 
-State the recommended option clearly and explain:
+State the recommended option and explain:
 
-- Why this option was chosen over the alternatives
+- Why chosen over alternatives
 - Which quality attributes it best satisfies
-- What trade-offs are being accepted
-- What assumptions underlie this decision (if any of these assumptions change, the decision should be revisited)
+- Trade-offs accepted
+- Assumptions (revisit if these change)
 
 ### Dissenting Views
 
-If any viable alternatives were seriously considered and rejected, document the strongest counter-argument for completeness. A reviewer should understand why the rejected options were not chosen.
+Document the strongest counter-argument for seriously considered alternatives. Reviewer should understand why rejected options were not chosen.
 
 ---
 
-## Phase 5 — Write Formal ADR
+## Phase 5 -- Write Formal ADR
 
-Produce the complete ADR document. This is the permanent record. Write in plain prose — clear, specific, and honest about trade-offs.
+Produce the permanent record. Plain prose, clear, specific, honest about trade-offs.
 
 ```
 ---
@@ -153,22 +135,16 @@ To supersede this ADR, create a new ADR and update the superseded-by field.
 
 ## Context
 
-[Describe the situation and forces at play. What is the technical and/or business context?
-What problem are we solving? Why does this decision need to be made now?
-
-Include:
-- Current state of the system
-- Requirements driving this decision
-- Constraints that limit available options
-- Quality attributes at stake]
+[Situation, forces, problem, why now.
+Include: current state, driving requirements, constraints, quality attributes at stake]
 
 ---
 
 ## Decision Drivers
 
-- [driver 1: the most important requirement]
-- [driver 2: a constraint or quality attribute]
-- [driver 3: a secondary requirement]
+- [driver 1: most important requirement]
+- [driver 2: constraint or quality attribute]
+- [driver 3: secondary requirement]
 
 ---
 
@@ -201,8 +177,8 @@ Cons: [inline list]
 
 We will adopt Option [N]: [Name].
 
-[Explain the rationale. Why does this option best satisfy the decision drivers?
-What trade-offs are we consciously accepting? What is out of scope for this decision?]
+[Rationale. Why this option best satisfies drivers.
+Trade-offs accepted. Out of scope.]
 
 ---
 
@@ -227,15 +203,13 @@ What trade-offs are we consciously accepting? What is out of scope for this deci
 
 ## Implementation Notes
 
-[Optional: brief guidance for implementing this decision. Not implementation details —
-just key notes that will help engineers act on this decision correctly.]
+[Optional: key guidance for engineers acting on this decision.]
 
 ---
 
 ## Review Criteria
 
-[How will we know if this decision was correct? What metrics, signals, or events
-would cause us to revisit it?]
+[How will we know if this was correct? What triggers revisiting?]
 
 - Revisit if: [condition]
 - Revisit if: [condition]
@@ -251,20 +225,16 @@ would cause us to revisit it?]
 
 ---
 
-## Phase 6 — Save the ADR
+## Phase 6 -- Save the ADR
 
-Save the completed ADR to `docs/decisions/ADR-[NNNN]-[kebab-case-title].md`.
+Save to `docs/decisions/ADR-[NNNN]-[kebab-case-title].md`. Create `docs/decisions/` if needed.
 
-Create the `docs/decisions/` directory if it does not exist.
-
-Also create or update `docs/decisions/README.md` as an index of all ADRs:
+Create/update `docs/decisions/README.md` as an index:
 
 ```
 # Architecture Decision Records
 
-This directory contains Architecture Decision Records (ADRs) for this project.
-
-ADRs record significant architectural decisions including the context, options, and rationale.
+ADRs for this project. Record context, options, and rationale for significant decisions.
 
 ## Index
 
@@ -274,35 +244,33 @@ ADRs record significant architectural decisions including the context, options, 
 ## Process
 
 1. Use the ADR workflow to generate a new ADR.
-2. Review the generated document and fill in team-specific details.
-3. Change status from Proposed to Accepted after team review.
-4. Never delete an ADR — supersede it with a new one if the decision changes.
+2. Review and fill in team-specific details.
+3. Change Proposed to Accepted after team review.
+4. Never delete an ADR — supersede with a new one.
 ```
 
 ---
 
 ## ADR Status Lifecycle
 
-- **Proposed** — the decision is under discussion; not yet final
-- **Accepted** — the decision has been made and is in effect
-- **Deprecated** — the decision was valid but is no longer relevant
-- **Superseded by ADR-N** — a later decision replaces this one; link to the superseding ADR
+- **Proposed** -- under discussion, not final
+- **Accepted** -- in effect
+- **Deprecated** -- valid but no longer relevant
+- **Superseded by ADR-N** -- replaced; link to successor
 
 ---
 
 ## Writing Quality Checklist
 
-Before filing the ADR, verify:
-
-- [ ] Context section explains the problem, not just the solution
+- [ ] Context explains the problem, not just the solution
 - [ ] Decision statement is unambiguous and self-contained
-- [ ] All options that were seriously considered are documented
-- [ ] The reason each non-chosen option was rejected is stated
-- [ ] Positive and negative consequences are honest — not just benefits
-- [ ] Risks are specific and include mitigations
-- [ ] The ADR is written at a level of detail that a new team member can understand without additional context
-- [ ] Status, date, and deciders are filled in
-- [ ] ADR is numbered and filed in the correct directory
+- [ ] All seriously considered options documented
+- [ ] Rejection reasons stated for non-chosen options
+- [ ] Consequences are honest, not just benefits
+- [ ] Risks are specific with mitigations
+- [ ] Understandable by a new team member without extra context
+- [ ] Status, date, deciders filled in
+- [ ] Numbered and filed correctly
 
 ---
 

@@ -1,72 +1,63 @@
 # Standup Workflow
 
-Use this workflow to prepare a concise, useful daily standup update.
+Prepare a concise, useful daily standup update.
 
 ---
 
 ## Input
 
-[CONTEXT] — optionally provide: the team name, the sprint goal, any blockers you are already aware of, and the date range to cover (defaults to since the previous working day).
+[CONTEXT] -- optionally: team name, sprint goal, known blockers, date range (defaults to since previous working day).
 
 ---
 
-## Purpose of a Good Standup
+## Purpose
 
-A standup is a synchronisation mechanism for the team, not a status report to management. The goal is to surface information that helps the team coordinate: who is working on what, who is blocked and needs help, and whether there are risks to the sprint goal.
+Standup is a team synchronisation mechanism, not a management status report. Surface: who is working on what, who is blocked, risks to sprint goal.
 
-A good standup update is:
+A good update is:
 
-- **Brief** — 60-90 seconds to deliver verbally
-- **Specific** — references actual tasks, PRs, decisions, not vague activity
-- **Actionable** — identifies what help or decisions are needed
-- **Forward-looking** — focuses on what matters today, not an exhaustive log of yesterday
-
----
-
-## Phase 1 — Gather Yesterday's Work
-
-**Review git activity.**
-Run `git log --oneline --after="yesterday" --author="$(git config user.name)"` to see commits made since the last standup. Note what changed.
-
-**Review pull requests.**
-Check which PRs were opened, updated, reviewed, or merged since the last standup.
-
-**Review task tracker.**
-Check the sprint board or issue tracker for tickets moved to In Progress, In Review, or Done.
-
-**Identify decisions made.**
-Were any architectural, product, or process decisions made or unblocked since the last standup?
+- **Brief** -- 60-90 seconds verbal
+- **Specific** -- references tasks, PRs, decisions, not vague activity
+- **Actionable** -- identifies needed help or decisions
+- **Forward-looking** -- what matters today, not exhaustive yesterday log
 
 ---
 
-## Phase 2 — Identify Today's Focus
+## Phase 1 -- Gather Yesterday's Work
 
-**Determine the primary task.**
-What is the single most important thing to finish or advance today? This should be aligned with the sprint goal.
+**Git activity.** `git log --oneline --after="yesterday" --author="$(git config user.name)"`. Note changes.
 
-**Identify supporting tasks.**
-Are there reviews, meetings, or secondary tasks that will take meaningful time today?
+**PRs.** Opened, updated, reviewed, or merged since last standup.
 
-**Confirm there are no hidden blockers.**
-Is there anything that could prevent completing today's primary task? If so, name it now.
+**Task tracker.** Tickets moved to In Progress, In Review, or Done.
 
----
-
-## Phase 3 — Identify Blockers and Risks
-
-A blocker is something that is preventing forward progress right now. A risk is something that might block progress if not addressed.
-
-For each blocker or risk:
-
-- Name it specifically: "Waiting for the API contract from the platform team" not "blocked on external dependency"
-- State what you need: a decision, a code review, access to an environment, a question answered
-- State who can unblock you (if known)
+**Decisions.** Architectural, product, or process decisions made/unblocked.
 
 ---
 
-## Phase 4 — Format the Update
+## Phase 2 -- Today's Focus
 
-Structure the standup using this format:
+**Primary task.** Single most important thing to finish/advance today. Aligned with sprint goal.
+
+**Supporting tasks.** Reviews, meetings, secondary tasks taking meaningful time.
+
+**Hidden blockers.** Anything preventing primary task completion? Name it now.
+
+---
+
+## Phase 3 -- Blockers and Risks
+
+Blocker = prevents forward progress now. Risk = might block if unaddressed.
+
+For each:
+
+- Name specifically: "Waiting for API contract from platform team" not "blocked on dependency"
+- State what you need: decision, review, access, answer
+- State who can unblock (if known)
+
+---
+
+## Phase 4 -- Format
 
 ```
 Yesterday:
@@ -82,18 +73,18 @@ Blockers / Risks:
 - None (if no blockers)
 ```
 
-Writing guidelines:
+Guidelines:
 
-- Use past tense for yesterday's items: "Completed", "Merged", "Reviewed", "Investigated"
-- Use active voice for today's items: "Will finish", "Continuing", "Starting"
-- Reference ticket numbers, PR numbers, or feature names so teammates can follow along
-- Keep each bullet to one sentence
+- Past tense for yesterday: "Completed", "Merged", "Reviewed", "Investigated"
+- Active voice for today: "Will finish", "Continuing", "Starting"
+- Reference ticket/PR numbers or feature names
+- One sentence per bullet
 
 ---
 
-## Examples
+## Example
 
-Well-written standup:
+Good:
 
 ```
 Yesterday:
@@ -108,41 +99,25 @@ Blockers:
 - Need sign-off from Jordan on the retention policy decision (DM'd them; hoping for response this morning)
 ```
 
-Poorly written standup (avoid this):
-
-```
-Yesterday:
-- Worked on stuff
-- Did some code
-
-Today:
-- More of the same
-
-Blockers:
-- Waiting on people
-```
-
 ---
 
 ## Calendar Context
 
-Note any context that affects the standup:
-
-- If it is Monday, aggregate the full previous week's work (not just yesterday)
-- If it is Friday, flag any work that needs to be in a known state before the weekend
-- If there was a holiday yesterday, acknowledge that and extend the "yesterday" window accordingly
+- Monday: aggregate full previous week (not just Friday)
+- Friday: flag work needing known state before weekend
+- Post-holiday: extend "yesterday" window accordingly
 
 ---
 
-## When to Flag Something to the Team
+## When to Flag to the Team
 
-Beyond the standard three items, flag to the team during standup if:
+Beyond the three standard items, flag if:
 
-- The sprint goal is at risk (not enough time, missing dependencies, scope grew)
-- A decision is needed that the team has not made yet
-- You discovered a technical risk that affects more than your own ticket
-- You need pair programming help on a complex problem
-- There is an impediment a team lead or manager needs to know about
+- Sprint goal at risk (time, dependencies, scope)
+- Unmade decision needed by team
+- Technical risk affecting more than your ticket
+- Need pairing help on complex problem
+- Impediment requiring lead/manager awareness
 
 ---
 
@@ -150,8 +125,8 @@ Beyond the standard three items, flag to the team during standup if:
 
 - [ ] Git log reviewed since last standup
 - [ ] PRs and task board reviewed
-- [ ] Yesterday's work summarised in specific, concrete terms
-- [ ] Today's primary task identified and aligned with sprint goal
+- [ ] Yesterday summarised in specific terms
+- [ ] Today's primary task identified, aligned with sprint goal
 - [ ] Blockers identified with specific asks
-- [ ] Update fits in 60-90 seconds
-- [ ] Any team-level risks or flags identified
+- [ ] Update fits 60-90 seconds
+- [ ] Team-level risks/flags identified

@@ -1,142 +1,136 @@
 # Pull Request Review Workflow
 
-Use this workflow when conducting a thorough code review on a pull request.
+Thorough code review on a pull request.
 
 ---
 
 ## Input
 
-[PULL REQUEST] — provide the PR number or URL, or pass the branch name, description, and list of changed file paths directly.
+[PULL REQUEST] -- PR number/URL, or branch name, description, and changed file paths.
 
 ---
 
 ## Review Philosophy
 
-A good code review is not a style inspection — it is a safety check. The goal is to find problems that will cost more to fix after merge: bugs, security issues, data loss risks, performance cliffs, and maintainability problems that compound over time.
+Code review is a safety check, not a style inspection. Find problems costly to fix after merge: bugs, security issues, data loss risks, performance cliffs, maintainability debt.
 
-Be specific in feedback. "This could be better" is not useful. "This N+1 query will cause timeouts when the users table exceeds 10,000 rows — consider using a JOIN or a batch load" is useful.
+Be specific. "This could be better" is useless. "This N+1 query will timeout when users exceeds 10k rows -- use a JOIN or batch load" is useful.
 
-Be proportionate. Flag blocking issues clearly. Flag improvements and nits separately so the author knows what must change before merge versus what would be nice to address.
+Be proportionate. Flag blocking issues clearly. Separate improvements and nits so author knows what must change vs. nice-to-have.
 
-Assume good intent. The author made decisions for reasons. Ask before correcting.
+Assume good intent. Ask before correcting.
 
 ---
 
 ## Parallel Review Workstreams
 
-Execute the following three reviews in parallel. Do not wait for one to finish before starting the others. Clearly label each section.
+Execute all three in parallel. Label each section clearly.
 
 ---
 
-### Workstream A — Security Audit
+### Workstream A -- Security Audit
 
-Review every changed file through a security lens.
+**Input validation**
 
-**Input validation and sanitisation**
+- All user input validated before use?
+- SQL, command, LDAP, XPath injection risks?
+- Output encoded before rendering (XSS)?
 
-- Is all user-supplied input validated before use?
-- Are there any SQL, command, LDAP, or XPath injection risks?
-- Is output properly encoded before rendering (XSS)?
+**Auth**
 
-**Authentication and authorisation**
+- New endpoints enforce authentication?
+- Authorisation at correct layer (not just UI)?
+- Insecure direct object reference risks?
 
-- Do new endpoints or functions enforce authentication?
-- Are authorisation checks present at the correct layer (not just UI)?
-- Are there any insecure direct object reference risks?
+**Secrets**
 
-**Secrets and sensitive data**
+- Hardcoded secrets, tokens, credentials?
+- Sensitive data in logs or error messages?
+- PII handled per data classification policy?
 
-- Are there hardcoded secrets, tokens, or credentials?
-- Is sensitive data logged or included in error messages?
-- Are PII fields handled per data classification policy?
+**Dependencies**
 
-**Dependency surface**
+- New dependencies well-maintained?
+- Changes relax CORS, CSP, or security headers?
 
-- Are any new dependencies introduced? If so, are they well-maintained?
-- Do any changes relax CORS, CSP, or other security headers?
+**Crypto**
 
-**Cryptography**
+- Custom crypto implemented (red flag)?
+- Secure, modern algorithms used?
 
-- Is any custom cryptography implemented (this is a red flag)?
-- Are secure, modern algorithms used where cryptography is needed?
-
-See `shared/rules/security.md` for the full security checklist.
+See `shared/rules/security.md` for full checklist.
 
 **Output:** Severity-tagged findings (CRITICAL / HIGH / MEDIUM / LOW / INFO).
 
 ---
 
-### Workstream B — Code Review
-
-Review for correctness, quality, and maintainability.
+### Workstream B -- Code Review
 
 **Correctness**
 
-- Does the code implement the stated intent?
-- Are there logic errors, off-by-one mistakes, or incorrect conditionals?
-- Are async operations properly awaited and handled?
-- What happens on error paths? Are errors propagated with sufficient context?
-- Are resources (connections, file handles, locks) released in error paths?
+- Implements stated intent?
+- Logic errors, off-by-one, incorrect conditionals?
+- Async operations properly awaited?
+- Errors propagated with sufficient context?
+- Resources released in error paths?
 
 **Edge cases**
 
-- Empty collections, zero values, nil pointers, maximum sizes, concurrent calls, out-of-order events — does the code handle them safely?
-- Are there race conditions in any shared mutable state?
+- Empty collections, zero values, nil pointers, max sizes, concurrent calls, out-of-order events handled safely?
+- Race conditions in shared mutable state?
 
 **Code quality**
 
-- Does the code follow existing project patterns and conventions?
-- Are functions and methods at an appropriate level of abstraction?
-- Is there duplicated code that should be extracted?
-- Are variable and function names clear and unambiguous?
+- Follows existing patterns and conventions?
+- Appropriate abstraction level?
+- Duplicated code to extract?
+- Clear, unambiguous names?
 
 **Performance**
 
-- Are there N+1 query patterns?
-- Are there unbounded operations on potentially large datasets?
-- Are expensive operations appropriately cached or deferred?
+- N+1 query patterns?
+- Unbounded operations on large datasets?
+- Expensive operations cached or deferred?
 
 **Maintainability**
 
-- Is complex logic documented with a docstring explaining why the approach was chosen?
-- Are magic numbers and strings replaced with named constants?
-- Is the change backwards-compatible? If not, is the breaking change documented?
-- No inline code comments present (only docstrings and JSDoc for public APIs)
+- Complex logic documented with docstring explaining why?
+- Magic numbers/strings replaced with constants?
+- Backwards-compatible? Breaking change documented?
+- No inline code comments (only docstrings/JSDoc for public APIs)
 
-**Output:** Categorised feedback with file and line references where possible.
+**Output:** Categorised feedback with file:line references.
 
 ---
 
-### Workstream C — Test Architecture
+### Workstream C -- Test Architecture
 
-Review the test coverage and quality.
+**Coverage**
 
-**Coverage assessment**
+- Percentage of changed code paths covered?
+- Which error paths untested?
+- Critical business logic branches without tests?
 
-- What percentage of the changed code paths have test coverage?
-- Which error paths are untested?
-- Are there critical business logic branches without tests?
+**Quality**
 
-**Test quality**
+- Testing behaviour or implementation details?
+- Deterministic (no flaky time/order dependencies)?
+- Clear, specific descriptions?
+- Mocks/stubs appropriate (not hiding integration issues)?
 
-- Are tests testing behaviour or implementation details?
-- Are tests deterministic (no flaky time or order dependencies)?
-- Are test descriptions clear and specific?
-- Are mocks and stubs used appropriately (not hiding real integration issues)?
+**Missing scenarios**
 
-**Missing test scenarios**
+- Specific test cases to add
+- Integration test gaps
+- Regression tests needed for these changes
 
-- List specific test cases that should be added
-- Identify integration test gaps
-- Note any regression tests that should be added based on the changes
-
-**Output:** Coverage gap analysis with specific suggested test cases.
+**Output:** Coverage gap analysis with suggested test cases.
 
 ---
 
 ## Synthesis
 
-After all three workstreams complete, produce the final PR review comment in this format (ready to post verbatim):
+Final PR review comment (ready to post):
 
 ```
 PR Review
@@ -149,8 +143,7 @@ Files changed: [count] | Lines added: [count] | Lines removed: [count]
 
 Summary
 
-[2-3 sentence overall assessment. State whether the PR is:
-Approved / Approved with suggestions / Changes requested / Blocked]
+[2-3 sentence assessment. State: Approved / Approved with suggestions / Changes requested / Blocked]
 
 ---
 
@@ -181,8 +174,8 @@ Test Coverage
 Coverage assessment: [Good / Adequate / Insufficient]
 
 Missing test cases:
-- [ ] [describe what scenario needs a test]
-- [ ] [describe what scenario needs a test]
+- [ ] [scenario needing test]
+- [ ] [scenario needing test]
 
 ---
 
@@ -202,19 +195,19 @@ Decision:
 
 ## Review Complete
 
-Confirm all three workstreams have contributed findings to the final comment. If any workstream found no issues, explicitly state "No issues found in this area."
+Confirm all three workstreams contributed. If any found no issues, state "No issues found in this area."
 
 ---
 
 ## Review Checklist
 
 - [ ] PR description read and understood
-- [ ] Linked issue or requirement confirmed addressed
+- [ ] Linked issue/requirement confirmed addressed
 - [ ] Diff scope appropriate
 - [ ] Execution paths traced for correctness
 - [ ] Error paths all handled
 - [ ] Edge cases considered
-- [ ] Security lens applied to sensitive code paths
+- [ ] Security lens on sensitive code paths
 - [ ] Tests present and meaningful
 - [ ] Test reliability assessed
 - [ ] Naming and abstraction appropriate
@@ -222,5 +215,5 @@ Confirm all three workstreams have contributed findings to the final comment. If
 - [ ] Logging and metrics present
 - [ ] Migration safety confirmed (if applicable)
 - [ ] Rollback plan viable
-- [ ] Feedback categorised as blocking / improvement / nit
+- [ ] Feedback categorised: blocking / improvement / nit
 - [ ] Summary comment written
