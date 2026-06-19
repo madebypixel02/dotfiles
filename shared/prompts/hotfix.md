@@ -1,160 +1,150 @@
 # Hotfix Workflow
 
-Use this workflow when a critical defect in production requires an immediate fix that bypasses the normal feature development cycle. Speed and safety are the dual priorities. Skip ceremony, never skip correctness.
+For critical production defects requiring immediate fix outside normal development cycle. Speed and safety both matter. Skip ceremony, never skip correctness.
 
 ---
 
 ## Input
 
-[INCIDENT DESCRIPTION] — provide: what the observable symptom is, when it started, what the impact is (users affected, error rate, data integrity concern), any error messages or stack traces, and what has already been tried.
+[INCIDENT DESCRIPTION] -- observable symptom, when it started, impact (users affected, error rate, data integrity), error messages/stack traces, what has been tried.
 
 ---
 
 ## What Qualifies as a Hotfix
 
-A hotfix is warranted when:
+Warranted:
 
-- Production is experiencing active data loss or corruption
-- A security vulnerability is being actively exploited or is imminently exploitable
-- A critical user-facing function is completely unavailable
-- Revenue-generating processes are blocked
+- Active data loss or corruption
+- Security vulnerability actively/imminently exploitable
+- Critical user-facing function completely unavailable
+- Revenue-generating processes blocked
 
-A hotfix is not warranted for:
+Not warranted:
 
 - Non-critical bugs with workarounds
-- Performance degradation that is not causing failures
-- Issues affecting only internal or test environments
+- Performance degradation not causing failures
+- Issues affecting only internal/test environments
 
-If in doubt, use the standard feature workflow — the abbreviated hotfix process skips safeguards that exist for good reasons.
-
----
-
-## Phase 1 — Triage (target: 5 minutes)
-
-Answer these questions immediately. Do not proceed until all are answered:
-
-1. **What is broken?** Describe the exact failure mode (crash, data corruption, security breach, performance degradation).
-2. **What is the blast radius?** Which users, services, or data are affected?
-3. **What is the severity?** P0 (complete outage) / P1 (critical degraded) / P2 (partial degraded)?
-4. **Is there an immediate mitigation?** Feature flag off, rollback possible, rate limit reducible, traffic redirect?
-5. **What is the root cause hypothesis?** Run `git log --oneline -20` to see recent changes. Check whether the symptom began at or shortly after a deployment.
-
-**Triage Output:** A one-paragraph incident summary with answers to all five questions.
+If in doubt, use standard feature workflow -- hotfix process skips safeguards that exist for good reasons.
 
 ---
 
-## Phase 2 — Immediate Mitigation
+## Phase 1 -- Triage (target: 5 min)
 
-If a mitigation is available that does not require a code deployment:
+Answer before proceeding:
 
-1. Apply the mitigation
-2. Confirm the error rate drops to zero (or the impact stops)
-3. Notify stakeholders that the immediate impact is contained
-4. Continue to Phase 3 to produce a permanent fix
+1. **What is broken?** Exact failure mode (crash, data corruption, security breach, perf degradation).
+2. **Blast radius?** Which users, services, data affected?
+3. **Severity?** P0 (complete outage) / P1 (critical degraded) / P2 (partial degraded)?
+4. **Immediate mitigation?** Feature flag off, rollback, rate limit, traffic redirect?
+5. **Root cause hypothesis?** Run `git log --oneline -20`. Did symptom begin at/after a deployment?
+
+**Output:** One-paragraph incident summary with all five answers.
+
+---
+
+## Phase 2 -- Immediate Mitigation
+
+If mitigation available without code deployment:
+
+1. Apply mitigation
+2. Confirm error rate drops to zero / impact stops
+3. Notify stakeholders impact is contained
+4. Continue to Phase 3 for permanent fix
 
 Common mitigations:
 
-- **Rollback** the last deployment if the issue began at deployment time
-- **Toggle a feature flag** to disable the broken feature
-- **Scale up** if the issue is resource exhaustion
-- **Block traffic** at the load balancer if a specific endpoint is causing cascading failures
-- **Apply a database patch** for data integrity issues (with a backup first)
+- **Rollback** if issue began at deployment
+- **Feature flag** to disable broken feature
+- **Scale up** for resource exhaustion
+- **Block traffic** at LB if endpoint causes cascading failures
+- **DB patch** for data integrity (backup first)
 
-Do not treat a mitigation as a fix. A mitigation buys time; it does not resolve the underlying defect.
-
----
-
-## Phase 3 — Root Cause Investigation
-
-With the immediate impact contained, investigate the true cause.
-
-**Read the code that is failing.**
-Do not guess. Read the code path from the error, understand what state the system was in, and identify the specific condition that caused the failure.
-
-**Reproduce locally.**
-Write a failing test that reproduces the defect before writing the fix. This confirms you understand the cause and provides a regression test.
-
-**Check for related issues.**
-Is this a symptom of a broader problem? Are there other code paths with the same defect pattern?
-
-**Document the root cause.**
-Write a one-paragraph explanation: what the code does, what assumption it makes, what condition violated that assumption, and what the result was.
+Mitigation buys time; it does not resolve the defect.
 
 ---
 
-## Phase 4 — Minimal Fix
+## Phase 3 -- Root Cause Investigation
 
-The hotfix branch must be cut from the production or main ref, not from a feature branch.
+With impact contained, investigate the true cause.
 
-Branch naming: `hotfix/<date>-<slug>` where slug is a 2-3 word description.
+**Read the failing code.** Do not guess. Read the code path from the error, understand the state, identify the condition causing failure.
 
-**Principle of Minimum Effective Change:**
+**Reproduce locally.** Write a failing test before writing the fix. Confirms understanding and provides regression test.
 
-- Fix only the confirmed root cause
-- Do not refactor surrounding code
-- Do not add unrelated improvements
-- Do not rename variables or restructure logic
-- If the fix is larger than approximately 50 lines, it is not a hotfix — escalate to a proper release
+**Check for related issues.** Symptom of a broader problem? Other code paths with same defect?
 
-Fix verification checklist:
-
-- [ ] The change addresses exactly the triage root cause — nothing more
-- [ ] No new dependencies introduced
-- [ ] No changes to data schemas or migrations (hotfixes must be zero-downtime)
-- [ ] No changes to public API contracts (unless the contract itself was the bug)
-- [ ] Environment variables and config changes are documented
+**Document root cause.** One paragraph: what the code does, what assumption it makes, what condition violated it, what resulted.
 
 ---
 
-## Phase 5 — Targeted Tests (target: 10 minutes)
+## Phase 4 -- Minimal Fix
 
-Write the minimum tests that:
+Branch from production/main ref, not a feature branch. Naming: `hotfix/<date>-<slug>`.
 
-1. **Reproduce the bug** — a failing test that demonstrates the exact failure mode before the fix
-2. **Verify the fix** — the same test must pass after the fix
-3. **Protect regressions** — one test confirming related code paths still work
+**Minimum Effective Change:**
+
+- Fix only confirmed root cause
+- No refactoring
+- No unrelated improvements
+- No renames or restructuring
+- If fix >~50 lines, escalate to proper release
+
+Verification:
+
+- [ ] Change addresses exactly the triage root cause
+- [ ] No new dependencies
+- [ ] No schema/migration changes (hotfixes must be zero-downtime)
+- [ ] No public API contract changes (unless the contract was the bug)
+- [ ] Env var/config changes documented
+
+---
+
+## Phase 5 -- Targeted Tests (target: 10 min)
+
+Minimum tests:
+
+1. **Reproduce** -- failing test demonstrating exact failure before fix
+2. **Verify** -- same test passes after fix
+3. **Protect** -- one test confirming related code paths still work
 
 Rules:
 
-- Tests must be fast (unit or narrow integration — no slow end-to-end tests in a hotfix)
-- Do not write comprehensive test coverage in a hotfix — that is follow-up work
-- Run the full test suite even under time pressure. A hotfix that breaks something else creates a second incident
+- Fast tests only (unit or narrow integration)
+- No comprehensive coverage in hotfix -- that is follow-up work
+- Run full test suite even under time pressure. Broken hotfix = second incident
 
 ---
 
-## Phase 6 — Security Check (target: 5 minutes)
+## Phase 6 -- Security Check (target: 5 min)
 
-Even in an emergency, do not skip security:
+Even in emergency:
 
-- [ ] Does the fix introduce any new input handling? If so, is it validated?
-- [ ] Could an attacker exploit the window between vulnerability discovery and deployment?
-- [ ] Does the fix involve authentication, authorisation, or session handling?
-- [ ] Are any secrets, tokens, or credentials referenced? Are they in environment variables, not code?
-- [ ] Does the fix change any data access patterns in ways that could expose data to wrong parties?
+- [ ] New input handling validated?
+- [ ] Attacker exploitable during vulnerability window?
+- [ ] Fix involves auth/session handling?
+- [ ] Secrets/tokens/credentials in env vars, not code?
+- [ ] Data access pattern changes could expose data to wrong parties?
 
-If any of these are answered YES, document the risk and the mitigation explicitly. See `shared/rules/security.md` for the full checklist.
-
----
-
-## Phase 7 — Deployment and Monitoring
-
-**Deploy to staging first.**
-Even for a hotfix, deploy to a staging environment and verify the fix works. A broken hotfix makes the incident worse.
-
-**Deploy to production.**
-Use the standard deployment process. Do not take shortcuts that bypass automated safety checks.
-
-**Monitor immediately after deployment.**
-Watch error rate graphs, latency metrics, and logs for the 10 minutes immediately following the deployment. Confirm the symptom is gone and no new errors appear.
-
-**Remove the mitigation.**
-If a mitigation was applied in Phase 2, confirm the fix makes it safe to restore normal operation, then do so.
+If any YES, document risk and mitigation. See `shared/rules/security.md`.
 
 ---
 
-## Phase 8 — Release Artefacts
+## Phase 7 -- Deployment and Monitoring
 
-**Commit message (conventional commit format):**
+**Deploy to staging first.** Verify fix works. Broken hotfix makes incident worse.
+
+**Deploy to production.** Standard deployment process. No shortcutting automated safety checks.
+
+**Monitor 10 minutes post-deploy.** Watch error rates, latency, logs. Confirm symptom gone, no new errors.
+
+**Remove mitigation.** If Phase 2 mitigation was applied, confirm fix makes it safe, then restore normal operation.
+
+---
+
+## Phase 8 -- Release Artefacts
+
+**Commit message:**
 
 ```
 fix: <concise description of what was broken and what was fixed>
@@ -180,15 +170,13 @@ Fixed: [INCIDENT DESCRIPTION]
 - Resolution: [what changed]
 ```
 
-**Rollback instructions.**
-Document exactly how to revert this hotfix if it causes new issues:
+**Rollback instructions:**
 
 ```bash
 git revert <commit-sha>
 ```
 
-**Post-mortem stub.**
-Create a stub for the post-mortem document at `docs/incidents/<date>-<slug>.md`:
+**Post-mortem stub** at `docs/incidents/<date>-<slug>.md`:
 
 ```
 Incident Post-Mortem: [TITLE]
@@ -217,35 +205,32 @@ Action Items:
 
 ---
 
-## Phase 9 — Communication and Postmortem
+## Phase 9 -- Communication and Postmortem
 
-**During the incident, communicate proactively.**
-Update stakeholders at regular intervals (every 15-30 minutes during active incidents): current status, what is being done, and when the next update will come.
+**During incident:** Update stakeholders every 15-30 min: current status, actions, next update time.
 
-**After resolution, communicate the outcome.**
-Notify stakeholders: what happened, what the impact was, how it was fixed, and when the fix was deployed.
+**After resolution:** Notify stakeholders: what happened, impact, fix, deployment time.
 
-**Postmortem (within 48 hours).**
-A postmortem is blameless. Its purpose is to learn, not to assign fault. Reconstruct the timeline, identify the root cause, document contributing factors, and produce concrete action items — each with an owner and a due date.
+**Postmortem (within 48h).** Blameless. Purpose is learning. Reconstruct timeline, identify root cause, document contributing factors, produce action items with owners and due dates.
 
 ---
 
 ## Hotfix Checklist
 
-- [ ] Fix is on `hotfix/*` branch cut from `main`
+- [ ] Fix on `hotfix/*` branch from `main`
 - [ ] Impact confirmed and quantified
 - [ ] Root cause identified (not assumed)
 - [ ] Mitigation applied to stop active impact
-- [ ] Bug reproduction test exists and was failing before fix, passing after
-- [ ] Minimal fix implemented (no refactoring, no unrelated changes)
+- [ ] Bug reproduction test: failing before, passing after
+- [ ] Minimal fix (no refactoring, no unrelated changes)
 - [ ] Security check passed or risks documented
 - [ ] Full test suite passes
 - [ ] Deployed to staging and verified
 - [ ] Deployed to production and monitored
 - [ ] Mitigation removed after fix confirmed
-- [ ] Commit message follows conventional commit format
-- [ ] CHANGELOG entry written
+- [ ] Conventional commit message
+- [ ] CHANGELOG entry
 - [ ] Rollback instructions documented
 - [ ] Post-mortem stub created
-- [ ] Stakeholders notified of resolution
-- [ ] PR is targeted at `main` (not at a feature branch)
+- [ ] Stakeholders notified
+- [ ] PR targeted at `main`
