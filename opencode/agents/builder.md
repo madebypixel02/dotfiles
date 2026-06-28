@@ -68,7 +68,6 @@ permission:
     "find /proc*": "deny"
     "rm -rf *": "deny"
     "rm -fr *": "deny"
-    "sudo *": "deny"
   external_directory:
     "~/.config/opencode/plans/**": "allow"
 ---
