@@ -28,7 +28,6 @@ permission:
     "cat /proc/*": "deny"
     "rm -rf *": "deny"
     "rm -fr *": "deny"
-    "sudo *": "deny"
   webfetch: "ask"
   task: "deny"
   skill: "deny"
