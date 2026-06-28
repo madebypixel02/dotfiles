@@ -235,16 +235,6 @@
       "chmod 777 *":                "deny",
       "chown *":                    "deny",
 
-      // Network / secrets exfiltration (deny)
-      "curl * | bash":              "deny",
-      "wget * | bash":              "deny",
-      "curl * | sh":                "deny",
-      "wget * | sh":                "deny",
-      "ssh *":                      "deny",
-      "scp *":                      "deny",
-      "nc *":                       "deny",
-      "netcat *":                   "deny",
-
       // Secret access (deny)
       "cat ~/.ssh/*":               "deny",
       "cat ~/.gnupg/*":             "deny",
