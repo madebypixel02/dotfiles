@@ -29,7 +29,6 @@ permission:
     "rm *": "deny"
     "git push*": "deny"
     "git reset*": "deny"
-    "sudo *": "deny"
 ---
 
 # Debugger Agent

@@ -229,12 +229,6 @@
       "cat /var/*":                 "ask",
       "cat /usr/*":                 "ask",
 
-      // Privilege escalation (deny)
-      "sudo *":                     "deny",
-      "su *":                       "deny",
-      "chmod 777 *":                "deny",
-      "chown *":                    "deny",
-
       // Secret access (deny)
       "cat ~/.ssh/*":               "deny",
       "cat ~/.gnupg/*":             "deny",
