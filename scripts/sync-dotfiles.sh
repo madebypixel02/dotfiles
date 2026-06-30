@@ -7,6 +7,10 @@ SHARED_PROMPTS_DIR="${DOTFILES_DIR}/shared/prompts"
 COPILOT_INSTRUCTIONS_DIR="${DOTFILES_DIR}/copilot/instructions"
 GEMINI_COMMANDS_DIR="${DOTFILES_DIR}/gemini/commands"
 GEMINI_TEMPLATES_DIR="${DOTFILES_DIR}/gemini/templates"
+COPILOT_AGENTS_DIR="${DOTFILES_DIR}/copilot/agents"
+COPILOT_AGENT_TEMPLATES_DIR="${DOTFILES_DIR}/copilot/templates/agents"
+COPILOT_PROMPTS_DIR="${DOTFILES_DIR}/copilot/prompts"
+COPILOT_PROMPT_TEMPLATES_DIR="${DOTFILES_DIR}/copilot/templates/prompts"
 
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -35,6 +39,34 @@ GEMINI_PROMPT_NAMES=(
     "feature"
     "hotfix"
     "humanizer"
+    "onboard"
+    "pr-review"
+    "refactor"
+    "release"
+    "rubber-duck"
+    "security-scan"
+    "standup"
+    "test-coverage"
+)
+
+COPILOT_MANUAL_AGENTS=("orchestrator.md" "developer.md" "planner.md")
+
+COPILOT_AGENT_PROMPT_MAPPINGS=(
+    "reviewer:pr-review"
+    "security-auditor:security-scan"
+    "test-architect:test-coverage"
+    "rubber-duck:rubber-duck"
+    "debugger:debug"
+    "docs-writer:adr"
+    "release-manager:release"
+)
+
+COPILOT_PROMPT_NAMES=(
+    "adr"
+    "debug"
+    "deep-research"
+    "feature"
+    "hotfix"
     "onboard"
     "pr-review"
     "refactor"
@@ -101,6 +133,32 @@ build_copilot_review_gate() {
     printf '%s\n' '- [ ] The change has been tested against the scenarios described in the rules above'
 }
 
+is_manual_copilot_agent() {
+    local agent_filename="$1"
+    local manual_agent
+    for manual_agent in "${COPILOT_MANUAL_AGENTS[@]}"; do
+        if [[ "${agent_filename}" == "${manual_agent}" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+build_copilot_agent_generation_header() {
+    local agent_name="$1"
+    local prompt_name="$2"
+    printf '<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->\n'
+    printf '<!-- Source: copilot/templates/agents/%s.template.md + shared/prompts/%s.md -->\n' "${agent_name}" "${prompt_name}"
+    printf '<!-- Regenerate with: scripts/sync-dotfiles.sh -->\n'
+}
+
+build_copilot_prompt_generation_header() {
+    local prompt_name="$1"
+    printf '<!-- GENERATED FILE -- DO NOT EDIT DIRECTLY -->\n'
+    printf '<!-- Source: copilot/templates/prompts/%s.template.md + shared/prompts/%s.md -->\n' "${prompt_name}" "${prompt_name}"
+    printf '<!-- Regenerate with: scripts/sync-dotfiles.sh -->\n'
+}
+
 sync_copilot_instructions() {
     log_header "Syncing copilot/instructions from shared/rules"
 
@@ -138,6 +196,123 @@ sync_copilot_instructions() {
         } > "${target_path}"
 
         log_ok "copilot/instructions/${target_name}"
+    done
+}
+
+sync_copilot_agents() {
+    log_header "Syncing copilot/agents from templates + shared/prompts"
+
+    mkdir -p "${COPILOT_AGENT_TEMPLATES_DIR}"
+    mkdir -p "${COPILOT_AGENTS_DIR}"
+
+    local mapping
+    for mapping in "${COPILOT_AGENT_PROMPT_MAPPINGS[@]}"; do
+        local agent_name prompt_name
+        agent_name="${mapping%%:*}"
+        prompt_name="${mapping#*:}"
+
+        local template_file="${COPILOT_AGENT_TEMPLATES_DIR}/${agent_name}.template.md"
+        local agent_file="${COPILOT_AGENTS_DIR}/${agent_name}.md"
+        local shared_prompt_file="${SHARED_PROMPTS_DIR}/${prompt_name}.md"
+
+        if [[ ! -f "${template_file}" ]]; then
+            log_warn "Template not found: copilot/templates/agents/${agent_name}.template.md -- skipping"
+            continue
+        fi
+
+        if ! grep -q '{{SHARED_PROMPT}}' "${template_file}"; then
+            log_skip "copilot/agents/${agent_name}.md (template has no {{SHARED_PROMPT}} placeholder)"
+            continue
+        fi
+
+        if [[ ! -f "${shared_prompt_file}" ]]; then
+            log_warn "Shared prompt not found: shared/prompts/${prompt_name}.md -- skipping"
+            continue
+        fi
+
+        local preamble_body
+        preamble_body="$(awk '/\{\{SHARED_PROMPT\}\}/{exit} {print}' "${template_file}")"
+
+        local suffix_body
+        suffix_body="$(awk '/\{\{SHARED_PROMPT\}\}/{found=1; next} found{print}' "${template_file}")"
+
+        local shared_content
+        shared_content="$(cat "${shared_prompt_file}")"
+
+        local frontmatter_block
+        frontmatter_block="$(awk '/^---$/{n++; print; if(n==2) exit; next} {print}' <<< "${preamble_body}")"
+
+        local preamble_after_fm
+        preamble_after_fm="$(awk 'BEGIN{n=0; past=0} /^---$/{n++; if(n==2){past=1; next}} past{print}' <<< "${preamble_body}" | sed '/./,$!d')"
+
+        {
+            printf '%s\n' "${frontmatter_block}"
+            printf '\n'
+            build_copilot_agent_generation_header "${agent_name}" "${prompt_name}"
+            if [[ -n "${preamble_after_fm}" ]]; then
+                printf '\n%s\n\n' "${preamble_after_fm}"
+            else
+                printf '\n'
+            fi
+            printf '%s\n' "${shared_content}"
+            if [[ -n "${suffix_body}" ]]; then
+                printf '%s\n' "${suffix_body}"
+            fi
+        } > "${agent_file}"
+
+        log_ok "copilot/agents/${agent_name}.md"
+    done
+}
+
+sync_copilot_prompts() {
+    log_header "Syncing copilot/prompts from templates + shared/prompts"
+
+    mkdir -p "${COPILOT_PROMPT_TEMPLATES_DIR}"
+    mkdir -p "${COPILOT_PROMPTS_DIR}"
+
+    local prompt_name
+    for prompt_name in "${COPILOT_PROMPT_NAMES[@]}"; do
+        local template_file="${COPILOT_PROMPT_TEMPLATES_DIR}/${prompt_name}.template.md"
+        local prompt_file="${COPILOT_PROMPTS_DIR}/${prompt_name}.prompt.md"
+        local shared_prompt_file="${SHARED_PROMPTS_DIR}/${prompt_name}.md"
+
+        if [[ ! -f "${template_file}" ]]; then
+            log_warn "Template not found: copilot/templates/prompts/${prompt_name}.template.md -- skipping"
+            continue
+        fi
+
+        if ! grep -q '{{SHARED_PROMPT}}' "${template_file}"; then
+            log_skip "copilot/prompts/${prompt_name}.prompt.md (template has no {{SHARED_PROMPT}} placeholder)"
+            continue
+        fi
+
+        if [[ ! -f "${shared_prompt_file}" ]]; then
+            log_warn "Shared prompt not found: shared/prompts/${prompt_name}.md -- skipping"
+            continue
+        fi
+
+        local preamble_body
+        preamble_body="$(awk '/\{\{SHARED_PROMPT\}\}/{exit} {print}' "${template_file}")"
+
+        local suffix_body
+        suffix_body="$(awk '/\{\{SHARED_PROMPT\}\}/{found=1; next} found{print}' "${template_file}")"
+
+        local shared_content
+        shared_content="$(cat "${shared_prompt_file}")"
+
+        {
+            build_copilot_prompt_generation_header "${prompt_name}"
+            printf '\n'
+            if [[ -n "${preamble_body}" ]]; then
+                printf '%s\n\n' "${preamble_body}"
+            fi
+            printf '%s\n' "${shared_content}"
+            if [[ -n "${suffix_body}" ]]; then
+                printf '%s\n' "${suffix_body}"
+            fi
+        } > "${prompt_file}"
+
+        log_ok "copilot/prompts/${prompt_name}.prompt.md"
     done
 }
 
@@ -342,6 +517,8 @@ main() {
 
     create_shared_mcp_servers
     sync_copilot_instructions
+    sync_copilot_agents
+    sync_copilot_prompts
     sync_gemini_commands
     validate_mcp_servers
 
