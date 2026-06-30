@@ -152,6 +152,7 @@ dirs=(
   "${DOTFILES_DIR}/claude/rules"
   "${DOTFILES_DIR}/claude/skills"
   "${DOTFILES_DIR}/shared"
+  "${DOTFILES_DIR}/copilot/skills"
 )
 
 for d in "${dirs[@]}"; do
@@ -183,6 +184,15 @@ else
     else
       log_info "humanizer clone failed -- skipping (network issue?)"
     fi
+  fi
+fi
+
+COPILOT_HUMANIZER_LINK="${DOTFILES_DIR}/copilot/skills/humanizer-upstream"
+if [[ "$DRY_RUN" == "true" ]]; then
+  log_info "[dry-run] would symlink copilot/skills/humanizer-upstream -> ${HUMANIZER_DIR}"
+else
+  if [[ -d "${HUMANIZER_DIR}" ]]; then
+    do_symlink "${HUMANIZER_DIR}" "${COPILOT_HUMANIZER_LINK}"
   fi
 fi
 
@@ -259,9 +269,41 @@ if [[ -d "$COPILOT_SRC" ]]; then
   log_info "To use in a project, copy the relevant files:"
   log_info "  cp ${COPILOT_SRC}/copilot-instructions.md <project>/.github/copilot-instructions.md"
   log_info "  cp -r ${COPILOT_SRC}/instructions/ <project>/.github/instructions/"
+  log_info "  cp -r ${COPILOT_SRC}/agents/ <project>/.github/agents/"
+  log_info "  cp -r ${COPILOT_SRC}/prompts/ <project>/.github/prompts/"
   log_info "Or create symlinks for global use."
 else
   log_info "Copilot instructions directory not found -- skipping"
+fi
+
+# ---------------------------------------------------------------------------
+# Step 4b-2: Copilot personal config (skills + MCP)
+# ---------------------------------------------------------------------------
+log_header "Copilot personal config (~/.copilot/)"
+
+COPILOT_HOME="${HOME}/.copilot"
+
+dirs_copilot=(
+  "${COPILOT_HOME}"
+  "${COPILOT_HOME}/skills"
+)
+
+for d in "${dirs_copilot[@]}"; do
+  if [[ "$DRY_RUN" == "true" ]]; then
+    echo -e "  ${CYAN}[dry-run]${RESET} would mkdir -p ${d}"
+  else
+    mkdir -p "$d"
+  fi
+done
+
+for skill_dir in "${DOTFILES_DIR}/copilot/skills"/*/; do
+  [[ -d "$skill_dir" ]] || continue
+  skill_name="$(basename "$skill_dir")"
+  do_symlink "${DOTFILES_DIR}/copilot/skills/${skill_name}" "${COPILOT_HOME}/skills/${skill_name}"
+done
+
+if [[ -f "${DOTFILES_DIR}/copilot/mcp-config.json" ]]; then
+  do_symlink "${DOTFILES_DIR}/copilot/mcp-config.json" "${COPILOT_HOME}/mcp-config.json"
 fi
 
 # ---------------------------------------------------------------------------
